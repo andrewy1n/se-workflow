@@ -1,54 +1,63 @@
 # se-workflow
 
-Personal software-engineering artifact contract: conversation → current
-phase as records → parallel subagents → verification. Requires the
-`adaptive-artifacts` plugin on PATH (`project-design@0.3.0`).
+Agent skills for a software-engineering delivery loop: plan a phase as
+records, execute independent tasks with parallel subagents, verify with
+TDD or checks. Install this repo as a plugin. It is not a template you
+copy into other projects.
 
-The plan is a **derived view**, not a Markdown file agents edit. Only the
-**current phase** is materialized as `work-item` + `acceptance` records.
+Requires the **adaptive-artifacts** plugin (`adaptive-artifacts` on PATH).
 
-## Prerequisites
+The plan is a derived view over records, not a `PLAN.md`. Only the
+**current phase** is materialized as `work-item` + `acceptance`.
 
-- `adaptive-artifacts` on PATH (Cursor/Claude plugin)
-- Git repo for any project that will hold a live store
+## Install
 
-## Use on a real engineering repo
+### Claude Code
 
-```bash
-~/se-workflow/scripts/plant.sh /path/to/work-repo
+```
+/plugin marketplace add andrewy1n/se-workflow
+/plugin install se-workflow@se-workflow
 ```
 
-That copies this design, discovery pointers, and the three skills, then
-`resolve` + `init`. Open that repo and follow `artifact-runtime`.
+### Cursor
 
-A one-shot task that fits in one chat gets **no** records.
+From a clone:
 
-## Skills
+```bash
+git clone https://github.com/andrewy1n/se-workflow.git
+./se-workflow/scripts/sync-plugin.sh
+```
+
+Then reload Cursor so it picks up `~/.cursor/plugins/local/se-workflow`.
+Or install from the repository URL in the Cursor plugin flow.
+
+### Codex / other Agent Skills hosts
+
+Copy or symlink `skills/se-plan-phase`, `skills/se-execute-phase`, and
+`skills/se-verify-work` into the host's skills directory. Keep
+`contract/project-design.json` next to `skills/` as in this repo (two
+levels above each `SKILL.md`).
+
+## Use
+
+In whatever repo you are building:
 
 | Skill | When |
 |---|---|
 | `se-plan-phase` | Planning conversation finished, or starting the next phase |
 | `se-execute-phase` | Dispatch ready work in waves to subagents |
-| `se-verify-work` | Show a task is done (tests/TDD/check) |
+| `se-verify-work` | Show a task is done (tests / TDD / check) |
 
-Runtime writes stay with `artifact-runtime`. Subagents must not write records.
+On first use in a repo, `se-plan-phase` writes the bundled contract into
+that repo's `.artifacts/` and inits the store. Skills stay in the plugin.
 
-## Record map
+A one-shot task that fits in one chat gets no records. Subagents must
+not call `adaptive-artifacts` (single-writer store).
 
-| Type | Pattern | Done / change |
-|---|---|---|
-| `work-item` | current-status | `live=yes` while open; supersede `live=no` when finished or dropped. `stage` is `planned` or `in_progress`. Payload updates also go through **supersede** (the CLI cannot patch a current-claim without a transition). |
-| `acceptance` | definition | What done means. Same `subject` as the work-item. |
-| `check-run` | event | A test of that criterion at a git revision. |
-| `active-goal` / `current-position` | current-status | Effort outcome; current phase + remaining phase *titles* only. |
-| `decision` | decision | Durable choices from planning. |
-| `continuity-question` | question | Dispatch/resume blockers. |
-| `failed-attempt` | event | Abandoned approach. |
+## Skills in this pack
 
-Dependencies are `ready` + `wave` on the work-item (the catalog has no
-`depends_on`). Git owns code and tests. Do not dual-write GSD `.planning/`.
+- `se-plan-phase`
+- `se-execute-phase`
+- `se-verify-work`
 
-## This repo
-
-Has its own store for the workflow pack itself. Do not copy `.artifacts/records/`
-into a work repo — only `project-design.json`.
+Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).

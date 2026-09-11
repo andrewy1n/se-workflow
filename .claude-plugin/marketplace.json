@@ -1,0 +1,14 @@
+{
+  "name": "se-workflow",
+  "owner": {
+    "name": "andrewy1n",
+    "email": "andrewyingo@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "se-workflow",
+      "source": "./",
+      "description": "Software-engineering delivery skills: plan a phase as records, execute with parallel subagents, verify with TDD or checks."
+    }
+  ]
+}

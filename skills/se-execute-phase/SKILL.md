@@ -3,16 +3,15 @@ name: se-execute-phase
 description: >-
   Dispatches se-workflow work-items in waves to parallel subagents.
   Parent session writes records; subagents return verification evidence
-  only. Use when a project has the se-workflow design and the user asks
-  to execute a phase, run tasks in parallel, or continue ready work.
+  only. Use when the user asks to execute a phase, run tasks in
+  parallel, or continue ready work.
 ---
 
 # Execute the current phase
 
-Requires `artifact-runtime` and a live se-workflow store (`"project":
-"se-workflow"` in `.artifacts/project-design.json`). If missing, plant
-from `~/se-workflow` and stop. Follow `se-verify-work` after each
-subagent returns.
+Requires `artifact-runtime` and a live se-workflow store. If missing,
+follow [ensure-store.md](../ensure-store.md) then `se-plan-phase`.
+Follow `se-verify-work` after each subagent returns.
 
 The git-filesystem backend is **single-writer**. Only this parent
 session may call `adaptive-artifacts`.

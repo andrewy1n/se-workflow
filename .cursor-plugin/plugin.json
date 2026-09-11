@@ -1,0 +1,22 @@
+{
+  "name": "se-workflow",
+  "displayName": "se-workflow",
+  "description": "Software-engineering delivery skills: plan a phase as records, execute with parallel subagents, verify with TDD or checks. Requires the adaptive-artifacts plugin.",
+  "version": "0.1.0",
+  "author": {
+    "name": "andrewy1n",
+    "email": "andrewyingo@gmail.com"
+  },
+  "homepage": "https://github.com/andrewy1n/se-workflow",
+  "repository": "https://github.com/andrewy1n/se-workflow",
+  "keywords": [
+    "skills",
+    "planning",
+    "phases",
+    "subagents",
+    "tdd",
+    "artifacts",
+    "verification"
+  ],
+  "skills": "./skills/"
+}

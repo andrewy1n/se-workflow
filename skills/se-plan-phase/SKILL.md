@@ -3,17 +3,15 @@ name: se-plan-phase
 description: >-
   Materializes only the current delivery phase as adaptive-artifacts
   work-item and acceptance records (not PLAN.md or GSD .planning/).
-  Use when a project has the se-workflow design and the user finished a
-  planning conversation, asked to start a phase, or asked to generate
-  tasks for the current phase.
+  Use when the user finished a planning conversation, asked to start a
+  phase, or asked to generate tasks for the current phase.
 ---
 
 # Plan the current phase
 
-Requires `artifact-runtime` and a live se-workflow store. If
-`.artifacts/project-design.json` is missing or its `"project"` is not
-`se-workflow`, stop and run `scripts/plant.sh` from `~/se-workflow`
-(or tell the user to). Do not invent a parallel plan file.
+Requires `artifact-runtime` and `adaptive-artifacts` on PATH. Follow
+[ensure-store.md](../ensure-store.md) in the **current work repo**
+before writing records. Do not copy this plugin into the project.
 
 Skip this skill for a one-shot task that fits in the current chat.
 

@@ -3,16 +3,16 @@ name: se-verify-work
 description: >-
   Captures se-workflow check-run evidence and closes a work-item when
   its acceptance criterion passes (TDD, command check, or manual).
-  Use when a project has the se-workflow design and a task needs to be
-  shown done, tests were run, or a subagent returned verification
-  evidence.
+  Use when a task needs to be shown done, tests were run, or a subagent
+  returned verification evidence.
 ---
 
 # Verify work
 
-Requires `artifact-runtime` and a live se-workflow store. Parent session
-writes records. Git/tests own the code; this skill owns the occurrence
-that a criterion was tested.
+Requires `artifact-runtime` and a live se-workflow store. If missing,
+follow [ensure-store.md](../ensure-store.md). Parent session writes
+records. Git/tests own the code; this skill owns the occurrence that a
+criterion was tested.
 
 `method` on `project:acceptance`: `tdd` | `check` | `manual`.
 
