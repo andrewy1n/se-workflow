@@ -1,0 +1,20 @@
+{
+  "id": "rec-c431d56c-0013-455e-9219-b827166a273c",
+  "record_type": "project:active-goal",
+  "base_kind": "claim",
+  "subject": "se-workflow",
+  "payload": {
+    "goal": "Personal software-engineering workflow: current-phase records, parallel subagents, verification. Plant this design onto work repos; do not dual-write GSD plans.",
+    "scope": "pack"
+  },
+  "lifecycle_state": "active",
+  "relationships": {},
+  "revision": "sha256:9db14debd0e4b791753c56cff67f10c649a630f8e8332b9205bbbe880359a129",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "epistemic_status": "asserted",
+  "time": {
+    "as_of": "2026-09-11T08:31:28+00:00"
+  }
+}

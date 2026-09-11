@@ -1,0 +1,237 @@
+{
+  "format": "adaptive-artifacts/project-design@0.3.0",
+  "project": "se-workflow",
+  "kind": "software_engineering",
+  "assessment": {
+    "discontinuity": "high",
+    "external_investigation": "low",
+    "decision_density": "medium",
+    "orientation_cost": "medium",
+    "operational_risk": "low",
+    "concurrency": "high",
+    "verification_cost": "high"
+  },
+  "records": [
+    {
+      "name": "active-goal",
+      "pattern": "current-status",
+      "purpose": "Live outcome of this effort",
+      "canonical_for": "the live goal of this subject",
+      "capture": "at_event",
+      "read": "always",
+      "payload": ["goal", "scope"]
+    },
+    {
+      "name": "current-position",
+      "pattern": "current-status",
+      "purpose": "Live position: current phase and what is in flight",
+      "canonical_for": "the live position of this subject",
+      "capture": "at_event",
+      "read": "always",
+      "payload": ["position", "scope"]
+    },
+    {
+      "name": "work-item",
+      "pattern": "current-status",
+      "purpose": "Whether this task is still live work",
+      "canonical_for": "whether this task is the live work",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "title",
+        "phase",
+        "wave",
+        "ready",
+        "assignee",
+        "stage",
+        "live"
+      ]
+    },
+    {
+      "name": "acceptance",
+      "pattern": "definition",
+      "purpose": "What done means for this change",
+      "canonical_for": "what done means for this change",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": ["criterion", "method", "phase"]
+    },
+    {
+      "name": "check-run",
+      "pattern": "event",
+      "purpose": "That this criterion was tested at a revision",
+      "canonical_for": "that this criterion was tested at this revision",
+      "capture": "at_event",
+      "read": "query",
+      "payload": ["criterion_id", "revision", "result"]
+    },
+    {
+      "name": "decision",
+      "pattern": "decision",
+      "purpose": "An adopted choice among alternatives",
+      "canonical_for": "the adopted choice for this question",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": ["choice", "alternatives", "rationale", "phase"]
+    },
+    {
+      "name": "continuity-question",
+      "pattern": "question",
+      "purpose": "A blocker that stops dispatch or resume",
+      "canonical_for": "whether this unknown blocks continuity",
+      "capture": "at_event",
+      "read": "always",
+      "payload": ["owner", "blocking", "scope"]
+    },
+    {
+      "name": "failed-attempt",
+      "pattern": "event",
+      "purpose": "An approach that should not be retried as-is",
+      "canonical_for": "that this approach was abandoned",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": ["attempted_action", "retry_when"]
+    }
+  ],
+  "views": [
+    {
+      "name": "handoff",
+      "owns_facts": false,
+      "freshness": "on_demand_or_handoff",
+      "parameters": ["group_by"],
+      "roles": [
+        {
+          "name": "goal",
+          "occupant": "active-goal",
+          "requires_payload": ["goal", "scope"],
+          "selection": {
+            "all": [{ "field": "lifecycle_state", "equals": "active" }]
+          }
+        },
+        {
+          "name": "position",
+          "occupant": "current-position",
+          "requires_payload": ["position", "scope"],
+          "selection": {
+            "all": [{ "field": "lifecycle_state", "equals": "active" }]
+          }
+        },
+        {
+          "name": "in-progress",
+          "occupant": "work-item",
+          "requires_payload": ["title", "phase", "stage"],
+          "selection": {
+            "all": [
+              { "field": "lifecycle_state", "equals": "active" },
+              { "field": "payload.stage", "equals": "in_progress" }
+            ]
+          }
+        },
+        {
+          "name": "blocking-question",
+          "occupant": "continuity-question",
+          "requires_payload": ["blocking", "scope"],
+          "selection": {
+            "all": [
+              { "field": "lifecycle_state", "equals": "open" },
+              { "field": "payload.blocking", "equals": true }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "plan",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": ["group_by"],
+      "roles": [
+        {
+          "name": "work",
+          "occupant": "work-item",
+          "requires_payload": ["title", "phase", "wave", "ready", "stage", "live"],
+          "selection": {
+            "all": [
+              { "field": "lifecycle_state", "equals": "active" },
+              { "field": "payload.live", "equals": "yes" }
+            ]
+          }
+        },
+        {
+          "name": "acceptance",
+          "occupant": "acceptance",
+          "requires_payload": ["criterion", "method"],
+          "selection": {
+            "all": [{ "field": "lifecycle_state", "equals": "active" }]
+          }
+        },
+        {
+          "name": "decision",
+          "occupant": "decision",
+          "requires_payload": ["choice"],
+          "selection": {
+            "all": [{ "field": "lifecycle_state", "equals": "active" }]
+          }
+        }
+      ]
+    },
+    {
+      "name": "verification",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": ["group_by"],
+      "roles": [
+        {
+          "name": "acceptance",
+          "occupant": "acceptance",
+          "requires_payload": ["criterion", "method"],
+          "selection": {
+            "all": [{ "field": "lifecycle_state", "equals": "active" }]
+          }
+        },
+        {
+          "name": "check",
+          "occupant": "check-run",
+          "selection": {
+            "all": []
+          }
+        }
+      ]
+    }
+  ],
+  "bundles": [
+    {
+      "name": "specified-work",
+      "optional": true,
+      "records": ["work-item", "acceptance"],
+      "capture": {
+        "trigger": ["explicit_request"]
+      }
+    }
+  ],
+  "overrides": [],
+  "source_lock": {
+    "catalog_version": "0.6.0",
+    "catalog": "sha256:9ea932ac9dd3284521dc8d96b3b4e30d6ed4c09d5587a9d7561139f20c1dfd67",
+    "traits": "sha256:c2a14aa765abb653c9b76e6487a914f98bfd90231ecec441d66ff846861778b1",
+    "backends": "sha256:717457f0078f89913f64d0e832b0d4a57643a5474f503b11c443d7fa97e2ea37"
+  },
+  "backend": "git-filesystem",
+  "view_params": {
+    "project:handoff": { "group_by": "scope" },
+    "project:plan": { "group_by": "phase" },
+    "project:verification": { "group_by": "subject" }
+  },
+  "source_revisions": {
+    "code": "git_commit"
+  },
+  "occupancy": {},
+  "gaps": [
+    {
+      "need": "contains/depends_on for a task graph; encoded as payload.ready and payload.wave maintained by the parent"
+    },
+    {
+      "need": "completion lifecycle planned to in-progress to done; encoded as payload.live/stage on current-status plus check-run events"
+    }
+  ]
+}
