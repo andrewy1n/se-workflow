@@ -1,25 +1,62 @@
 # se-workflow
 
-Agent skills for a software-engineering delivery loop: plan a phase as
-records, execute independent tasks with parallel subagents, verify with
-TDD or checks. Install this repo as a plugin. It is not a template you
-copy into other projects.
+Agent skills for a software-engineering loop on adaptive-artifacts:
+classify the ask, plan only the focused effort, execute independent
+tasks with parallel subagents, verify with TDD, checks, or findings.
+Install this repo as a plugin. It is not a template you copy into
+other projects.
 
 Requires the **adaptive-artifacts** plugin (`adaptive-artifacts` on PATH).
+Install that dependency before this plugin (see Install below).
 
-The plan is a derived view over records, not a `PLAN.md`. Only the
-**current phase** is materialized as `work-item` + `acceptance`.
+The plan is a derived view over records. Only the **focused effort**
+is written; for delivery-shaped work, only the **current phase** is
+materialized as `work-item` + `acceptance`.
+
+## Kinds
+
+`kind` is data on the goal and each work-item, not a new skill:
+
+| Kind | Use |
+|---|---|
+| `deliver` | Specified change; done is a binary check |
+| `repair` | Something is wrong; diagnose, then fix |
+| `evaluate` | The work is a campaign or comparison |
+| `incidental` | One-off; no records if it fits this chat |
+
+Focus is a subject string (which effort this chat is on). Other live
+goals stay live. Views group handoff by subject and the plan by
+`effort`. See [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 
 ## Install
 
-### Claude Code
+Requires **adaptive-artifacts** first (`adaptive-artifacts` on PATH).
+That plugin is not in Anthropic's official marketplace.
 
-```
-/plugin marketplace add andrewy1n/se-workflow
-/plugin install se-workflow@se-workflow
+### 1. adaptive-artifacts (dependency)
+
+```bash
+claude plugin marketplace add andrewy1n/adaptive-artifacts
+claude plugin install adaptive-artifacts@adaptive-artifacts -y
 ```
 
-### Cursor
+Or for Cursor: clone/sync adaptive-artifacts and put `bin/adaptive-artifacts`
+on PATH (see that repo's README).
+
+### 2. se-workflow
+
+#### Claude Code
+
+```bash
+claude plugin marketplace add andrewy1n/se-workflow
+claude plugin install se-workflow@se-workflow -y
+```
+
+Install id is `se-workflow@se-workflow`. If a marketplace with that name
+already points elsewhere: `claude plugin marketplace remove se-workflow`
+then add again.
+
+#### Cursor
 
 From a clone:
 
@@ -31,12 +68,13 @@ git clone https://github.com/andrewy1n/se-workflow.git
 Then reload Cursor so it picks up `~/.cursor/plugins/local/se-workflow`.
 Or install from the repository URL in the Cursor plugin flow.
 
-### Codex / other Agent Skills hosts
+#### Codex / other Agent Skills hosts
 
-Copy or symlink `skills/se-plan-phase`, `skills/se-execute-phase`, and
-`skills/se-verify-work` into the host's skills directory. Keep
-`contract/project-design.json` next to `skills/` as in this repo (two
-levels above each `SKILL.md`).
+Copy or symlink `skills/init`, `skills/plan-phase`, `skills/execute-phase`,
+`skills/verify-work`, and `skills/engage` into the host's skills
+directory. Keep `contract/project-design.json` and
+`skills/kinds-and-focus.md` / `skills/ensure-store.md` next to
+`skills/` as in this repo (two levels above each `SKILL.md`).
 
 ## Use
 
@@ -44,20 +82,34 @@ In whatever repo you are building:
 
 | Skill | When |
 |---|---|
-| `se-plan-phase` | Planning conversation finished, or starting the next phase |
-| `se-execute-phase` | Dispatch ready work in waves to subagents |
-| `se-verify-work` | Show a task is done (tests / TDD / check) |
+| `engage` | Classify kind + focus, then hand off |
+| `init` | First time on a repo, or a new effort subject |
+| `plan-phase` | Planning finished, or tasks for this focus |
+| `execute-phase` | Dispatch ready work in waves to subagents |
+| `verify-work` | Show a task is done (check-run and/or finding) |
 
-On first use in a repo, `se-plan-phase` writes the bundled contract into
-that repo's `.artifacts/` and inits the store. Skills stay in the plugin.
+On first use, `init`, `plan-phase`, or `engage` writes the bundled
+contract into that repo's `.artifacts/` and inits the store. Skills
+stay in the plugin.
 
-A one-shot task that fits in one chat gets no records. Subagents must
-not call `adaptive-artifacts` (single-writer store).
+`init` writes goal, kind, current phase, and later phase titles only —
+not work-items. `plan-phase` materializes this focus's tasks.
+
+A one-shot that fits in one chat and is not an interrupt gets no
+records. An interrupt or a chore that may span chats gets
+`kind=incidental` on its **own** subject. Subagents must not call
+`adaptive-artifacts` (single-writer store).
+
+Existing se-workflow stores created before findings existed need a
+human-approved contract replace (`ensure-store.md`).
 
 ## Skills in this pack
 
-- `se-plan-phase`
-- `se-execute-phase`
-- `se-verify-work`
+- `engage`
+- `init`
+- `plan-phase`
+- `execute-phase`
+- `verify-work`
 
+Shared rules: [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).

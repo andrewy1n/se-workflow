@@ -19,7 +19,7 @@
       "canonical_for": "the live goal of this subject",
       "capture": "at_event",
       "read": "always",
-      "payload": ["goal", "scope"]
+      "payload": ["goal", "scope", "kind"]
     },
     {
       "name": "current-position",
@@ -44,7 +44,9 @@
         "ready",
         "assignee",
         "stage",
-        "live"
+        "live",
+        "kind",
+        "effort"
       ]
     },
     {
@@ -54,7 +56,7 @@
       "canonical_for": "what done means for this change",
       "capture": "explicit",
       "read": "if_relevant",
-      "payload": ["criterion", "method", "phase"]
+      "payload": ["criterion", "method", "phase", "effort"]
     },
     {
       "name": "check-run",
@@ -63,7 +65,7 @@
       "canonical_for": "that this criterion was tested at this revision",
       "capture": "at_event",
       "read": "query",
-      "payload": ["criterion_id", "revision", "result"]
+      "payload": ["criterion_id", "revision", "result", "effort"]
     },
     {
       "name": "decision",
@@ -72,7 +74,7 @@
       "canonical_for": "the adopted choice for this question",
       "capture": "at_event",
       "read": "if_relevant",
-      "payload": ["choice", "alternatives", "rationale", "phase"]
+      "payload": ["choice", "alternatives", "rationale", "phase", "effort"]
     },
     {
       "name": "continuity-question",
@@ -90,7 +92,31 @@
       "canonical_for": "that this approach was abandoned",
       "capture": "at_event",
       "read": "if_relevant",
-      "payload": ["attempted_action", "retry_when"]
+      "payload": ["attempted_action", "retry_when", "effort"]
+    },
+    {
+      "name": "investigation-observation",
+      "pattern": "observation",
+      "purpose": "What was observed while diagnosing or evaluating",
+      "canonical_for": "what was observed in this investigation",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "source",
+        "observed_time",
+        "environment",
+        "what_was_observed",
+        "effort"
+      ]
+    },
+    {
+      "name": "finding",
+      "pattern": "finding",
+      "purpose": "Root cause or comparative evaluation conclusion",
+      "canonical_for": "the investigation conclusion for this claim",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": ["claim", "basis", "invalidated_when", "effort"]
     }
   ],
   "views": [
@@ -103,7 +129,7 @@
         {
           "name": "goal",
           "occupant": "active-goal",
-          "requires_payload": ["goal", "scope"],
+          "requires_payload": ["goal", "scope", "kind"],
           "selection": {
             "all": [{ "field": "lifecycle_state", "equals": "active" }]
           }
@@ -119,7 +145,7 @@
         {
           "name": "in-progress",
           "occupant": "work-item",
-          "requires_payload": ["title", "phase", "stage"],
+          "requires_payload": ["title", "phase", "stage", "kind", "effort"],
           "selection": {
             "all": [
               { "field": "lifecycle_state", "equals": "active" },
@@ -149,7 +175,16 @@
         {
           "name": "work",
           "occupant": "work-item",
-          "requires_payload": ["title", "phase", "wave", "ready", "stage", "live"],
+          "requires_payload": [
+            "title",
+            "phase",
+            "wave",
+            "ready",
+            "stage",
+            "live",
+            "kind",
+            "effort"
+          ],
           "selection": {
             "all": [
               { "field": "lifecycle_state", "equals": "active" },
@@ -160,7 +195,7 @@
         {
           "name": "acceptance",
           "occupant": "acceptance",
-          "requires_payload": ["criterion", "method"],
+          "requires_payload": ["criterion", "method", "effort"],
           "selection": {
             "all": [{ "field": "lifecycle_state", "equals": "active" }]
           }
@@ -168,7 +203,7 @@
         {
           "name": "decision",
           "occupant": "decision",
-          "requires_payload": ["choice"],
+          "requires_payload": ["choice", "effort"],
           "selection": {
             "all": [{ "field": "lifecycle_state", "equals": "active" }]
           }
@@ -184,7 +219,7 @@
         {
           "name": "acceptance",
           "occupant": "acceptance",
-          "requires_payload": ["criterion", "method"],
+          "requires_payload": ["criterion", "method", "effort"],
           "selection": {
             "all": [{ "field": "lifecycle_state", "equals": "active" }]
           }
@@ -194,6 +229,24 @@
           "occupant": "check-run",
           "selection": {
             "all": []
+          }
+        },
+        {
+          "name": "observation",
+          "occupant": "investigation-observation",
+          "requires_payload": ["what_was_observed", "effort"],
+          "selection": {
+            "all": []
+          }
+        },
+        {
+          "name": "finding",
+          "occupant": "finding",
+          "requires_payload": ["claim", "basis", "invalidated_when"],
+          "selection": {
+            "all": [
+              { "field": "lifecycle_state", "equals": "asserted" }
+            ]
           }
         }
       ]
@@ -212,14 +265,14 @@
   "overrides": [],
   "source_lock": {
     "catalog_version": "0.6.0",
-    "catalog": "sha256:9ea932ac9dd3284521dc8d96b3b4e30d6ed4c09d5587a9d7561139f20c1dfd67",
+    "catalog": "sha256:878d4c6288904de6321531a9c566a4a94a15945ca31c5e4d44d83f51361e835b",
     "traits": "sha256:c2a14aa765abb653c9b76e6487a914f98bfd90231ecec441d66ff846861778b1",
     "backends": "sha256:717457f0078f89913f64d0e832b0d4a57643a5474f503b11c443d7fa97e2ea37"
   },
   "backend": "git-filesystem",
   "view_params": {
-    "project:handoff": { "group_by": "scope" },
-    "project:plan": { "group_by": "phase" },
+    "project:handoff": { "group_by": "subject" },
+    "project:plan": { "group_by": "effort" },
     "project:verification": { "group_by": "subject" }
   },
   "source_revisions": {
@@ -232,6 +285,9 @@
     },
     {
       "need": "completion lifecycle planned to in-progress to done; encoded as payload.live/stage on current-status plus check-run events"
+    },
+    {
+      "need": "session-focus record; encoded as a skill-named subject, views grouped by subject/effort, and a refuse-to-supersede-other-subjects rule"
     }
   ]
 }

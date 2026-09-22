@@ -1,7 +1,7 @@
 {
   "name": "se-workflow",
-  "version": "0.1.0",
-  "description": "Software-engineering delivery skills: plan a phase as records, execute with parallel subagents, verify with TDD or checks. Requires the adaptive-artifacts plugin.",
+  "version": "0.2.0",
+  "description": "Software-engineering skills: classify work (deliver/repair/evaluate/incidental), plan a focused effort as records, execute with parallel subagents, verify with checks or findings. Requires the adaptive-artifacts plugin.",
   "author": {
     "name": "andrewy1n",
     "email": "andrewyingo@gmail.com"

@@ -5,15 +5,15 @@
     "email": "andrewyingo@gmail.com"
   },
   "metadata": {
-    "description": "Software-engineering delivery skills on adaptive-artifacts: current-phase records, parallel subagents, verification.",
-    "version": "0.1.0"
+    "description": "Software-engineering skills on adaptive-artifacts: classify work, focused-effort records, parallel subagents, verification.",
+    "version": "0.2.0"
   },
   "plugins": [
     {
       "name": "se-workflow",
       "source": ".",
       "skills": "skills",
-      "description": "Plan a phase as records, execute with parallel subagents, verify with TDD or checks."
+      "description": "Classify work, plan a focused effort as records, execute with parallel subagents, verify with checks or findings."
     }
   ]
 }

@@ -4,11 +4,12 @@
     "name": "andrewy1n",
     "email": "andrewyingo@gmail.com"
   },
+  "description": "Software-engineering loop on adaptive-artifacts: classify, plan focused effort, execute, verify.",
   "plugins": [
     {
       "name": "se-workflow",
       "source": "./",
-      "description": "Software-engineering delivery skills: plan a phase as records, execute with parallel subagents, verify with TDD or checks."
+      "description": "Classify work, plan a focused effort as records, execute with parallel subagents, verify with checks or findings. Requires adaptive-artifacts."
     }
   ]
 }
