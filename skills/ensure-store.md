@@ -21,11 +21,15 @@ Resolve `<plugin>` in order:
 ## First run in a work repo
 
 If `.artifacts/project-design.json` exists and `"project"` is
-`se-workflow`, check that the design lists `finding` and
-`investigation-observation`. If those types are missing, the bundled
-contract is newer: show the user and replace
-`.artifacts/project-design.json` only if they approve, then
-`adaptive-artifacts resolve`. Do not replace on a no.
+`se-workflow`, check that the design lists a `phase` record and a
+`constraint` record, and that `work-item` has `required_sections`. If
+those are missing, the bundled contract is newer (it predates staged
+task lifecycle, phase records, and dependency edges): show the user
+and replace `.artifacts/project-design.json` only if they approve,
+then `adaptive-artifacts resolve`. Do not replace on a no. This is a
+one-time upgrade check at first touch, not a standing gate — once the
+design is current, nothing in the other skills re-checks it before
+dispatching.
 
 If `.artifacts/project-design.json` exists and `"project"` is something
 else, **stop**. Do not overlay a foreign contract.

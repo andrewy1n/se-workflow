@@ -92,16 +92,25 @@ On first use, `init`, `plan-phase`, or `engage` writes the bundled
 contract into that repo's `.artifacts/` and inits the store. Skills
 stay in the plugin.
 
-`init` writes goal, kind, current phase, and later phase titles only —
-not work-items. `plan-phase` materializes this focus's tasks.
+`init` writes goal, kind, and a `project:phase` record for every phase
+it can currently name (all `planned`) — not work-items. `plan-phase`
+materializes this focus's tasks and promotes the current phase to
+`in_progress` with its real plan in the body.
+
+Task state is the work-item's lifecycle (`planned -> in_progress ->
+done`, plus `withdrawn`/`superseded`), not a payload flag. Dependencies
+are `depends_on` edges between work-items; readiness and wave are
+derived by the engine at read time (`derived.ready`, `derived.wave`) —
+nothing writes them.
 
 A one-shot that fits in one chat and is not an interrupt gets no
 records. An interrupt or a chore that may span chats gets
 `kind=incidental` on its **own** subject. Subagents must not call
 `adaptive-artifacts` (single-writer store).
 
-Existing se-workflow stores created before findings existed need a
-human-approved contract replace (`ensure-store.md`).
+Existing se-workflow stores created before staged task lifecycle,
+phase records, and dependency edges existed need a human-approved
+contract replace (`ensure-store.md`).
 
 ## Skills in this pack
 

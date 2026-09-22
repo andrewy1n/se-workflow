@@ -16,9 +16,11 @@ bugs, one-offs, or evals.
 | `evaluate` | whether it holds / which is better | campaign result | check-run if binary; finding if comparative or inconclusive |
 | `incidental` | usually nothing | change landed | none, or one work-item (see below) |
 
-`acceptance.method` stays `tdd` | `check` | `manual`. Do not stuff a
-metric delta into `check-run.result`. Use `project:finding` (`claim`,
-`basis`, `invalidated_when`).
+`acceptance.method` stays `tdd` | `check` | `manual`; `verify_command`
+holds the literal command that backs it (empty string for a `manual`
+check with no script). Do not stuff a metric delta into
+`check-run.result`. Use `project:finding` (`claim`, `basis`,
+`invalidated_when`, `needs`).
 
 ## Focus
 
@@ -45,10 +47,12 @@ others active.
 - Fits this chat and is not an interrupt of another live effort: **no
   records**. Do the work in this session.
 - May span chats, or it interrupts a live phase: one `work-item` +
-  `acceptance`, `kind=incidental`, `phase="-"`, `effort` = a **new**
-  subject (not the interrupted effort). Work-item `subject` may equal
-  that effort slug when there is only one task. Do not supersede the
-  main goal.
+  `acceptance`, `kind=incidental`, `phase=""` (no phase record exists
+  for incidental work — `validate` checks a non-empty `phase` against
+  real `project:phase` subjects, so leaving it unset is required, not
+  optional), `effort` = a **new** subject (not the interrupted effort).
+  Work-item `subject` may equal that effort slug when there is only one
+  task. Do not supersede the main goal.
 
 ## Writer
 
