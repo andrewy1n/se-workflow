@@ -218,7 +218,7 @@
     },
     {
       "name": "assignment",
-      "pattern": "event",
+      "pattern": "instruction",
       "purpose": "What the orchestrator handed an executor for a work-item",
       "canonical_for": "the dispatch of this work-item to this executor",
       "capture": "at_event",
@@ -237,7 +237,7 @@
     },
     {
       "name": "assignment-amendment",
-      "pattern": "event",
+      "pattern": "instruction",
       "purpose": "A mid-flight correction to an assignment already in progress",
       "canonical_for": "the correction issued to this assignment",
       "capture": "at_event",
