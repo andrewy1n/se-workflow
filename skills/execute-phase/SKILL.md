@@ -2,10 +2,11 @@
 name: execute-phase
 description: >-
   Dispatches se-workflow work-items whose derived.ready is true, in
-  dependency order, to parallel subagents for the focused effort.
-  Parent session writes records; subagents return evidence only. Use
-  when the user asks to execute a phase, run ready work, or continue
-  after engage.
+  dependency order, to parallel subagents for the focused effort,
+  recording an assignment and execution-report per dispatch. Parent
+  session writes records; subagents return evidence only. Use when
+  the user asks to execute a phase, run ready work, or continue after
+  engage.
 ---
 
 # Execute the focused effort
@@ -17,12 +18,26 @@ for the focus) and `plan-phase`. Follow
 after each subagent returns.
 
 The git-filesystem backend is **single-writer**. Only this parent
-session may call `adaptive-artifacts`.
+session may call `adaptive-artifacts` in any form that writes.
+Subagents never do — not now (they have no store access) and not once
+a `--read-only` executor mode exists elsewhere in this project: that
+mode names what an executor may *read*, it does not make the store
+multi-writer, and a subagent write would race this session's
+`--expected-revision`.
 
 Task state is the work-item's lifecycle: `planned -> in_progress ->
 done`, or `withdrawn`. Readiness (`derived.ready`) and wave
 (`derived.wave`) are computed by the engine from the `depends_on`
 graph at read time — this skill never writes either.
+
+Each dispatch is recorded, not hand-transcribed: a `project:assignment`
+for what an executor was handed, an optional `project:assignment-amendment`
+for any mid-flight correction, and a `project:execution-report` for
+what came back, verbatim. The `project:brief` view — not the
+assignment body — is what tells an executor its acceptance criteria,
+findings, constraints, and position; an assignment carries only what
+that view cannot: territory splits, concurrency warnings, and
+operational orientation.
 
 ## Steps
 
@@ -64,23 +79,43 @@ adaptive-artifacts update --type project:work-item --id <id> \
   --payload '{"assignee":"<subagent-label>"}'
 ```
 
+   Regenerate the brief so it is current for this dispatch, then
+   record the assignment. Its `## Orientation` body carries only what
+   `project:brief` does not already say for this subject — territory
+   splits between concurrent executors, concurrency warnings,
+   operational orientation (paths, sandbox, tooling quirks). Do not
+   restate `criterion`, `verify_command`, or finding text in it — that
+   is what the brief view is for, and copying it in creates a second,
+   staleness-prone copy of the same fact:
+
+```bash
+adaptive-artifacts view --id project:brief --out views/brief.md
+
+adaptive-artifacts create --type project:assignment \
+  --subject "<task-slug>" \
+  --payload '{"work_item":"<task-slug>","executor":"<subagent-label>","effort":"<focus>"}' \
+  --body "## Orientation
+
+<territory split / concurrency warning / operational context only>"
+```
+
 5. Spawn one subagent per in-progress task (`Task` /
    `generalPurpose`). Give it only:
 
    - repo path, task `subject` / title, `kind`, focus `effort`
-   - the work-item's `## Description` body (`adaptive-artifacts get
-     --type project:work-item --id <id>` — the body is in the record)
-   - acceptance `criterion`, `method`, and `verify_command`
-   - any `failed-attempt` and `investigation-observation` /
-     `finding` records for that subject
+   - the `## <task-slug>` section of `views/brief.md` (work-item body,
+     acceptance, findings, constraints, position, and any prior
+     amendments) — verbatim, not retyped
+   - the assignment's `## Orientation` body from step 4
    - kind-specific instruction:
      - `deliver` / `incidental` — implement the change
      - `repair` — reproduce, record observations, name a root cause
        if found, then fix; do not skip diagnose
      - `evaluate` — run the campaign; return metrics / comparison;
        do not "fix" the system unless the criterion says so
-   - do **not** run `adaptive-artifacts`; do **not** edit
-     `.artifacts/`; return the evidence block below
+   - do **not** run `adaptive-artifacts` in any form that writes — that
+     holds even once a `--read-only` mode exists for executors; do
+     **not** edit `.artifacts/`; return the evidence block below
 
    Subagent return shape:
 
@@ -101,21 +136,52 @@ adaptive-artifacts update --type project:work-item --id <id> \
    blocker: <only if blocked>
    ```
 
-6. When a subagent returns, run `verify-work` in this parent. It
-   transitions the work-item to `done` or `withdrawn`, or leaves it
-   `in_progress` on fail/blocked. Do not supersede or re-derive
+6. If the assignment's terms turn out wrong or incomplete while the
+   subagent is still working — a change to what it was told, not a
+   status ping — send the correction to the subagent directly (it
+   cannot read the store to pick up a change) and record it, so it
+   survives past the chat transcript:
+
+```bash
+adaptive-artifacts create --type project:assignment-amendment \
+  --subject "<task-slug>" \
+  --payload '{"assignment":"<task-slug>","effort":"<focus>"}' \
+  --body "## Correction
+
+<the correction, as sent to the executor>"
+```
+
+7. When a subagent returns, record its evidence before judging it —
+   the returned block is the record, not raw material for this
+   session to hand-pick fragments from:
+
+```bash
+adaptive-artifacts create --type project:execution-report \
+  --subject "<task-slug>" \
+  --payload '{"work_item":"<task-slug>","assignment":"<task-slug>","result":"<pass|fail|blocked|abandoned>","verdict":"<pass|fail|delta|inconclusive>","revision":"<git sha or dirty>"}' \
+  --body "<the subagent's full returned evidence block, verbatim>"
+```
+
+   Then run `verify-work` in this parent. It derives
+   `investigation-observation` / `finding` / `check-run` records from
+   this execution-report — not from this session's memory of the chat
+   — and transitions the work-item to `done` or `withdrawn`, or leaves
+   it `in_progress` on fail/blocked. Do not supersede or re-derive
    anything yourself — a dependent task's `derived.ready` flips to
    `true` automatically the moment its dependency's lifecycle reaches
    its terminal success state; the next wave's `list` in step 3 will
    see it.
-7. Next wave. When no `planned`/`in_progress` same-focus work-items
+8. Next wave. When no `planned`/`in_progress` same-focus work-items
    remain in this phase (or the incidental task is closed), close the
    phase and update the position narrative. `current-position.scope`
    is a stable per-subject value — never change it here, and never put
    the next phase's slug into it; `supersede` rejects a successor whose
    `scope` differs from the predecessor's ("breaks identity
-   continuity"). Which phase is current is derived by querying
-   `project:phase` state, not read off this record:
+   continuity"). `phase` is a required payload reference to a real
+   `project:phase` subject — set it to the next phase this narrative
+   names, but that is a pointer, not the authority: which phase is
+   current is still derived by querying `project:phase` state, not
+   read off this record:
 
 ```bash
 adaptive-artifacts update --type project:phase --id <phase-id> \
@@ -123,18 +189,26 @@ adaptive-artifacts update --type project:phase --id <phase-id> \
 
 adaptive-artifacts supersede --type project:current-position --id <id> \
   --expected-revision <revision> \
-  --payload '{"position":"<phase-slug> done; next up: <next-phase-slug>","scope":"<unchanged from predecessor>","effort":"<focus>"}'
+  --payload '{"position":"<phase-slug> done; next up: <next-phase-slug>","scope":"<unchanged from predecessor>","effort":"<focus>","phase":"<next-phase-slug>"}'
 ```
 
    Skip both for incidental. Do **not** materialize the next phase's
    tasks unless the user asks (`plan-phase` promotes it). Do not touch
    other subjects.
-8. Regenerate views; `adaptive-artifacts validate`.
+9. Regenerate views (including `project:brief`); `adaptive-artifacts validate`.
 
 ## Do not
 
 - Write a plan document as authority
-- Let subagents create/supersede/transition records
+- Let subagents create/supersede/transition records, in any current or
+  future executor mode — the store is single-writer regardless of what
+  an executor is allowed to read
+- Restate acceptance criteria, verify commands, or finding text inside
+  an assignment's `## Orientation` — that duplicates a fact
+  `project:brief` already carries, and goes stale the moment its
+  source does
+- Skip the `project:execution-report` and derive check-runs straight
+  from chat memory of what a subagent said
 - Dispatch a work-item whose `derived.ready` is `false`, or another
   focus's work
 - Write or recompute `ready`/`wave` — they are derived; re-query them

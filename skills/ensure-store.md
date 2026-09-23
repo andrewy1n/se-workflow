@@ -21,12 +21,14 @@ Resolve `<plugin>` in order:
 ## First run in a work repo
 
 If `.artifacts/project-design.json` exists and `"project"` is
-`se-workflow`, check that the design lists a `phase` record and a
-`constraint` record, and that `work-item` has `required_sections`. If
-those are missing, the bundled contract is newer (it predates staged
-task lifecycle, phase records, and dependency edges): show the user
-and replace `.artifacts/project-design.json` only if they approve,
-then `adaptive-artifacts resolve`. Do not replace on a no. This is a
+`se-workflow`, check that the design lists a `phase` record, a
+`constraint` record, an `assignment` record, and an `execution-report`
+record, and that `work-item` has `required_sections`. If those are
+missing, the bundled contract is newer (it predates staged task
+lifecycle, phase records, dependency edges, or the assignment/
+execution-report dispatch loop): show the user and replace
+`.artifacts/project-design.json` only if they approve, then
+`adaptive-artifacts resolve`. Do not replace on a no. This is a
 one-time upgrade check at first touch, not a standing gate — once the
 design is current, nothing in the other skills re-checks it before
 dispatching.
@@ -46,3 +48,28 @@ adaptive-artifacts init
 `adaptive-artifacts init` needs a git repo. If cwd is not git, leave
 design-only and tell the user. Do not write a plan document or extra
 skill copies.
+
+## Committing store writes
+
+Once `.artifacts/` is tracked by git, `validate` treats a modified
+record file as an immutability violation and exits 4:
+
+```
+immutability violation: committed store path modified or deleted
+(git status M): .artifacts/records/project__constraint/rec-....md
+```
+
+It reports this for writes the runtime itself just made — it compares
+the working tree against `HEAD` and cannot tell a legitimate `update`
+from a hand-edited file. Any `update`, `supersede`, or `close` batch
+leaves the store in that state until the change is committed.
+
+So commit store writes before running `validate`, and before ending a
+session, since `hook-stop` validates:
+
+```bash
+git add .artifacts && git commit -m "records: <what changed>"
+```
+
+An untracked store (`init` run in a repo where `.artifacts/` is
+gitignored) never hits this.

@@ -101,20 +101,25 @@ adaptive-artifacts create --type project:phase \
    phase slug. `supersede` (the only legal way to update an `active`
    current-claim) refuses a successor whose `payload.scope` differs
    from the predecessor's, so a `scope` that changes every phase makes
-   this record un-updatable the moment the phase advances. Which phase
-   is current is derived by querying `project:phase` for this effort
-   with `lifecycle_state=in_progress` — it is not read off this record.
+   this record un-updatable the moment the phase advances. `phase` is
+   a required payload reference to a real `project:phase` subject —
+   set it to the first phase from step 5's list (the one step 7 just
+   created at `ordinal: 1`). That is a pointer for this record, not an
+   authority: which phase is actually current is still derived by
+   querying `project:phase` for this effort with
+   `lifecycle_state=in_progress` (nothing is `in_progress` yet this
+   early — `plan-phase` promotes it) — never read off this field.
    `position` is a short "where we are now" narrative (may name the
    current phase in prose) — do not restate the phase list, that's
    what the `project:phase` records are for. If a position already
    exists **for this subject**, supersede it with `--expected-revision`,
-   keeping `scope` identical to the predecessor's. Do not touch other
-   subjects.
+   keeping `scope` identical to the predecessor's and `phase` current.
+   Do not touch other subjects.
 
 ```bash
 adaptive-artifacts create --type project:current-position \
   --subject "<effort-slug>" \
-  --payload '{"position":"<short now-statement>","scope":"<effort or repo>","effort":"<effort-slug>"}'
+  --payload '{"position":"<short now-statement>","scope":"<effort or repo>","effort":"<effort-slug>","phase":"<first-phase-slug>"}'
 ```
 
 9. For each confirmed durable choice among alternatives,

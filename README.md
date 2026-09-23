@@ -122,3 +122,32 @@ contract replace (`ensure-store.md`).
 
 Shared rules: [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).
+
+## Testing
+
+The suite in `tests/` needs a sibling checkout of `adaptive-artifacts`
+(the runtime this contract resolves against) and `pytest`:
+
+```bash
+python3 -m pip install --user pytest   # if not already available
+python3 -m pytest tests -q
+```
+
+By default it looks for the runtime at `~/adaptive-artifacts`. Point it
+elsewhere with `ADAPTIVE_ARTIFACTS_ROOT`:
+
+```bash
+ADAPTIVE_ARTIFACTS_ROOT=/path/to/adaptive-artifacts python3 -m pytest tests -q
+```
+
+Every test drives `adaptive-artifacts`'s public CLI against a fresh,
+disposable, git-backed store built from this repo's own
+`contract/project-design.json` — nothing here touches a real store, and
+nothing hardcodes today's record types, since the contract is expected
+to keep growing. `test_contract_self_consistency.py` proves every
+declared record type, lifecycle transition, bundle relationship, and
+payload reference actually works end to end. `test_skill_contract_consistency.py`
+extracts every `adaptive-artifacts` invocation documented under `skills/`
+and asserts the contract actually permits it — a red result there names
+a skill instructing an operation (a record type, transition, `--rel`,
+or bundle membership) the contract does not currently allow.

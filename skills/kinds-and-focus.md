@@ -32,8 +32,9 @@ user, or the only live `active-goal` subject). Then:
 - Ignore other live goals. Do not supersede `active-goal` or
   `current-position` whose `subject` is not the focus.
 - Task-scoped records (`work-item`, `acceptance`, `check-run`,
-  `decision`, `failed-attempt`, `investigation-observation`, `finding`)
-  use `subject` = task slug and `payload.effort` = focus.
+  `decision`, `failed-attempt`, `investigation-observation`, `finding`,
+  `assignment`, `assignment-amendment`, `execution-report`) use
+  `subject` = task slug and `payload.effort` = focus.
 - Goal, position, and continuity-question use `subject` = focus.
 - If `payload.effort` is missing (old records) and exactly one active
   goal exists, treat that subject as the effort. If several goals exist
@@ -56,5 +57,8 @@ others active.
 
 ## Writer
 
-Only the parent session calls `adaptive-artifacts`. Subagents return
-evidence. Single-writer store.
+Only the parent session calls `adaptive-artifacts` in any form that
+writes. Subagents return evidence in their response text, never by
+writing to the store — and never will, even once a `--read-only`
+executor mode exists: that mode names what an executor may read, it
+does not make the store multi-writer. Single-writer store.

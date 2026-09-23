@@ -37,9 +37,15 @@ validator would catch skipping it.
    `<task-slug>-<suffix>` — the `plan-phase` convention); fetch the
    whole family with `list --subject <task-slug>` (exact-or-prefix
    match), not `get` on a single id. Confirm `payload.effort` is the
-   focus (or the sole-goal default). If a subagent already ran the
-   check, trust its evidence only after you can point at a command,
-   test name, diff, or metric table; re-run when cheap.
+   focus (or the sole-goal default). If a subagent ran the check, its
+   evidence is the `project:execution-report` `execute-phase` created
+   for that dispatch — read that record (`list --type
+   project:execution-report --subject <task-slug>`, take the most
+   recent), not this session's memory of the chat — and trust it only
+   after you can point at a command, test name, diff, or metric table
+   inside its body; re-run when cheap. There is no execution-report
+   when this task was verified without a dispatch (e.g. done directly
+   in this session) — skip straight to step 2 in that case.
 2. Capture diagnose/eval facts **before** closing anything:
 
    - `repair` — for each useful observation, `create --type
@@ -99,13 +105,17 @@ adaptive-artifacts create --type project:finding \
    **not** transition the work-item to `done` unless the user accepts
    that finding as done.
 4. When a binary result exists, `create --type project:check-run`
-   with the same `subject`:
+   with the same `subject`. Add a second `--rel informed_by:` pointing
+   at the execution-report from step 1 when one exists for this
+   dispatch — omit it only when this task was verified without a
+   subagent:
 
 ```bash
 adaptive-artifacts create --type project:check-run \
   --subject "<task-slug>" \
   --payload '{"criterion_id":"<acceptance-record-id>","revision":"<git sha or dirty>","result":"pass","effort":"<effort-slug>","method":"tdd","signed_by":""}' \
-  --rel informed_by:<acceptance-record-id>
+  --rel informed_by:<acceptance-record-id> \
+  --rel informed_by:<execution-report-id>
 ```
 
    Prefer `git rev-parse HEAD` after a commit. `dirty` is allowed for
@@ -126,6 +136,38 @@ adaptive-artifacts update --type project:work-item --id <id> \
 
    The acceptance definition stays `active` (it is a `definition`
    record, not part of the work-item's lifecycle).
+
+   A work-item reaching `done` is not itself proof its criteria were
+   met — the lifecycle state alone does not say whether verification
+   happened, only that this session declared it over. If you are
+   closing to `done` while the criterion's most recent `check-run`
+   shows `result=fail` or no `check-run` exists at all (live
+   verification deliberately deferred, an accepted risk, or similar),
+   that is only legitimate as an explicit call, and it must leave a
+   trace a reader can find without decoding "done" — `create --type
+   project:finding` on the task subject with `needs":"human"` first,
+   naming what was deferred and why, **before** the `update
+   --transition done` above:
+
+```bash
+adaptive-artifacts create --type project:finding \
+  --subject "<task-slug>" \
+  --payload '{"claim":"<task-slug> closed done with an unmet or unverified criterion","basis":"<why it was closed anyway>","invalidated_when":"<what would undo this acceptance>","effort":"<effort-slug>","needs":"human"}' \
+  --body "## Evidence
+
+<the failing/missing check-run and why closing proceeded anyway>
+
+## Consequence
+
+<what remains unverified>
+
+## Follow-up
+
+<what someone should do to close the gap, or \"none\">"
+```
+
+   This surfaces under `handoff`'s Needs Human role so the gap is
+   visible without anyone having to already suspect it.
 6. On **fail** (not the intentional TDD red you will fix next): leave
    the work-item `in_progress`. Optionally create
    `project:continuity-question` on the **focus** subject with
@@ -141,14 +183,125 @@ adaptive-artifacts update --type project:work-item --id <id> \
 ```
 
    Otherwise leave it `in_progress` for a retry.
-8. Regenerate views (`handoff`, `project:plan`, `project:verification`)
-   and `adaptive-artifacts validate`.
+8. Regenerate views (`handoff`, `project:plan`, `project:verification`,
+   `project:brief`) and `adaptive-artifacts validate`.
+
+## Close
+
+`close` is steps 3-5 above, executed as one write instead of one
+`create`/`update` per criterion — use it once every active acceptance
+for this work-item has been judged (step 3) and any diagnose/eval
+records from step 2 are already written. It still leaves `in_progress`
+on a `fail` (step 6) or drives `withdrawn` (step 7) — `close` only
+covers the `done` path, including the deliberate "done anyway" path
+step 5 requires a `finding` for. It **enforces** that requirement
+instead of merely stating it: it refuses to build the batch at all —
+prints which criteria are unmet and writes nothing — when `transition`
+is `done`, a criterion is unmet or was never checked, and no `finding`
+was given. Do not hand-write the batch to route around a refusal.
+
+Script path: `<plugin>/scripts/close_batch.py` (resolve `<plugin>` per
+[ensure-store.md](../ensure-store.md)).
+
+1. Fetch the active acceptances — superseded ones are retired
+   definitions and must not be re-checked:
+
+```bash
+adaptive-artifacts list --type project:acceptance --subject "<task-slug>" --state active
+```
+
+2. Fetch the most recent execution-report for this dispatch (omit this
+   and leave `execution_report_id` `null` below when this task was
+   verified without one, per step 1 above):
+
+```bash
+adaptive-artifacts list --type project:execution-report --subject "<task-slug>" --full --order-by recorded_at
+```
+
+   Take the last entry — `recorded_at` sorts oldest first.
+3. Judge each active acceptance exactly as step 3 above directs
+   (`tdd`/`check`/`manual`, `revision` from `git rev-parse HEAD` once
+   committed, `dirty` for a failing TDD red, `signed_by` for a
+   reviewed `manual` check). Write a close-request JSON: `criteria`
+   holds one entry per acceptance actually checked; `acceptance_ids`
+   lists **every** active acceptance from step 1, checked or not, so
+   the refusal check can see one that was skipped. Leave `finding`
+   `null` when every criterion passed:
+
+```bash
+cat > /tmp/close-request.json <<'EOF'
+{
+  "subject": "<task-slug>",
+  "effort": "<effort-slug>",
+  "work_item_id": "<work-item-record-id>",
+  "transition": "done",
+  "execution_report_id": "<execution-report-record-id-or-null>",
+  "acceptance_ids": ["<acceptance-id-1>", "<acceptance-id-2>"],
+  "criteria": [
+    {"criterion_id": "<acceptance-id-1>", "result": "pass", "method": "tdd", "revision": "<git sha or dirty>", "signed_by": ""},
+    {"criterion_id": "<acceptance-id-2>", "result": "pass", "method": "check", "revision": "<git sha or dirty>", "signed_by": ""}
+  ],
+  "finding": null
+}
+EOF
+```
+
+   When closing anyway on an unmet/unverified criterion, `finding`
+   carries exactly step 5's fields (`needs` is forced to `"human"`
+   regardless of what is written here):
+
+```bash
+cat > /tmp/close-request.json <<'EOF'
+{
+  "subject": "<task-slug>",
+  "effort": "<effort-slug>",
+  "work_item_id": "<work-item-record-id>",
+  "transition": "done",
+  "execution_report_id": "<execution-report-record-id-or-null>",
+  "acceptance_ids": ["<acceptance-id-1>"],
+  "criteria": [
+    {"criterion_id": "<acceptance-id-1>", "result": "fail", "method": "check", "revision": "<git sha or dirty>", "signed_by": ""}
+  ],
+  "finding": {
+    "claim": "<task-slug> closed done with an unmet or unverified criterion",
+    "basis": "<why it was closed anyway>",
+    "invalidated_when": "<what would undo this acceptance>",
+    "body": "## Evidence\n\n<the failing/missing check-run and why closing proceeded anyway>\n\n## Consequence\n\n<what remains unverified>\n\n## Follow-up\n\n<what someone should do to close the gap, or \"none\">"
+  }
+}
+EOF
+```
+
+4. Build the batch:
+
+```bash
+python3 "<plugin>/scripts/close_batch.py" --input /tmp/close-request.json --out /tmp/close-batch.ndjson
+```
+
+   Exit `0` means the batch was written — run `apply` next. Exit `2`
+   means refused (unmet/unverified criterion, no `finding`) — stderr
+   names the criteria; go back to step 3, either resolve them or add
+   the `finding`, and do **not** run `apply`. Exit `1` means the
+   close-request JSON was malformed — fix it and retry.
+5. Only after a `0` exit, apply the batch — one `project:check-run`
+   per criterion (each `informed_by` both its acceptance and the
+   execution-report), the `finding` if one was given, then the
+   work-item transition, all in one process:
+
+```bash
+adaptive-artifacts apply /tmp/close-batch.ndjson
+```
+
+6. Regenerate views and validate as step 8 above.
 
 ## Do not
 
 - Dual-write CI as records if CI already owns the result
 - Treat a checklist tick as pass without a `check-run` (binary) or
   a `finding` (comparative)
+- Transition a work-item to `done` on an unmet or unverified criterion
+  without the `finding` from step 5 — a bare `done` must never be the
+  only trace of that
 - Put a metric table in `check-run.result`
 - Leave a `manual` check-run's `signed_by` empty once someone actually
   reviewed it — sign it, or it lingers under Unsigned Manual Check
@@ -156,3 +309,6 @@ adaptive-artifacts update --type project:work-item --id <id> \
   probably followed" — nothing checks that; verify the actual command
   output for this task
 - Close another focus's work-item
+- Skip `close_batch.py` and hand-assemble the `apply` NDJSON for a
+  multi-criterion close — that is exactly the ad-hoc path that let a
+  `done` work-item carry a failing check-run with no `finding` before
