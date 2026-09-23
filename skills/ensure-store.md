@@ -51,25 +51,22 @@ skill copies.
 
 ## Committing store writes
 
-Once `.artifacts/` is tracked by git, `validate` treats a modified
-record file as an immutability violation and exits 4:
+`validate` accepts an uncommitted record rewrite when the record matches
+its own op log, so an `update`, `supersede`, or `close` batch does not
+have to be committed before validating or before `hook-stop` runs.
 
-```
-immutability violation: committed store path modified or deleted
-(git status M): .artifacts/records/project__constraint/rec-....md
-```
-
-It reports this for writes the runtime itself just made — it compares
-the working tree against `HEAD` and cannot tell a legitimate `update`
-from a hand-edited file. Any `update`, `supersede`, or `close` batch
-leaves the store in that state until the change is committed.
-
-So commit store writes before running `validate`, and before ending a
-session, since `hook-stop` validates:
+Still commit store writes as part of the work they belong to — the
+record diff is what shows a reader what changed and why:
 
 ```bash
 git add .artifacts && git commit -m "records: <what changed>"
 ```
 
-An untracked store (`init` run in a repo where `.artifacts/` is
-gitignored) never hits this.
+A record edited by hand, outside the runtime, fails validation:
+
+```
+record revision tamper detected: .artifacts/records/.../rec-....md
+```
+
+Fix that by redoing the edit through `adaptive-artifacts update` rather
+than by hand-patching the file.
