@@ -672,6 +672,205 @@
           }
         }
       ]
+    },
+    {
+      "name": "dashboard",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by",
+        "label_fields"
+      ],
+      "roles": [
+        {
+          "name": "goal",
+          "occupant": "active-goal",
+          "requires_payload": [
+            "goal",
+            "scope",
+            "kind"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phase",
+          "occupant": "phase",
+          "requires_payload": [
+            "title",
+            "ordinal"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "in_progress"
+              }
+            ]
+          }
+        },
+        {
+          "name": "blocking-question",
+          "occupant": "continuity-question",
+          "requires_payload": [
+            "blocking",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "open"
+              },
+              {
+                "field": "payload.blocking",
+                "equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "open-question",
+          "occupant": "continuity-question",
+          "requires_payload": [
+            "blocking",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "open"
+              },
+              {
+                "field": "payload.blocking",
+                "equals": false
+              }
+            ]
+          }
+        },
+        {
+          "name": "needs-human",
+          "occupant": "finding",
+          "requires_payload": [
+            "claim",
+            "needs"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "payload.needs",
+                "equals": "human"
+              }
+            ]
+          }
+        },
+        {
+          "name": "unsigned-manual-check",
+          "occupant": "check-run",
+          "requires_payload": [
+            "criterion_id",
+            "result",
+            "method",
+            "signed_by"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "payload.method",
+                "equals": "manual"
+              },
+              {
+                "field": "payload.signed_by",
+                "equals": ""
+              }
+            ]
+          }
+        },
+        {
+          "name": "running",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase",
+            "assignee"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "in_progress"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ready",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "planned"
+              },
+              {
+                "field": "derived.ready",
+                "equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "waiting",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "planned"
+              },
+              {
+                "field": "derived.ready",
+                "equals": false
+              }
+            ]
+          }
+        },
+        {
+          "name": "done-recent",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "done"
+              },
+              {
+                "field": "recorded_at",
+                "within": "24h"
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "bundles": [
@@ -721,6 +920,10 @@
     },
     "project:brief": {
       "group_by": "subject"
+    },
+    "project:dashboard": {
+      "group_by": "effort",
+      "label_fields": true
     }
   },
   "source_revisions": {
