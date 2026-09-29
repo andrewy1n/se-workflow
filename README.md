@@ -164,6 +164,27 @@ directory. If `SE_WORKFLOW_SCRIPTS` is empty, the bindings use
 `~/se-workflow/scripts`. Change the keys in your copy if `A` or `S` is
 already bound.
 
+### Status line segment
+
+`scripts/dashboard-status` prints one line per live effort, for example:
+
+```text
+watch-dashboard · 1 running · 2 ready · 1 needs you
+```
+
+"needs you" counts blocking questions, open questions, findings that
+need a human, and unsigned manual checks. The segment omits zero counts.
+It finds the store and the binary like `scripts/dashboard`. It prints
+nothing when there is no store or no dashboard view.
+
+It reads Claude Code status JSON on stdin (`workspace.current_dir`, else
+`cwd`), or takes a directory argument. To add it to an existing status
+line script that has the status JSON in `$input`, append:
+
+```bash
+echo "$input" | ~/se-workflow/scripts/dashboard-status
+```
+
 ## Testing
 
 The suite in `tests/` needs a sibling checkout of `adaptive-artifacts`
