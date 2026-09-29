@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Run `adaptive-artifacts watch --id project:dashboard` for the current directory's repo.
+
+Extra arguments go to `watch`, e.g. `dashboard --once` or `dashboard --interval 5`.
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from artifact_store import DASHBOARD_VIEW, binary, resolve  # noqa: E402
+
+
+def wait_for_key() -> None:
+    if not sys.stdin.isatty():
+        return
+    import termios
+    import tty
+
+    print("\nPress any key to close.", flush=True)
+    fd = sys.stdin.fileno()
+    saved = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        os.read(fd, 1)
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, saved)
+
+
+def fail(message: str) -> int:
+    print(message, flush=True)
+    wait_for_key()
+    return 1
+
+
+def main(argv: list[str]) -> int:
+    target = resolve(Path.cwd())
+    if target.store is None:
+        return fail(
+            f"No artifact store for {target.root}.\n"
+            f"Looked for meta.json in:\n  {target.home_store()}\n  {target.repo_store()}"
+        )
+    if not target.has_view(DASHBOARD_VIEW):
+        where = target.contract or f"{target.store / 'meta.json'} (contract file not found)"
+        return fail(
+            f"Store {target.store} has no dashboard view.\n"
+            f"Its contract does not declare {DASHBOARD_VIEW}: {where}\n"
+            "Re-resolve the contract from the current se-workflow plugin to add it."
+        )
+    command = [binary(), *target.cli_args(), "watch", "--id", DASHBOARD_VIEW, *argv]
+    try:
+        os.execvp(command[0], command)
+    except OSError as exc:
+        return fail(f"Cannot run {command[0]}: {exc}")
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

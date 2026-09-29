@@ -123,6 +123,47 @@ contract replace (`ensure-store.md`).
 Shared rules: [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).
 
+## Dashboard in tmux
+
+`scripts/dashboard` runs `adaptive-artifacts watch --id project:dashboard`
+for the repo of the current directory. It passes extra arguments to
+`watch`, so `scripts/dashboard --once` prints one frame and exits.
+
+The launcher finds the store from the git toplevel of the directory:
+
+1. `~/.artifacts/<toplevel name>`, if it has `meta.json`.
+2. `<toplevel>/.artifacts`, if it has `meta.json`.
+
+It finds the runtime binary in this order:
+
+1. `$ADAPTIVE_ARTIFACTS_BIN`.
+2. `~/adaptive-artifacts/bin/adaptive-artifacts`, if it is executable.
+3. `adaptive-artifacts` on `PATH`.
+
+tmux popups run a non-interactive shell, so shell functions and aliases
+do not apply there. If the launcher finds no store, or the store's
+contract has no `project:dashboard` view, it prints the reason and waits
+for a key.
+
+To install the key bindings, add this line to `~/.tmux.conf`:
+
+```tmux
+source-file ~/se-workflow/scripts/tmux-dashboard.conf
+```
+
+Then reload tmux with `tmux source-file ~/.tmux.conf`. The snippet adds:
+
+| Keys | Opens |
+|---|---|
+| prefix + `A` | The dashboard in a popup (80% of the window) |
+| prefix + `S` | The dashboard in a side pane (40% of the width) |
+
+Both open in the directory of the current pane. The snippet sets the
+tmux global environment variable `SE_WORKFLOW_SCRIPTS` to its own
+directory. If `SE_WORKFLOW_SCRIPTS` is empty, the bindings use
+`~/se-workflow/scripts`. Change the keys in your copy if `A` or `S` is
+already bound.
+
 ## Testing
 
 The suite in `tests/` needs a sibling checkout of `adaptive-artifacts`
