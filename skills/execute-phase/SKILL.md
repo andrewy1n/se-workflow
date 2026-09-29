@@ -175,10 +175,38 @@ adaptive-artifacts create --type project:execution-report \
    its terminal success state; the next wave's `list` in step 3 will
    see it.
 8. Next wave. When no `planned`/`in_progress` same-focus work-items
-   remain in this phase (or the incidental task is closed), close the
-   phase, close its phase position (`subject` = phase slug) with
-   `status: closed`, and update the effort position narrative
-   (`subject` = focus). `current-position.scope`
+   remain in this phase (or the incidental task is closed), check the
+   phase gate before closing anything. An empty task list is not proof
+   the phase is done:
+
+```bash
+adaptive-artifacts list --type project:work-item \
+  --where payload.effort=<focus> --where payload.phase=<phase-slug>
+
+adaptive-artifacts list --type project:acceptance \
+  --where payload.effort=<focus> --where payload.phase=<phase-slug>
+
+adaptive-artifacts list --type project:check-run \
+  --where payload.criterion_id=<acceptance-id> --order-by recorded_at
+```
+
+   The gate holds only when all of these are true:
+   - The phase's verification task (the work-item that `depends_on`
+     every other phase work-item) exists and is `done`.
+   - Every active phase acceptance has a check-run, and the latest
+     check-run per `criterion_id` has a passing `result`.
+   - Every `method=manual` latest check-run has `signed_by` set.
+
+   If the gate does not hold, leave the phase `in_progress`. Tell the
+   user which criterion has no check-run, a failing latest check-run,
+   or no signature, or that the verification task is missing. Then
+   stop. Do not close the phase to move on. `deliver` and `repair`
+   phases always need the verification task. Skip the gate for
+   incidental work.
+
+   When the gate holds, close the phase, close its phase position
+   (`subject` = phase slug) with `status: closed`, and update the
+   effort position narrative (`subject` = focus). `current-position.scope`
    is a stable per-subject value — never change it here, and never put
    the next phase's slug into it; `supersede` rejects a successor whose
    `scope` differs from the predecessor's ("breaks identity
@@ -241,3 +269,4 @@ adaptive-artifacts supersede --type project:current-position --id <position-id> 
   focus's work
 - Write or recompute `ready`/`wave` — they are derived; re-query them
 - Load the whole store; route by focus, then phase
+- Close a phase whose gate in step 8 does not hold

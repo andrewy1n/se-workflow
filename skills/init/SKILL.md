@@ -33,6 +33,16 @@ If the user already has this focus's tasks, use `plan-phase`.
   `planned`, ordinal in sequence. None of them start `in_progress`
   here — `plan-phase` promotes the one it's about to materialize work
   for. Incidental work gets **no** phase record at all.
+- Each exit criterion states how it is verified: the command, test,
+  or observation that proves it. A later phase may say "decide at
+  plan-phase" for the detail, but it still names the verification
+  gate: every acceptance passes and an integration check through the
+  real entry point passes. `plan-phase` turns each criterion into an
+  acceptance on the phase's verification task.
+- When the phases of a multi-phase effort only prove themselves
+  together (a library plus its caller, a view plus its renderer),
+  propose a final end-to-end verification phase that runs the whole
+  flow through the real entry point.
 - Existing docs (README, git log, other project docs) are input.
   Confirm with the user before writing records. Do not ingest them
   as replicas.
@@ -63,7 +73,9 @@ If the user already has this focus's tasks, use `plan-phase`.
    - **kind** — `deliver` | `repair` | `evaluate` | `incidental`
    - **goal** — live outcome of this effort
    - **phases** — ordered list of `{slug, title}`, current phase
-     first; empty for incidental
+     first; empty for incidental. Add a final end-to-end
+     verification phase when the pieces only prove themselves
+     together.
    - **blocking unknown** — only if dispatch or resume cannot proceed
    - **durable decisions / constraints** — already-made choices or
      confirmed non-negotiables; skip trivia
@@ -96,7 +108,9 @@ adaptive-artifacts create --type project:phase \
 
    `<phase-body.md>` has `## Problem`, `## Approach`, `## Exit
    criteria` headings; every section needs non-empty text or the
-   record is rejected.
+   record is rejected. Write each exit criterion with how it is
+   verified, for example "`<cmd>` renders X against a seeded store
+   (integration test)", not only the outcome.
 
 8. Create `project:current-position` on the same subject as step 6.
    `scope` is a **stable** value for this subject (same convention as

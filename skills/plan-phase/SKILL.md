@@ -4,7 +4,7 @@ description: >-
   Promotes the current phase and materializes the current effort's
   work-item and acceptance records (this phase only, or a single
   incidental task), with depends_on edges between tasks that must
-  run in order. Use when the user finished a planning conversation,
+  run in order and a closing verification task for the phase. Use when the user finished a planning conversation,
   engage handed off here, or they asked to generate tasks for the
   focused effort.
 ---
@@ -54,6 +54,14 @@ kind/focus are unset).
   another, `create` its work-item directly with `--rel depends_on:...`
   and `create` its acceptance(s) as separate plain calls (still same
   subject convention).
+- Every `deliver` or `repair` phase ends with one **verification
+  task**: a work-item that `depends_on` every other work-item in the
+  phase. Its acceptances cover each exit criterion in the phase body,
+  one or more per criterion. At least one acceptance is an
+  integration check through the real entry point (CLI, service, UI),
+  not a unit test. A phase whose exit criteria no acceptance checks
+  is not planned yet. `evaluate` phases need it only when the
+  campaign has a binary gate; incidental work never has one.
 - Current-claims (`decision`) change via `supersede` (new id), never
   `update` to `superseded`, never payload-only `update`.
 - Parent writes records. Do not spawn subagents here.
@@ -208,7 +216,36 @@ adaptive-artifacts create --type project:acceptance \
   --payload '{"criterion":"<observable done-check>","method":"tdd","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<command>"}'
 ```
 
-7. Regenerate views:
+7. For a `deliver` or `repair` phase, create the verification task
+   last, with one `--rel depends_on:` per other work-item in the
+   phase. Give it one acceptance per exit criterion (suffixed
+   subjects), and make at least one of them an integration check
+   that drives the real entry point end to end:
+
+```bash
+adaptive-artifacts create --type project:work-item \
+  --subject "verify-<phase-slug>" \
+  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>"}' \
+  --body "## Description
+
+Prove the phase exit criteria hold together: run the integration
+check through the real entry point, then every other phase check." \
+  --rel depends_on:<work-item-id-1> \
+  --rel depends_on:<work-item-id-2>
+
+adaptive-artifacts create --type project:acceptance \
+  --subject "verify-<phase-slug>" \
+  --payload '{"criterion":"<exit criterion 1, observed through the real entry point>","method":"tdd","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<integration test command>"}'
+
+adaptive-artifacts create --type project:acceptance \
+  --subject "verify-<phase-slug>-<criterion-suffix>" \
+  --payload '{"criterion":"<exit criterion 2>","method":"check","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<command>"}'
+```
+
+   Add a task that later joins the phase as a `depends_on` edge on the
+   verification task (`update --rel`), so the gate still waits for it.
+
+8. Regenerate views:
 
 ```bash
 adaptive-artifacts handoff --out views/handoff.md
@@ -216,7 +253,8 @@ adaptive-artifacts view --id project:plan --out views/plan.md
 adaptive-artifacts validate
 ```
 
-8. Show the user the focus task list. `project:plan`'s rendered view
+9. Show the user the focus task list, with the verification task and
+   the exit criterion each of its acceptances covers. `project:plan`'s rendered view
    doesn't carry `derived.ready`/`wave` (they aren't in the contract's
    `requires_payload` for that role) — query them directly if useful:
 
@@ -225,7 +263,7 @@ adaptive-artifacts list --type project:work-item \
   --where payload.effort=<effort-slug> --where payload.phase=<current-phase-slug>
 ```
 
-9. Open the plan review gate, so nothing dispatches before the user
+10. Open the plan review gate, so nothing dispatches before the user
    has seen the tasks (skip for incidental):
 
 ```bash
