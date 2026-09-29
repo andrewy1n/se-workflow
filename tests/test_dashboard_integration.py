@@ -10,28 +10,15 @@ import helpers as h
 EFFORT = "flow"
 PHASE = "flow-phase-1"
 
-_SECTION = re.compile(r"^### (.+)$")
-_ITEM = re.compile(r"^- \*\*(.+?)\*\*.*_\(id: \[(rec-[^\]]+)\]")
+_ID = re.compile(r"_\(id: \[(rec-[^\]]+)\]")
 
 
 def _dashboard(cli) -> dict[str, list[str]]:
     result = cli("view", "--id", "project:dashboard")
     assert result.returncode == 0, result.stdout + result.stderr
-    sections: dict[str, list[str]] = {}
-    ids: list[str] = []
-    group = current = None
-    for line in result.stdout.splitlines():
-        if line.startswith("## "):
-            group = line[3:]
-            current = None
-        elif match := _SECTION.match(line):
-            current = match.group(1)
-        elif match := _ITEM.match(line):
-            assert group == EFFORT and current is not None, result.stdout
-            sections.setdefault(current, []).append(match.group(1))
-            ids.append(match.group(2))
+    ids = _ID.findall(result.stdout)
     assert len(ids) == len(set(ids)), result.stdout
-    return {name: sorted(subjects) for name, subjects in sections.items()}
+    return h.section_map(result.stdout, EFFORT)
 
 
 def _expect(cli, **sections: list[str]) -> str:

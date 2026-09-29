@@ -7,14 +7,25 @@ so the suite keeps working as the contract gains or changes record types.
 
 from __future__ import annotations
 
+import fcntl
 import itertools
 import json
+import os
+import pty
+import re
+import select
+import signal
+import struct
 import subprocess
 import sys
+import termios
+import time
+import uuid
 from collections import deque
+from pathlib import Path
 from typing import Any
 
-from conftest import CLI, REPO_ROOT
+from conftest import AA_ROOT, CLI, REPO_ROOT
 
 _COUNTER = itertools.count()
 
@@ -208,3 +219,113 @@ def _apply_transition(cli, record_def: dict, record_type: str, record: dict, des
         f"{result.stdout}\n{result.stderr}"
     )
     return json.loads(result.stdout)["record"]
+
+
+TMUX_CONF = REPO_ROOT / "scripts" / "tmux-dashboard.conf"
+DEADLINE = 10.0
+ANSI = re.compile(r"\x1b(\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(\x07|\x1b\\)|[()][0-9A-Za-z]|[=>78DEHMc])")
+_DASHBOARD_ITEM = re.compile(r"^- (?:\*\*(.+?)\*\*|([^*:][^:]*):)")
+
+
+def section_map(text: str, effort: str) -> dict[str, list[str]]:
+    """Map each `### <section>` under `## <effort>` to its sorted item subjects.
+
+    Accepts both `view` markdown (`- **subject**`) and formatted `watch` text (`- subject:`).
+    """
+    sections: dict[str, list[str]] = {}
+    group = current = None
+    for line in ANSI.sub("", text).splitlines():
+        line = line.rstrip()
+        if line.startswith("## "):
+            group, current = line[3:], None
+        elif line.startswith("### "):
+            current = line[4:]
+        elif match := _DASHBOARD_ITEM.match(line):
+            assert group == effort and current is not None, text
+            sections.setdefault(current, []).append(match.group(1) or match.group(2))
+    return {name: sorted(subjects) for name, subjects in sections.items()}
+
+
+def wait_for(probe, what: str, show=lambda: "", deadline: float = DEADLINE):
+    end = time.monotonic() + deadline
+    while time.monotonic() < end:
+        value = probe()
+        if value:
+            return value
+        time.sleep(0.1)
+    raise AssertionError(f"timed out waiting for {what}\n{show()}")
+
+
+class Tmux:
+    """An isolated tmux server on its own socket, loaded with the dashboard conf, with a pty client."""
+
+    def __init__(self, home: Path, cwd: Path, cols: int = 120, rows: int = 40):
+        self.socket = f"se-wf-test-{os.getpid()}-{uuid.uuid4().hex[:8]}"
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("TMUX")}
+        self.env.update(
+            HOME=str(home), SHELL="/bin/sh", TERM="xterm-256color",
+            ADAPTIVE_ARTIFACTS_BIN=str(AA_ROOT / "bin" / "adaptive-artifacts"),
+        )
+        self.cwd = cwd
+        self.cols, self.rows = cols, rows
+        self.socket_path: str | None = None
+        self.client_pid: int | None = None
+        self.client_fd: int | None = None
+        self.output = b""
+
+    def __call__(self, *args: str, check: bool = True) -> str:
+        result = subprocess.run(
+            ["tmux", "-L", self.socket, "-f", str(TMUX_CONF), *args],
+            capture_output=True, text=True, env=self.env, cwd=str(self.cwd), timeout=10,
+        )
+        if check:
+            assert result.returncode == 0, f"tmux {args}: {result.stdout}{result.stderr}"
+        return result.stdout
+
+    def start(self, session: str, directory: Path) -> None:
+        self("new-session", "-d", "-s", session, "-x", str(self.cols), "-y", str(self.rows), "-c", str(directory))
+        self.socket_path = self("display", "-p", "#{socket_path}").strip()
+
+    def attach(self, session: str) -> None:
+        pid, fd = pty.fork()
+        if pid == 0:
+            fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", self.rows, self.cols, 0, 0))
+            os.execvpe("tmux", ["tmux", "-L", self.socket, "attach", "-t", session], self.env)
+        self.client_pid, self.client_fd = pid, fd
+        wait_for(lambda: self("list-clients", "-F", "#{client_tty}").strip(), "client attach")
+
+    def press(self, key: str) -> None:
+        prefix = self("show", "-gv", "prefix").strip()
+        assert prefix == "C-b", prefix
+        self.output = b""
+        os.write(self.client_fd, b"\x02" + key.encode())
+
+    def open_side_pane(self, session: str) -> str:
+        self.press("S")
+        panes = wait_for(lambda: self("list-panes", "-t", session, "-F", "#{pane_id}").split()[1:], "side pane")
+        return panes[0]
+
+    def screen_text(self, needles: list[str]) -> str:
+        deadline = time.monotonic() + DEADLINE
+        while True:
+            text = " ".join(ANSI.sub(" ", self.output.decode("utf-8", "replace")).split())
+            if all(needle in text for needle in needles) or time.monotonic() > deadline:
+                return text
+            ready, _, _ = select.select([self.client_fd], [], [], 0.2)
+            if ready:
+                try:
+                    self.output += os.read(self.client_fd, 65536)
+                except OSError:
+                    return text
+
+    def kill(self) -> None:
+        self("kill-server", check=False)
+        if self.client_pid is not None:
+            try:
+                os.kill(self.client_pid, signal.SIGKILL)
+                os.waitpid(self.client_pid, 0)
+            except (ProcessLookupError, ChildProcessError):
+                pass
+            os.close(self.client_fd)
+        if self.socket_path:
+            Path(self.socket_path).unlink(missing_ok=True)
