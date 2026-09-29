@@ -9,10 +9,49 @@ from __future__ import annotations
 
 import itertools
 import json
+import subprocess
+import sys
 from collections import deque
 from typing import Any
 
+from conftest import CLI, REPO_ROOT
+
 _COUNTER = itertools.count()
+
+# The CLI has no clock option, so shift datetime.now inside a CLI subprocess to write a past recorded_at.
+_PAST_CLOCK = """
+import datetime as _dt, runpy, sys
+_real = _dt.datetime
+class _Past(_real):
+    @classmethod
+    def now(cls, tz=None):
+        return _real.now(tz) - _dt.timedelta(hours=48)
+_dt.datetime = _Past
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+"""
+
+
+def run_cli_48h_ago(store, *args: str) -> dict:
+    result = subprocess.run(
+        [sys.executable, "-c", _PAST_CLOCK, str(CLI), "--root", str(store), *args],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)["record"]
+
+
+def transition(cli, record_type: str, record: dict, *states: str) -> dict:
+    for state in states:
+        result = cli(
+            "update", "--type", record_type, "--id", record["id"],
+            "--transition", state, "--expected-revision", record["revision"],
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        record = json.loads(result.stdout)["record"]
+    return record
 
 
 def record_defs_by_id(contract: dict) -> dict[str, dict]:

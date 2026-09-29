@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 
 import helpers as h
-from conftest import CLI, REPO_ROOT
 
 EFFORT = "demo"
 
@@ -23,42 +20,6 @@ SECTIONS = [
     "Waiting",
     "Done Recent",
 ]
-
-# The CLI has no clock option, so shift datetime.now inside a CLI subprocess to write a past recorded_at.
-_PAST_CLOCK = """
-import datetime as _dt, runpy, sys
-_real = _dt.datetime
-class _Past(_real):
-    @classmethod
-    def now(cls, tz=None):
-        return _real.now(tz) - _dt.timedelta(hours=48)
-_dt.datetime = _Past
-sys.argv = sys.argv[1:]
-runpy.run_path(sys.argv[0], run_name="__main__")
-"""
-
-
-def _run_48h_ago(store, *args: str) -> dict:
-    result = subprocess.run(
-        [sys.executable, "-c", _PAST_CLOCK, str(CLI), "--root", str(store), *args],
-        capture_output=True,
-        text=True,
-        cwd=str(REPO_ROOT),
-    )
-    assert result.returncode == 0, result.stdout + result.stderr
-    return json.loads(result.stdout)["record"]
-
-
-def _transition(cli, record_type: str, record: dict, *states: str) -> dict:
-    for state in states:
-        result = cli(
-            "update", "--type", record_type, "--id", record["id"],
-            "--transition", state, "--expected-revision", record["revision"],
-        )
-        assert result.returncode == 0, result.stdout + result.stderr
-        record = json.loads(result.stdout)["record"]
-    return record
-
 
 def _work_item(cli, defs, subject: str, phase: str, **payload) -> dict:
     return h.create_generic_record(
@@ -76,7 +37,7 @@ def _seed(store, cli, defs) -> None:
         cli, defs, "project:phase", subject="demo-phase-1",
         extra_payload={"title": "first phase", "ordinal": 1, "effort": EFFORT},
     )
-    _transition(cli, "project:phase", phase, "in_progress")
+    h.transition(cli, "project:phase", phase, "in_progress")
     h.create_generic_record(
         cli, defs, "project:continuity-question", subject=EFFORT,
         extra_payload={"blocking": True, "scope": "blocking-scope"},
@@ -94,7 +55,7 @@ def _seed(store, cli, defs) -> None:
         extra_payload={"method": "manual", "signed_by": "", "result": "pass", "effort": EFFORT},
     )
     running = _work_item(cli, defs, "running-item", "demo-phase-1", assignee="agent-7")
-    _transition(cli, "project:work-item", running, "in_progress")
+    h.transition(cli, "project:work-item", running, "in_progress")
     ready = _work_item(cli, defs, "ready-item", "demo-phase-1")
     waiting_payload = {
         "title": "title of waiting-item", "phase": "demo-phase-1", "kind": "deliver",
@@ -107,11 +68,11 @@ def _seed(store, cli, defs) -> None:
     )
     assert result.returncode == 0, result.stdout + result.stderr
     done = _work_item(cli, defs, "done-item", "demo-phase-1")
-    _transition(cli, "project:work-item", done, "in_progress", "done")
+    h.transition(cli, "project:work-item", done, "in_progress", "done")
 
     old = _work_item(cli, defs, "old-done-item", "demo-phase-1")
-    old = _transition(cli, "project:work-item", old, "in_progress")
-    _run_48h_ago(
+    old = h.transition(cli, "project:work-item", old, "in_progress")
+    h.run_cli_48h_ago(
         store, "update", "--type", "project:work-item", "--id", old["id"],
         "--transition", "done", "--expected-revision", old["revision"],
     )
