@@ -750,6 +750,19 @@ def test_detail_screen_redraws_when_the_store_changes(detailed, cli, defs, size)
     _detail_run(store, size, scenario, interval=0.3)
 
 
+def test_detail_paint_is_skipped_when_the_screen_is_torn_down_mid_render(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await _open_by_enter(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        detail = screen.detail
+        await screen.query_one("#related").remove()
+        await screen.paint(detail)
+
+    _detail_run(store, (160, 50), scenario)
+
+
 @pytest.mark.parametrize("opener", (_open_by_enter, _open_by_click))
 @pytest.mark.parametrize("size", DETAIL_SIZES)
 def test_escape_returns_to_the_dashboard_on_the_same_row(detailed, size, opener):

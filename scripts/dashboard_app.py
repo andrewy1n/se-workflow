@@ -679,6 +679,8 @@ class TaskDetailScreen(Screen[None]):
         await self.query_one("#description Markdown", Markdown).update(description_source(detail.body))
         await self.fill_acceptances(detail, colors)
         await self.fill_timeline(detail, now, colors)
+        if not self.is_attached or not self.query("#related"):
+            return
         related = self.query_one("#related", Static)
         related.display = bool(detail.related)
         related.update(related_text(detail.related, colors))
