@@ -27,6 +27,7 @@ from textual.app import App, ComposeResult  # noqa: E402
 from textual.containers import Horizontal, Vertical, VerticalScroll  # noqa: E402
 from textual.coordinate import Coordinate  # noqa: E402
 from textual.screen import Screen  # noqa: E402
+from textual.widget import Widget  # noqa: E402
 from textual.widgets import (  # noqa: E402
     Collapsible, DataTable, Footer, Markdown, ProgressBar, Static, TabbedContent, TabPane,
 )
@@ -231,7 +232,7 @@ def status_chip(status: str, colors: dict[str, str]) -> tuple[str, str]:
     return f"{STATUS_GLYPH.get(status, '·')} {status}", colors.get(status, colors["muted"])
 
 
-def detail_chips(detail: model.TaskDetail, colors: dict[str, str]) -> Text:
+def detail_chips(detail: model.TaskDetail, colors: dict[str, str], width: int = 100) -> Text:
     label, style = status_chip(detail.status, colors)
     chips = [(label, style)]
     if detail.phase:
@@ -241,9 +242,17 @@ def detail_chips(detail: model.TaskDetail, colors: dict[str, str]) -> Text:
     if detail.assignee:
         chips.append((f"assignee {detail.assignee}", colors["muted"]))
     text = Text()
+    used = 0
     for index, (chip, chip_style) in enumerate(chips):
-        text.append("  " if index else "")
+        if index:
+            if used + 3 + len(chip) > width:
+                text.append("\n")
+                used = 0
+            else:
+                text.append(" · ", style=colors["muted"])
+                used += 3
         text.append(chip, style=chip_style)
+        used += len(chip)
     return text
 
 
@@ -274,13 +283,40 @@ def acceptance_body(row: model.AcceptanceRow, colors: dict[str, str]) -> Text:
     if how:
         text.append(f"\n{how}", style=colors["muted"])
     if row.check is not None:
-        text.append(f"\n{row.check.revision}", style=colors["muted"])
+        text.append(f"\nrev {row.check.revision}", style=colors["muted"])
         if row.check.signed_by:
             text.append(f" · signed by {row.check.signed_by}", style=colors["muted"])
         elif row.check.method == "manual":
             text.append(" · ", style=colors["muted"])
             text.append("unsigned", style=colors["warning"])
     return text
+
+
+FIELD_BLOCK = re.compile(r"\A\s*```[^\n]*\n(.*?)\n?```[ \t]*(?:\n(.*))?\Z", re.DOTALL)
+FIELD_LINE = re.compile(r"([A-Za-z_][\w-]*):[ \t]*(.*)")
+
+
+def split_fields(body: str) -> tuple[list[tuple[str, str]], str] | None:
+    found = FIELD_BLOCK.match(body)
+    if found is None:
+        return None
+    fields: list[list[str]] = []
+    for line in found.group(1).splitlines():
+        match = FIELD_LINE.fullmatch(line)
+        if match:
+            fields.append([match.group(1), match.group(2)])
+        elif fields and line.strip():
+            fields[-1][1] += " " + line.strip()
+        elif not fields and line.strip():
+            return None
+    if not fields:
+        return None
+    return [(key, value) for key, value in fields], (found.group(2) or "").strip()
+
+
+def field_value(key: str, value: str, colors: dict[str, str]) -> Text:
+    style = {"pass": colors["success"], "fail": colors["error"]}.get(value) if key in ("result", "verdict") else None
+    return Text(value, style=style or "")
 
 
 def event_label(event: model.TimelineEvent, now: datetime) -> str:
@@ -402,6 +438,9 @@ class TaskDetailScreen(Screen[None]):
     .mark { width: 2; }
     .body { width: 1fr; }
     .event { height: auto; }
+    .fields { height: auto; }
+    .field { height: auto; }
+    .value { width: 1fr; }
     Static.event { padding-left: 2; }
     Collapsible { padding: 0; border-top: none; background: transparent; }
     CollapsibleTitle { padding: 0; background: transparent; }
@@ -493,7 +532,7 @@ class TaskDetailScreen(Screen[None]):
         bar.append(f"  {detail.effort}", style=colors["muted"])
         self.query_one("#detail-bar", Static).update(bar)
         self.query_one("#detail-title", Static).update(Text(detail.title or detail.subject, style="bold"))
-        self.query_one("#detail-chips", Static).update(detail_chips(detail, colors))
+        self.paint_chips()
         for name, label, tasks in (
             ("depends", "Depends on:", detail.depends_on), ("blocks", "Blocks:", detail.blocks),
         ):
@@ -509,6 +548,16 @@ class TaskDetailScreen(Screen[None]):
         self.loaded = True
         self.call_after_refresh(scroll.scroll_to, y=offset, animate=False)
 
+    def paint_chips(self) -> None:
+        if self.detail is None:
+            return
+        chips = self.query_one("#detail-chips", Static)
+        colors = palette_from(self.app.get_css_variables())
+        chips.update(detail_chips(self.detail, colors, chips.size.width or self.size.width - 4))
+
+    def on_resize(self) -> None:
+        self.paint_chips()
+
     async def fill_acceptances(self, detail: model.TaskDetail, colors: dict[str, str]) -> None:
         panel = self.query_one("#acceptances", Vertical)
         panel.display = bool(detail.acceptances)
@@ -520,6 +569,24 @@ class TaskDetailScreen(Screen[None]):
             )
             for row in detail.acceptances
         )
+
+    def body_widgets(self, body: str, colors: dict[str, str]) -> list[Widget]:
+        split = split_fields(body)
+        if split is None:
+            return [Markdown(body)]
+        fields, rest = split
+        room = min(max(len(key) for key, _ in fields), 14) + 2
+        rows = []
+        for key, value in fields:
+            label = Static(Text(key, style=colors["muted"]), classes="key")
+            label.styles.width = room
+            rows.append(Horizontal(label, Static(field_value(key, value, colors), classes="value"), classes="field"))
+        block = Vertical(*rows, classes="fields")
+        block.styles.margin = (0, 0, 1 if rest else 0, 0)
+        widgets: list[Widget] = [block]
+        if rest:
+            widgets.append(Markdown(rest))
+        return widgets
 
     async def fill_timeline(self, detail: model.TaskDetail, now: datetime, colors: dict[str, str]) -> None:
         panel = self.query_one("#timeline", Vertical)
@@ -534,7 +601,7 @@ class TaskDetailScreen(Screen[None]):
             if event.body.strip():
                 open_now = self.expanded.get(f"event-{slug(event.id)}", event.id == newest)
                 widgets.append(Collapsible(
-                    Markdown(event.body.strip()), title=f"{label} {glyph} {event.summary}",
+                    *self.body_widgets(event.body.strip(), colors), title=f"{label} {glyph} {event.summary}",
                     collapsed=not open_now, id=f"event-{slug(event.id)}", classes="event",
                 ))
             else:

@@ -309,7 +309,8 @@ def detailed(store, cli, defs):
     )
     _record(cli, defs, "project:execution-report", "det-task",
             {"work_item": task["id"], "assignment": assignment["id"], "result": "ok", "verdict": "pass", "revision": "r2"},
-            "second attempt notes")
+            "```\nsubject: det-task\nresult: pass\nevidence: second attempt notes that run long enough to wrap "
+            "under the value column at sixty columns\nverdict: pass\nneeds_human: false\n```\n\nclosing **remarks**")
     _record(cli, defs, "project:check-run", "det-task", {
         "criterion_id": tests["id"], "method": "check", "result": "pass", "signed_by": "", "revision": "abc1234", "effort": "alpha"})
     _record(cli, defs, "project:check-run", "det-task-review", {
@@ -419,8 +420,8 @@ def test_detail_screen_lists_acceptances_with_result_glyphs_and_method_lines(det
         screen = await _shown(app, pilot)
         rows = _acceptance_rows(screen)
         by_criterion = {row.splitlines()[0]: row.splitlines() for row in rows}
-        assert by_criterion["✓ unit tests pass"] == ["✓ unit tests pass", "check · pytest -q", "abc1234"]
-        assert by_criterion["✓ reviewer approves"] == ["✓ reviewer approves", "manual", "def5678 · unsigned"]
+        assert by_criterion["✓ unit tests pass"] == ["✓ unit tests pass", "check · pytest -q", "rev abc1234"]
+        assert by_criterion["✓ reviewer approves"] == ["✓ reviewer approves", "manual", "rev def5678 · unsigned"]
         assert by_criterion["– docs updated"] == ["– docs updated", "manual"]
         assert len(rows) == 3
 
@@ -444,10 +445,46 @@ def test_detail_timeline_is_oldest_first_with_only_the_newest_report_expanded(de
         assert not by_title["≡ reported pass"].collapsed
         assert by_title["≡ reported fail"].collapsed and by_title["→ assigned to sub-d"].collapsed
         assert by_title["· amended"].collapsed
-        assert "second attempt notes" in by_title["≡ reported pass"].query_one("Markdown").source
+        assert by_title["≡ reported fail"].query_one("Markdown").source == "first attempt notes"
         assert "now" in titles[-1] or "ago" in titles[-1]
 
     _detail_run(store, size, scenario)
+
+
+@OPENERS
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_report_body_renders_fenced_fields_as_a_key_value_list_and_the_rest_as_markdown(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await opener(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        newest = next(c for c in screen.query("Collapsible") if "reported pass" in str(c.title))
+        rows = [(str(r.query_one(".key").render()), str(r.query_one(".value").render())) for r in newest.query(".field")]
+        assert [key for key, _ in rows] == ["subject", "result", "evidence", "verdict", "needs_human"]
+        assert dict(rows)["evidence"].endswith("under the value column at sixty columns")
+        assert not newest.query("MarkdownFence")
+        assert [m.source for m in newest.query("Markdown")] == ["closing **remarks**"]
+        styles = {key: r.query_one(".value").render().spans for (key, _), r in zip(rows, newest.query(".field"))}
+        assert styles["result"] and not styles["subject"]
+
+    _detail_run(store, size, scenario)
+
+
+def test_split_fields_joins_continuation_lines_and_ignores_plain_markdown():
+    assert app_module.split_fields("```\na: 1\nb: two\n  more\n```") == ([("a", "1"), ("b", "two more")], "")
+    assert app_module.split_fields("```\na: 1\n```\n\nafter") == ([("a", "1")], "after")
+    assert app_module.split_fields("plain **text**") is None
+    assert app_module.split_fields("```python\nprint(1)\n```") is None
+
+
+def test_chips_never_split_a_label_from_its_value_when_narrow():
+    detail = app_module.model.TaskDetail(
+        "i", "s", "e", "t", "done", "task-details", 1, "sub-task-detail-model", "", [], [], [], [], [])
+    colors = app_module.ANSI_PALETTE
+    lines = app_module.detail_chips(detail, colors, 40).plain.splitlines()
+    assert lines == ["✓ done · phase task-details · w1", "assignee sub-task-detail-model"]
+    assert app_module.detail_chips(detail, colors, 100).plain == "✓ done · phase task-details · w1 · assignee sub-task-detail-model"
 
 
 @OPENERS
