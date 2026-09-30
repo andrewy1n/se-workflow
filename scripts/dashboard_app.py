@@ -12,6 +12,7 @@ import asyncio
 import re
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -29,7 +30,7 @@ from textual.coordinate import Coordinate  # noqa: E402
 from textual.screen import Screen  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets import (  # noqa: E402
-    Collapsible, DataTable, Footer, Markdown, ProgressBar, Static, TabbedContent, TabPane,
+    Collapsible, DataTable, Footer, Input, Markdown, ProgressBar, Static, TabbedContent, TabPane,
 )
 
 WIDE = 90
@@ -115,6 +116,36 @@ def counts(view: model.EffortView) -> dict[str, int]:
         "running": tally["running"], "ready": tally["ready"],
         "needs": len(view.needs_you), "done": tally["done"],
     }
+
+
+@dataclass
+class TaskFilter:
+    text: str = ""
+    hide_done: bool = False
+
+    @property
+    def active(self) -> bool:
+        return bool(self.text) or self.hide_done
+
+
+def visible_tasks(tasks: list[model.TaskRow], task_filter: TaskFilter) -> list[model.TaskRow]:
+    needle = task_filter.text.lower()
+    return [
+        task for task in tasks
+        if not (task_filter.hide_done and task.status in ("done", "withdrawn"))
+        and (not needle or needle in task.title.lower() or needle in task.subject.lower())
+    ]
+
+
+def tasks_title(shown: int, total: int, task_filter: TaskFilter) -> str:
+    parts = ["Tasks"]
+    if task_filter.active:
+        parts.append(f"{shown} of {total}")
+    if task_filter.text:
+        parts.append(f"/{task_filter.text}")
+    if task_filter.hide_done:
+        parts.append("done hidden")
+    return " · ".join(parts)
 
 
 def status_cell(task: model.TaskRow, colors: dict[str, str]) -> Text:
@@ -352,9 +383,16 @@ class EffortPane(VerticalScroll):
                 tile = Static(id=f"tile-{name}", classes="tile")
                 tile.tile_label = label
                 yield tile
+        filter_input = FilterInput(placeholder="filter tasks", id="filter")
+        filter_input.display = False
+        yield filter_input
         tasks = TaskTable(id="tasks", cursor_type="row", zebra_stripes=False)
         tasks.border_title = "Tasks"
         yield tasks
+        none = Static("No tasks match", id="tasks-empty")
+        none.border_title = "Tasks"
+        none.display = False
+        yield none
         needs = Static(id="needs-you")
         needs.border_title = "Needs you"
         yield needs
@@ -400,7 +438,14 @@ class EffortPane(VerticalScroll):
 
     def fill_tasks(self, view: model.EffortView, width: int, room: int, colors: dict[str, str]) -> None:
         table = self.query_one("#tasks", DataTable)
-        table.display = bool(view.tasks)
+        task_filter = self.app.filters.get(self.effort, TaskFilter())
+        tasks = visible_tasks(view.tasks, task_filter)
+        title = tasks_title(len(tasks), len(view.tasks), task_filter)
+        table.display = bool(tasks)
+        table.border_title = title
+        empty = self.query_one("#tasks-empty", Static)
+        empty.display = bool(view.tasks) and not tasks
+        empty.border_title = title
         keep = None
         if table.row_count:
             keep = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
@@ -408,11 +453,18 @@ class EffortPane(VerticalScroll):
         columns = task_columns(width)
         for name in columns:
             table.add_column(name, key=name)
-        room = title_width(columns, room - 4, view.tasks)
-        for task in view.tasks:
+        room = title_width(columns, room - 4, tasks)
+        for task in tasks:
             table.add_row(*task_cells(task, columns, room, colors), key=task.id)
         if keep is not None and keep in table.rows:
             table.move_cursor(row=table.get_row_index(keep))
+
+
+class FilterInput(Input):
+    BINDINGS = [Binding("escape", "cancel", "clear", show=False)]
+
+    def action_cancel(self) -> None:
+        self.app.clear_filter()
 
 
 class TaskTable(DataTable):
@@ -635,6 +687,9 @@ class DashboardApp(App[None]):
     .tile.blocking { border: round $error; color: $error; }
     .tile.done, .tile.quiet { color: $text-muted; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
+    #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }
+    #filter:focus { border: none; background: $panel; }
+    #tasks-empty { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; color: $text-muted; }
     #needs-you { height: auto; margin-top: 1; border: round $warning; border-title-color: $warning; padding: 0 1; }
     #activity { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     """
@@ -645,6 +700,9 @@ class DashboardApp(App[None]):
         Binding("shift+tab", "previous_effort", "previous", show=False, priority=True),
         ("r", "refresh", "refresh"),
         Binding("enter", "open_task", "open"),
+        Binding("slash", "filter", "filter"),
+        Binding("d", "toggle_done", "done"),
+        Binding("escape", "clear_filter", "clear filter", show=False),
     ]
 
     def __init__(self, target: artifact_store.Target, interval: float = 2.0) -> None:
@@ -655,6 +713,7 @@ class DashboardApp(App[None]):
         self.token: str | None = None
         self.loaded_at = 0.0
         self.panes: dict[str, EffortPane] = {}
+        self.filters: dict[str, TaskFilter] = {}
 
     def compose(self) -> ComposeResult:
         yield Static(id="header")
@@ -687,9 +746,73 @@ class DashboardApp(App[None]):
                 screen.load()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if isinstance(self.screen, TaskDetailScreen) and action in ("next_effort", "previous_effort", "open_task"):
+        detail = isinstance(self.screen, TaskDetailScreen)
+        if detail and action in ("next_effort", "previous_effort", "open_task", "filter", "toggle_done", "clear_filter"):
             return False
+        if action == "clear_filter":
+            return self.active_filter().active
         return True
+
+    def active_pane(self) -> EffortPane | None:
+        pane = self.query_one("#efforts", TabbedContent).active_pane
+        return pane.query_one(EffortPane) if pane is not None else None
+
+    def active_filter(self) -> TaskFilter:
+        pane = self.active_pane()
+        return self.filters.get(pane.effort, TaskFilter()) if pane is not None else TaskFilter()
+
+    def repaint_pane(self, pane: EffortPane) -> None:
+        if self.snapshot is None:
+            return
+        for view in self.snapshot.efforts:
+            if view.effort == pane.effort:
+                pane.fill_tasks(view, self.size.width, pane.inner, palette_from(self.get_css_variables()))
+
+    def action_filter(self) -> None:
+        pane = self.active_pane()
+        if pane is None:
+            return
+        box = pane.query_one("#filter", Input)
+        box.value = self.filters.get(pane.effort, TaskFilter()).text
+        box.display = True
+        box.focus()
+        box.cursor_position = len(box.value)
+
+    def action_toggle_done(self) -> None:
+        pane = self.active_pane()
+        if pane is not None:
+            current = self.filters.setdefault(pane.effort, TaskFilter())
+            current.hide_done = not current.hide_done
+            self.repaint_pane(pane)
+
+    def clear_filter(self) -> None:
+        pane = self.active_pane()
+        if pane is None:
+            return
+        self.filters.setdefault(pane.effort, TaskFilter()).text = ""
+        self.close_filter(pane)
+        self.repaint_pane(pane)
+
+    def action_clear_filter(self) -> None:
+        self.clear_filter()
+
+    def close_filter(self, pane: EffortPane) -> None:
+        box = pane.query_one("#filter", Input)
+        box.display = False
+        box.value = ""
+        if box.has_focus:
+            pane.query_one("#tasks", DataTable).focus()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        pane = event.input.query_ancestor(EffortPane)
+        if event.input.display and event.value != self.filters.get(pane.effort, TaskFilter()).text:
+            self.filters.setdefault(pane.effort, TaskFilter()).text = event.value
+            self.repaint_pane(pane)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        pane = event.input.query_ancestor(EffortPane)
+        event.input.display = False
+        pane.query_one("#tasks", DataTable).focus()
 
     def open_task(self, task_id: str | None) -> None:
         if task_id and not isinstance(self.screen, TaskDetailScreen):
@@ -713,6 +836,8 @@ class DashboardApp(App[None]):
     def step_effort(self, delta: int) -> None:
         tabs = self.query_one("#efforts", TabbedContent)
         ids = [pane.id for pane in tabs.query(TabPane)]
+        for pane in self.panes.values():
+            pane.query_one("#filter", Input).display = False
         if ids and tabs.active in ids:
             tabs.active = ids[(ids.index(tabs.active) + delta) % len(ids)]
 

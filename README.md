@@ -137,7 +137,9 @@ It needs `uv`. The first run downloads `textual`.
 |---|---|
 | `tab` / `shift+tab` | Switch effort |
 | `enter` / click | Open the task detail |
-| `esc` | Back from the detail |
+| `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
+| `d` | Hide or show done and withdrawn tasks |
+| `esc` | Clear the filter, or go back from the detail |
 | `r` | Refresh now |
 | `q` | Quit |
 

@@ -192,7 +192,7 @@ def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
     async def scenario(app, pilot):
         await pilot.pause()
         keys = list(app.query("FooterKey"))
-        assert sorted(str(key.description) for key in keys) == ["open", "quit", "refresh", "switch"]
+        assert sorted(str(key.description) for key in keys) == ["done", "filter", "open", "quit", "refresh", "switch"]
         assert all(key.region.right <= 60 for key in keys)
 
     _run(seeded, 60, scenario)
@@ -260,6 +260,226 @@ def test_keeps_the_cursor_row_across_a_refresh(seeded, cli, defs):
         assert table.coordinate_to_cell_key(table.cursor_coordinate).row_key == key
 
     _run(seeded, 120, scenario, interval=0.3)
+
+
+def _titles(app):
+    table = app.query_one("#tasks")
+    return [str(table.get_row_at(i)[1]).strip() for i in range(table.row_count)]
+
+
+def _all_titles():
+    return ["title of a-running", "title of a-ready", "title of a-waiting", "title of a-done"]
+
+
+def _second_effort(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="beta", extra_payload={"goal": "ship beta", "kind": "deliver"},
+    )
+    _phase(cli, defs, "beta", "b-one", 1, "in_progress")
+    _work_item(cli, defs, "beta", "b-task", "b-one")
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_slash_filter_narrows_rows_as_you_type_and_shows_in_the_title(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"READY")
+        await pilot.pause()
+        assert _titles(app) == ["title of a-ready"]
+        assert app.query_one("#tasks").border_title == "Tasks · 1 of 4 · /READY"
+        assert app.query_one("#filter").has_focus
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_filter_matches_the_subject_as_well_as_the_title(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"a-wait")
+        await pilot.pause()
+        assert _titles(app) == ["title of a-waiting"]
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_escape_in_the_filter_input_clears_the_filter(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"ready")
+        await pilot.press("escape")
+        await pilot.pause()
+        assert _titles(app) == _all_titles()
+        assert app.query_one("#tasks").border_title == "Tasks"
+        assert not app.query_one("#filter").display
+        assert app.query_one("#tasks").has_focus
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_enter_keeps_the_filter_returns_focus_and_does_not_open_a_task(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"ready")
+        await pilot.press("enter")
+        await pilot.pause(0.3)
+        assert len(app.screen_stack) == 1
+        assert _titles(app) == ["title of a-ready"]
+        assert not app.query_one("#filter").display
+        assert app.query_one("#tasks").has_focus
+        assert app.query_one("#tasks").border_title == "Tasks · 1 of 4 · /ready"
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_escape_on_the_dashboard_clears_a_kept_filter(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"ready")
+        await pilot.press("enter")
+        await pilot.press("escape")
+        await pilot.pause()
+        assert _titles(app) == _all_titles()
+        assert app.query_one("#tasks").border_title == "Tasks"
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_slash_reopens_the_input_with_the_current_filter(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"ready")
+        await pilot.press("enter")
+        await pilot.press("slash")
+        await pilot.pause()
+        box = app.query_one("#filter")
+        assert box.display and box.has_focus and box.value == "ready"
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_d_hides_and_shows_done_tasks(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("d")
+        await pilot.pause()
+        assert _titles(app) == _all_titles()[:3]
+        assert app.query_one("#tasks").border_title == "Tasks · 3 of 4 · done hidden"
+        await pilot.press("d")
+        await pilot.pause()
+        assert _titles(app) == _all_titles()
+        assert app.query_one("#tasks").border_title == "Tasks"
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_d_hides_withdrawn_tasks_too(store, cli, defs, width):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "g", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "one", 1, "in_progress")
+    _work_item(cli, defs, "alpha", "w-ready", "one")
+    gone = _work_item(cli, defs, "alpha", "w-gone", "one")
+    h.transition(cli, "project:work-item", gone, "withdrawn")
+
+    async def scenario(app, pilot):
+        assert app.query_one("#tasks").row_count == 2
+        await pilot.press("d")
+        await pilot.pause()
+        assert _titles(app) == ["title of w-ready"]
+
+    _run(store, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_filter_and_hidden_done_combine_in_the_title(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("d")
+        await pilot.press("slash")
+        await pilot.press(*"a-")
+        await pilot.pause()
+        assert app.query_one("#tasks").border_title == "Tasks · 3 of 4 · /a- · done hidden"
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_filter_and_hidden_done_survive_a_store_refresh(seeded, cli, defs, width):
+    async def scenario(app, pilot):
+        await pilot.press("d")
+        await pilot.press("slash")
+        await pilot.press(*"a-r")
+        await pilot.press("enter")
+        await pilot.pause()
+        assert _titles(app) == ["title of a-running", "title of a-ready"]
+        _work_item(cli, defs, "alpha", "a-r-fresh", "two")
+        await _until(pilot, lambda: len(_titles(app)) == 3)
+        assert app.query_one("#tasks").border_title == "Tasks · 3 of 5 · /a-r · done hidden"
+        assert "title of a-done" not in _titles(app)
+
+    _run(seeded, width, scenario, interval=0.3)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_no_tasks_match_replaces_an_empty_table(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        await pilot.press(*"zzz")
+        await pilot.pause()
+        assert not app.query_one("#tasks").display
+        assert app.query_one("#tasks-empty").display
+        assert "No tasks match" in _text(app, "#tasks-empty")
+        assert app.query_one("#tasks-empty").border_title == "Tasks · 0 of 4 · /zzz"
+        await pilot.press("escape")
+        await pilot.pause()
+        assert app.query_one("#tasks").display
+        assert not app.query_one("#tasks-empty").display
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_keeps_the_cursor_on_the_same_task_when_filtering(seeded, width):
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        table.move_cursor(row=1)
+        key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+        await pilot.press("d")
+        await pilot.pause()
+        assert table.coordinate_to_cell_key(table.cursor_coordinate).row_key == key
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_filter_state_is_per_effort_tab(seeded, cli, defs, width):
+    _second_effort(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: len(app.panes) == 2)
+        tabs = app.query_one("#efforts")
+        first = tabs.active
+        await pilot.press("d")
+        await pilot.press("slash")
+        await pilot.press(*"ready")
+        await pilot.press("enter")
+        await pilot.press("tab")
+        await pilot.pause()
+        assert tabs.active != first
+        other = tabs.active_pane.query_one("#tasks")
+        assert other.border_title == "Tasks" and other.row_count == 1
+        await pilot.press("shift+tab")
+        await pilot.pause()
+        assert tabs.active == first
+        assert _titles(app) == ["title of a-ready"]
+        assert app.query_one("#tasks").border_title == "Tasks · 1 of 4 · /ready · done hidden"
+
+    _run(seeded, width, scenario)
 
 
 def _record(cli, defs, record_type, subject, payload, body=None, *rels):
