@@ -125,25 +125,45 @@ Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).
 
 ## Dashboard in tmux
 
-`scripts/dashboard` runs `adaptive-artifacts watch --id project:dashboard`
-for the repo of the current directory. It passes extra arguments to
-`watch`, so `scripts/dashboard --once` prints one frame and exits.
+`scripts/dashboard` runs the Textual app `scripts/dashboard_app.py`
+through `uv` for the repo of the current directory. The app shows one
+tab per live effort: the goal, the phase stepper, progress, tiles
+(Running, Ready, Needs you, Done), the task table, what needs you, and
+recent activity. It reloads when the store changes.
+
+It needs `uv`. The first run downloads `textual`.
+
+| Key | Action |
+|---|---|
+| `tab` / `shift+tab` | Switch effort |
+| `r` | Refresh now |
+| `q` | Quit |
+
+`scripts/dashboard --once` prints one plain-text frame and exits.
+`scripts/dashboard --interval S` sets the seconds between change checks
+(default 2).
 
 The launcher finds the store from the git toplevel of the directory:
 
 1. `~/.artifacts/<toplevel name>`, if it has `meta.json`.
 2. `<toplevel>/.artifacts`, if it has `meta.json`.
 
-It finds the runtime binary in this order:
+It runs the app from the toplevel. The app finds the runtime binary in
+this order:
 
 1. `$ADAPTIVE_ARTIFACTS_BIN`.
 2. `~/adaptive-artifacts/bin/adaptive-artifacts`, if it is executable.
 3. `adaptive-artifacts` on `PATH`.
 
+The launcher finds `uv` in this order:
+
+1. `$SE_WORKFLOW_UV`.
+2. `uv` on `PATH`.
+3. `~/.local/bin/uv`.
+
 tmux popups run a non-interactive shell, so shell functions and aliases
-do not apply there. If the launcher finds no store, or the store's
-contract has no `project:dashboard` view, it prints the reason and waits
-for a key.
+do not apply there. If the launcher finds no store or no `uv`, it prints
+the reason and waits for a key.
 
 To install the key bindings, add this line to `~/.tmux.conf`:
 

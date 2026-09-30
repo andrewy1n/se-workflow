@@ -53,22 +53,21 @@ def tmux(home, seeded, tmp_path):
         server.kill()
 
 
-def _headings(store: Path) -> list[str]:
-    return ["Project Dashboard", f"## {EFFORT}", "### Running", "### Ready", "### Needs Human", str(store / ".artifacts")]
+def _markers() -> list[str]:
+    return [EFFORT, f"ship {EFFORT}", "title of fx-running", "title of fx-ready", "Running", "Ready", "Needs you", "Done"]
 
 
 def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard(tmux, seeded):
     side = tmux.open_side_pane("main")
 
     def capture() -> str:
-        return tmux("capture-pane", "-p", "-t", side)
+        return tmux("capture-pane", "-p", "-J", "-t", side)
 
     def screen() -> str | None:
         text = capture()
-        return text if all(heading in text for heading in _headings(seeded)) else None
+        return text if all(marker in text for marker in _markers()) else None
 
-    text = h.wait_for(screen, "side pane dashboard", capture)
-    assert "fx-running" in text and "fx-ready" in text and "fx-finding" in text
+    h.wait_for(screen, "side pane dashboard", capture)
     assert tmux("display", "-p", "-t", side, "#{pane_current_path}").strip() == str(seeded)
 
 
@@ -81,9 +80,9 @@ def test_prefix_a_binding_is_a_popup_of_the_launcher_in_the_pane_directory(tmux)
     assert scripts == f"SE_WORKFLOW_SCRIPTS={REPO_ROOT / 'scripts'}"
 
 
-def test_prefix_a_popup_renders_the_pane_repo_dashboard_on_the_client(tmux, seeded):
+def test_prefix_a_popup_renders_the_pane_repo_dashboard_on_the_client(tmux):
     tmux.press("A")
-    needles = [" ".join(heading.split()) for heading in _headings(seeded)]
+    needles = _markers()
     text = tmux.screen_text(needles)
     missing = [needle for needle in needles if needle not in text]
     assert not missing, f"missing {missing} in client output: {text[-2000:]}"

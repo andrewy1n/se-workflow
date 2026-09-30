@@ -265,6 +265,7 @@ class Tmux:
         self.env.update(
             HOME=str(home), SHELL="/bin/sh", TERM="xterm-256color",
             ADAPTIVE_ARTIFACTS_BIN=str(AA_ROOT / "bin" / "adaptive-artifacts"),
+            UV_CACHE_DIR=os.environ.get("UV_CACHE_DIR") or str(Path.home() / ".cache" / "uv"),
         )
         self.cwd = cwd
         self.cols, self.rows = cols, rows

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -20,6 +21,14 @@ STATUS = REPO_ROOT / "scripts" / "dashboard-status"
 EFFORT = "e2e"
 PHASE = f"{EFFORT}-phase"
 REDRAW = 5.0
+TASK_ROW = re.compile(r"[▶●◌✓✕] (running|ready|waiting|done|withdrawn)\s+title of (\S+)")
+
+
+def _task_map(screen: str) -> dict[str, list[str]]:
+    rows: dict[str, list[str]] = {}
+    for status, subject in TASK_ROW.findall(screen):
+        rows.setdefault(status, []).append(subject)
+    return {status: sorted(subjects) for status, subjects in rows.items()}
 
 
 @pytest.fixture()
@@ -75,16 +84,17 @@ def test_e2e_side_pane_and_status_follow_every_lifecycle_step(home, adopted, sid
 
     defs = h.record_defs_by_id(json.loads((repo / ".artifacts" / "resolved-contract.json").read_text()))
 
-    def expect(status: str, **sections: list[str]) -> None:
-        expected = {"Goal": [EFFORT], "Phase": [PHASE]}
-        expected.update({name.replace("_", " "): sorted(subjects) for name, subjects in sections.items()})
+    def expect(status: str, needs: bool = False, **tasks: list[str]) -> None:
+        expected = {name: sorted(subjects) for name, subjects in tasks.items()}
+        tab = f"⚠ {EFFORT}" if needs else EFFORT
         last: dict = {}
 
         def redrawn():
-            last["map"] = h.section_map(side_pane(), EFFORT)
-            return last["map"] == expected
+            screen = side_pane()
+            last["map"] = _task_map(screen)
+            return last["map"] == expected and f"ship {EFFORT}" in screen and tab in screen and (needs or "⚠" not in screen)
 
-        h.wait_for(redrawn, f"side pane map {expected}", lambda: f"{last.get('map')}\n{side_pane()}", REDRAW)
+        h.wait_for(redrawn, f"side pane tasks {expected}", lambda: f"{last.get('map')}\n{side_pane()}", REDRAW)
         want = f"{EFFORT} · {status}\n"
         h.wait_for(lambda: _status(home, repo) == want, f"status {want!r}", lambda: repr(_status(home, repo)), REDRAW)
 
@@ -97,25 +107,25 @@ def test_e2e_side_pane_and_status_follow_every_lifecycle_step(home, adopted, sid
     a = _work_item(cli, defs, EFFORT, "a")
     b = _work_item(cli, defs, EFFORT, "b", f"depends_on:{a['id']}")
     _work_item(cli, defs, EFFORT, "c", f"depends_on:{b['id']}")
-    expect("1 ready", Ready=["a"], Waiting=["b", "c"])
+    expect("1 ready", ready=["a"], waiting=["b", "c"])
 
     a = h.transition(cli, "project:work-item", a, "in_progress")
-    expect("1 running", Running=["a"], Waiting=["b", "c"])
+    expect("1 running", running=["a"], waiting=["b", "c"])
 
     h.transition(cli, "project:work-item", a, "done")
-    expect("1 ready", Ready=["b"], Waiting=["c"], Done_Recent=["a"])
+    expect("1 ready", ready=["b"], waiting=["c"], done=["a"])
 
     question = h.create_generic_record(
         cli, defs, "project:continuity-question", subject=EFFORT,
         extra_payload={"blocking": True, "scope": f"{EFFORT}-scope"},
     )
-    expect("1 ready · 1 needs you", Blocking_Question=[EFFORT], Ready=["b"], Waiting=["c"], Done_Recent=["a"])
+    expect("1 ready · 1 needs you", needs=True, ready=["b"], waiting=["c"], done=["a"])
 
     h.transition(cli, "project:continuity-question", question, "answered")
-    expect("1 ready", Ready=["b"], Waiting=["c"], Done_Recent=["a"])
+    expect("1 ready", ready=["b"], waiting=["c"], done=["a"])
 
     b = h.transition(cli, "project:work-item", b, "in_progress")
-    expect("1 running", Running=["b"], Waiting=["c"], Done_Recent=["a"])
+    expect("1 running", running=["b"], waiting=["c"], done=["a"])
 
     h.transition(cli, "project:work-item", b, "done")
-    expect("1 ready", Ready=["c"], Done_Recent=["a", "b"])
+    expect("1 ready", ready=["c"], done=["a", "b"])
