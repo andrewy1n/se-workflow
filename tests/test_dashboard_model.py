@@ -224,3 +224,133 @@ def test_raises_a_model_error_when_the_cli_fails(store, monkeypatch):
 
 def test_store_with_no_goals_has_no_efforts(store):
     assert model.load_snapshot(_target(store)).efforts == []
+
+
+def _record(cli, defs, record_type: str, subject: str, payload: dict, body: str | None = None, *rels: str) -> dict:
+    args = ["create", "--type", record_type, "--subject", subject, "--payload", json.dumps(payload)]
+    for rel in rels:
+        args.extend(["--rel", rel])
+    body = body if body is not None else h.generic_body(defs[record_type])
+    if body:
+        args.extend(["--body", body])
+    result = cli(*args)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)["record"]
+
+
+@pytest.fixture()
+def detail_store(store, cli, defs):
+    dep = _work_item(cli, defs, "alpha", "d-dep", "a-one")
+    h.transition(cli, "project:work-item", dep, "in_progress", "done")
+    task = _work_item(cli, defs, "alpha", "d-task", "a-one", f"depends_on:{dep['id']}", assignee="sub-d")
+    h.transition(cli, "project:work-item", task, "in_progress")
+    blocked = _work_item(cli, defs, "alpha", "d-blocked", "a-two", f"depends_on:{task['id']}")
+    sibling = _work_item(cli, defs, "alpha", "d-task-other", "a-one")
+    _record(cli, defs, "project:acceptance", "d-task",
+            {"criterion": "first", "method": "check", "verify_command": "true", "effort": "alpha", "phase": "a-one"})
+    signoff = _record(cli, defs, "project:acceptance", "d-task-signoff",
+                      {"criterion": "second", "method": "manual", "verify_command": "", "effort": "alpha", "phase": "a-one"})
+    _record(cli, defs, "project:acceptance", "d-task-other",
+            {"criterion": "foreign", "method": "check", "verify_command": "true", "effort": "alpha", "phase": "a-one"})
+    first = _record(cli, defs, "project:acceptance", "d-task-first",
+                    {"criterion": "third", "method": "check", "verify_command": "true", "effort": "alpha", "phase": "a-one"})
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:check-run", "--subject", "d-task-signoff", "--payload",
+        json.dumps({"criterion_id": signoff["id"], "method": "manual", "result": "fail", "signed_by": "",
+                    "revision": "rev-early", "effort": "alpha"}),
+    )
+    _record(cli, defs, "project:check-run", "d-task-signoff",
+            {"criterion_id": signoff["id"], "method": "manual", "result": "pass", "signed_by": "ayin",
+             "revision": "rev-late", "effort": "alpha"})
+    _record(cli, defs, "project:check-run", "d-task-other",
+            {"criterion_id": "x", "method": "check", "result": "pass", "signed_by": "", "revision": "r", "effort": "alpha"})
+    _record(cli, defs, "project:check-run", "d-task-first",
+            {"criterion_id": first["id"], "method": "check", "result": "pass", "signed_by": "", "revision": "r2", "effort": "beta"})
+    assignment = _record(cli, defs, "project:assignment", "d-task",
+                         {"work_item": task["id"], "executor": "sub-d", "effort": "alpha"}, "## Orientation\n\nstart here")
+    _record(cli, defs, "project:assignment-amendment", "d-task",
+            {"assignment": "d-task", "effort": "alpha"}, "## Correction\n\nuse this")
+    _record(cli, defs, "project:execution-report", "d-task",
+            {"work_item": task["id"], "assignment": assignment["id"], "result": "pass", "verdict": "pass", "revision": "abc"},
+            "evidence body")
+    _record(cli, defs, "project:execution-report", "d-task-other",
+            {"work_item": sibling["id"], "assignment": "x", "result": "pass", "verdict": "pass", "revision": "zzz"}, "foreign body")
+    _record(cli, defs, "project:finding", "d-task",
+            {"claim": "a claim", "basis": "b", "needs": "agent", "effort": "alpha", "invalidated_when": "w"})
+    _record(cli, defs, "project:finding", "d-task-other",
+            {"claim": "foreign claim", "basis": "b", "needs": "agent", "effort": "alpha", "invalidated_when": "w"})
+    _record(cli, defs, "project:decision", "d-task-choice",
+            {"choice": "go left", "alternatives": "right", "effort": "alpha", "phase": "a-one"})
+    _record(cli, defs, "project:failed-attempt", "d-task",
+            {"attempted_action": "tried x", "retry_when": "later", "effort": "alpha"})
+    _record(cli, defs, "project:investigation-observation", "d-task",
+            {"what_was_observed": "saw y", "effort": "alpha", "environment": "e", "observed_time": "t", "source": "s"})
+    return store, task, dep, blocked
+
+
+def _detail(detail_store) -> model.TaskDetail:
+    store, task, _, _ = detail_store
+    return model.load_task_detail(_target(store), task["id"])
+
+
+def test_detail_returns_the_work_item_fields(detail_store):
+    detail = _detail(detail_store)
+    assert (detail.id, detail.subject, detail.title, detail.status) == (
+        detail_store[1]["id"], "d-task", "title of d-task", "running")
+    assert (detail.phase, detail.assignee, detail.wave, detail.effort) == ("a-one", "sub-d", 2, "alpha")
+    assert detail.body
+
+
+def test_detail_links_dependencies_and_blocked_tasks_with_subject_and_status(detail_store):
+    detail = _detail(detail_store)
+    assert [(t.subject, t.status) for t in detail.depends_on] == [("d-dep", "done")]
+    assert [(t.subject, t.status) for t in detail.blocks] == [("d-blocked", "waiting")]
+
+
+def test_detail_pairs_each_acceptance_with_its_latest_check_run(detail_store):
+    by_subject = {a.subject: a for a in _detail(detail_store).acceptances}
+    assert sorted(by_subject) == ["d-task", "d-task-first", "d-task-signoff"]
+    signoff = by_subject["d-task-signoff"]
+    assert (signoff.criterion, signoff.method) == ("second", "manual")
+    assert (signoff.check.result, signoff.check.method, signoff.check.signed_by, signoff.check.revision) == (
+        "pass", "manual", "ayin", "rev-late")
+    assert by_subject["d-task"].check is None
+    assert by_subject["d-task-first"].check is None
+
+
+def test_detail_timeline_is_oldest_first_and_carries_report_bodies(detail_store):
+    timeline = _detail(detail_store).timeline
+    assert [e.kind for e in timeline if e.kind != "check-run"] == ["assignment", "assignment-amendment", "execution-report"]
+    stamps = [e.recorded_at for e in timeline]
+    assert stamps == sorted(stamps)
+    report = next(e for e in timeline if e.kind == "execution-report")
+    assert report.body.strip() == "evidence body"
+    assert sum(e.kind == "check-run" for e in timeline) == 2
+
+
+def test_detail_lists_related_findings_decisions_attempts_and_observations(detail_store):
+    related = {(r.kind, r.text) for r in _detail(detail_store).related}
+    assert related == {
+        ("finding", "a claim"), ("decision", "go left"), ("failed-attempt", "tried x"),
+        ("observation", "saw y"),
+    }
+
+
+def test_detail_ignores_a_task_whose_slug_shares_a_prefix(detail_store):
+    detail = _detail(detail_store)
+    texts = [e.body for e in detail.timeline] + [r.text for r in detail.related]
+    assert not any("foreign" in text for text in texts)
+    assert all(a.criterion != "foreign" for a in detail.acceptances)
+
+
+def test_detail_uses_three_cli_calls(detail_store, monkeypatch):
+    calls = []
+    real = model.subprocess.run
+    monkeypatch.setattr(model.subprocess, "run", lambda cmd, **kw: calls.append(cmd) or real(cmd, **kw))
+    _detail(detail_store)
+    assert len([cmd for cmd in calls if cmd[0] != "git"]) == 3
+
+
+def test_detail_of_an_unknown_id_raises_a_model_error(store):
+    with pytest.raises(model.ModelError):
+        model.load_task_detail(_target(store), "rec-missing")

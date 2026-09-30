@@ -100,17 +100,26 @@ def change_token(target: Target) -> str:
     return digest.hexdigest()
 
 
-def _list(target: Target, record_type: str) -> list[dict[str, Any]]:
-    command = [binary(), *target.cli_args(), "list", "--type", record_type]
+def _run(target: Target, *args: str) -> dict[str, Any]:
+    command = [binary(), *target.cli_args(), *args]
+    label = " ".join(args[:3])
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ModelError(f"cannot run {command[0]}: {exc}") from exc
     if result.returncode != 0:
-        raise ModelError(f"list {record_type} failed: {result.stdout}{result.stderr}".strip())
+        raise ModelError(f"{label} failed: {result.stdout}{result.stderr}".strip())
     try:
-        return json.loads(result.stdout)["records"]
-    except (ValueError, KeyError, TypeError) as exc:
+        return json.loads(result.stdout)
+    except ValueError as exc:
+        raise ModelError(f"{label} returned unreadable output") from exc
+
+
+def _list(target: Target, record_type: str) -> list[dict[str, Any]]:
+    output = _run(target, "list", "--type", record_type)
+    try:
+        return output["records"]
+    except (KeyError, TypeError) as exc:
         raise ModelError(f"list {record_type} returned unreadable output") from exc
 
 
@@ -263,3 +272,178 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         ))
     return Snapshot(efforts, token, now)
 
+
+
+@dataclass(frozen=True)
+class LinkedTask:
+    id: str
+    subject: str
+    title: str
+    status: str
+
+
+@dataclass(frozen=True)
+class CheckRun:
+    id: str
+    result: str
+    method: str
+    signed_by: str
+    revision: str
+    recorded_at: datetime
+
+
+@dataclass(frozen=True)
+class AcceptanceRow:
+    id: str
+    subject: str
+    criterion: str
+    method: str
+    verify_command: str
+    check: CheckRun | None
+
+
+@dataclass(frozen=True)
+class TimelineEvent:
+    kind: str
+    id: str
+    recorded_at: datetime
+    summary: str
+    body: str
+
+
+@dataclass(frozen=True)
+class RelatedRecord:
+    kind: str
+    id: str
+    subject: str
+    text: str
+
+
+@dataclass(frozen=True)
+class TaskDetail:
+    id: str
+    subject: str
+    effort: str
+    title: str
+    status: str
+    phase: str
+    wave: int | None
+    assignee: str
+    body: str
+    depends_on: list[LinkedTask]
+    blocks: list[LinkedTask]
+    acceptances: list[AcceptanceRow]
+    timeline: list[TimelineEvent]
+    related: list[RelatedRecord]
+
+
+RELATED_TEXT = {
+    "project:finding": ("finding", "claim"),
+    "project:decision": ("decision", "choice"),
+    "project:failed-attempt": ("failed-attempt", "attempted_action"),
+    "project:investigation-observation": ("observation", "what_was_observed"),
+}
+INACTIVE_STATES = ("superseded", "retracted")
+
+
+def _linked(ids: list[str], rows: dict[str, TaskRow]) -> list[LinkedTask]:
+    return [LinkedTask(row.id, row.subject, row.title, row.status) for i in ids if (row := rows.get(i))]
+
+
+def _belongs(record: dict[str, Any], slug: str, effort: str, others: list[str]) -> bool:
+    subject = record["subject"]
+    if subject != slug and not subject.startswith(slug + "-"):
+        return False
+    if any(subject == other or subject.startswith(other + "-") for other in others):
+        return False
+    return _payload(record).get("effort", effort) == effort
+
+
+def _refers_to(record: dict[str, Any], key: str, names: set[str]) -> bool:
+    return _payload(record).get(key) in names
+
+
+def _latest_checks(checks: list[dict[str, Any]]) -> dict[str, CheckRun]:
+    latest: dict[str, CheckRun] = {}
+    for record in sorted(checks, key=_recorded_at):
+        if record["lifecycle_state"] in INACTIVE_STATES:
+            continue
+        payload = _payload(record)
+        latest[payload.get("criterion_id", "")] = CheckRun(
+            record["id"], payload.get("result", ""), payload.get("method", ""),
+            payload.get("signed_by", ""), payload.get("revision", ""), _recorded_at(record),
+        )
+    return latest
+
+
+def _timeline(
+    assignments: list[dict[str, Any]], amendments: list[dict[str, Any]], reports: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+) -> list[TimelineEvent]:
+    events = []
+    for record in assignments:
+        events.append(("assignment", record, f"assigned to {_payload(record).get('executor', '')}"))
+    for record in amendments:
+        events.append(("assignment-amendment", record, "amended"))
+    for record in reports:
+        payload = _payload(record)
+        events.append(("execution-report", record, f"reported {payload.get('verdict', '')}"))
+    for record in checks:
+        payload = _payload(record)
+        outcome = CHECK_RESULT.get(payload.get("result", ""), payload.get("result", ""))
+        events.append(("check-run", record, f"{payload.get('method', '')} check {outcome}".strip()))
+    timeline = [
+        TimelineEvent(kind, record["id"], _recorded_at(record), summary, record.get("body") or "")
+        for kind, record, summary in events
+    ]
+    timeline.sort(key=lambda event: event.recorded_at)
+    return timeline
+
+
+def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
+    """Load one task's records with three CLI calls.
+
+    `get` yields the subject, effort, body, and outbound depends_on; one `list --subject --full`
+    yields every record for the slug; one work-item `list` for the effort names linked tasks.
+    """
+    item = _run(target, "get", "--type", "project:work-item", "--id", work_item_id)
+    if "subject" not in item:
+        raise ModelError(f"get project:work-item {work_item_id} returned unreadable output")
+    slug, payload = item["subject"], _payload(item)
+    effort = payload.get("effort", "")
+    records = _run(target, "list", "--subject", slug, "--full").get("records", [])
+    efforts = _run(target, "list", "--type", "project:work-item", "--where", f"payload.effort={effort}")
+    rows = {row.id: row for row in _task_rows(efforts.get("records", []))}
+    mine = next((r for r in records if r["id"] == work_item_id), item)
+    others = [r["subject"] for r in records if r["record_type"] == "project:work-item" and r["id"] != work_item_id]
+    names = {work_item_id, slug}
+    of_type: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        if record["id"] != work_item_id and _belongs(record, slug, effort, others):
+            of_type.setdefault(record["record_type"], []).append(record)
+    assignments = [r for r in of_type.get("project:assignment", []) if _refers_to(r, "work_item", names)]
+    assignment_names = names | {r["id"] for r in assignments} | {r["subject"] for r in assignments}
+    amendments = [r for r in of_type.get("project:assignment-amendment", []) if _refers_to(r, "assignment", assignment_names)]
+    reports = [r for r in of_type.get("project:execution-report", []) if _refers_to(r, "work_item", names)]
+    checks = of_type.get("project:check-run", [])
+    latest = _latest_checks(checks)
+    acceptances = [
+        AcceptanceRow(
+            r["id"], r["subject"], _payload(r).get("criterion", ""), _payload(r).get("method", ""),
+            _payload(r).get("verify_command", ""), latest.get(r["id"]),
+        )
+        for r in sorted(of_type.get("project:acceptance", []), key=_recorded_at)
+    ]
+    related = [
+        RelatedRecord(kind, r["id"], r["subject"], _payload(r).get(field, ""))
+        for record_type, (kind, field) in RELATED_TEXT.items()
+        for r in of_type.get(record_type, [])
+    ]
+    return TaskDetail(
+        id=work_item_id, subject=slug, effort=effort, title=payload.get("title", ""),
+        status=_task_status(mine) or mine["lifecycle_state"], phase=payload.get("phase", ""),
+        wave=_derived(mine).get("wave"), assignee=payload.get("assignee", ""), body=item.get("body") or "",
+        depends_on=_linked((item.get("relationships") or {}).get("depends_on", []), rows),
+        blocks=_linked((_derived(mine).get("referenced_by") or {}).get("depends_on", []), rows),
+        acceptances=acceptances, timeline=_timeline(assignments, amendments, reports, checks), related=related,
+    )
