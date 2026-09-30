@@ -108,6 +108,52 @@ def test_prefix_a_popup_redraws_as_a_task_moves_from_ready_to_running_to_done(tm
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
+def test_prefix_a_popup_detail_screen_follows_a_task_through_its_lifecycle_and_esc_returns(tmux, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    task = _work_item(cli, defs, EFFORT, "fx-moving")
+    criterion = h.create_generic_record(
+        cli, defs, "project:acceptance", subject="fx-moving",
+        extra_payload={"criterion": "unit tests pass", "method": "check", "verify_command": "pytest -q", "effort": EFFORT, "phase": f"{EFFORT}-phase"},
+    )
+    listed = cli("list", "--type", "project:work-item", "--subject", "fx-running")
+    assert listed.returncode == 0, listed.stdout + listed.stderr
+    h.transition(cli, "project:work-item", json.loads(listed.stdout)["records"][0], "done")
+    tmux.press("A")
+    assert "title of fx-moving" in tmux.screen_text(["title of fx-moving"])
+    tmux.output = b""
+    os.write(tmux.client_fd, b"\r")
+    opening = tmux.screen_text(["Acceptance", "unit tests pass", "ready"])
+    assert all(n in opening for n in ("Acceptance", "unit tests pass", "ready")), opening[-2000:]
+
+    task = h.transition(cli, "project:work-item", task, "in_progress")
+    tmux.output = b""
+    running = tmux.screen_text(["running"])
+    assert "running" in running, running[-2000:]
+
+    h.create_generic_record(
+        cli, defs, "project:execution-report", subject="fx-moving",
+        extra_payload={"work_item": task["id"], "result": "ok", "verdict": "pass", "revision": "r1"},
+    )
+    h.create_generic_record(
+        cli, defs, "project:check-run", subject="fx-moving",
+        extra_payload={"criterion_id": criterion["id"], "method": "check", "result": "pass", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
+    )
+    tmux.output = b""
+    checked = tmux.screen_text(["check passed", "✓ unit tests pass"])
+    assert all(n in checked for n in ("check passed", "✓ unit tests pass")), checked[-2000:]
+
+    h.transition(cli, "project:work-item", task, "done")
+    tmux.output = b""
+    done = tmux.screen_text(["done"])
+    assert "done" in done, done[-2000:]
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"\x1b")
+    back = tmux.screen_text(["Running", "Ready", "Needs you"])
+    assert all(n in back for n in ("Running", "Needs you")), back[-2000:]
+    assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
+
+
 def test_status_segment_counts_match_the_seeded_store(home, seeded):
     env = dict(os.environ, HOME=str(home), ADAPTIVE_ARTIFACTS_BIN=str(AA_ROOT / "bin" / "adaptive-artifacts"))
     expected = f"{EFFORT} · 1 running · 1 ready · 1 needs you\n"
