@@ -136,8 +136,8 @@ def task_cells(task: model.TaskRow, columns: list[str], title_width: int, colors
 
 
 def title_width(columns: list[str], width: int, tasks: list[model.TaskRow]) -> int:
-    fixed = {"status": 10, "wave": 4, "phase": max([len(t.phase) for t in tasks] + [5]), "assignee": max([len(t.assignee) for t in tasks] + [8])}
-    used = sum(fixed[name] for name in columns if name != "task") + 2 * len(columns) + 2
+    fixed = {"status": 9, "wave": 4, "phase": max([len(t.phase) for t in tasks] + [5]), "assignee": max([len(t.assignee) for t in tasks] + [8])}
+    used = sum(fixed[name] for name in columns if name != "task") + 2 * len(columns)
     return max(width - used, 12)
 
 
@@ -159,7 +159,7 @@ def activity_lines(view: model.EffortView, now: datetime, colors: dict[str, str]
         line = Text(no_wrap=True, overflow="ellipsis")
         line.append(f"{relative_time(item.recorded_at, now):>7}", style=colors["muted"])
         line.append(f" {ACTIVITY_GLYPH.get(item.kind, '·')} ")
-        line.append(clip(item.summary, max(width - 12, 10)))
+        line.append(clip(item.summary, max(width - 10, 10)))
         lines.append(line)
     return lines
 
@@ -251,6 +251,9 @@ class EffortPane(VerticalScroll):
         yield activity
 
     def show(self, view: model.EffortView, now: datetime, width: int, colors: dict[str, str]) -> None:
+        self.last = (view, now, width, colors)
+        inner = self.scrollable_content_region.width or width - 2
+        self.inner = inner
         self.query_one("#goal", Static).update(Text(view.goal, style=colors["muted"]))
         self.query_one("#stepper", Static).update(stepper_text(view, colors, width - 4))
         found = current_phase(view)
@@ -265,10 +268,14 @@ class EffortPane(VerticalScroll):
             tile = self.query_one(f"#tile-{name}", Static)
             tile.update(Text.assemble((f"{number}\n", "bold"), (tile.tile_label, "")))
             tile.set_classes(f"tile {tile_class(name, view)}" if number or name != "needs" else "tile quiet")
-        self.fill_tasks(view, width, colors)
-        self.fill_panel("#needs-you", needs_lines(view, colors, width - 6))
-        self.fill_panel("#activity", activity_lines(view, now, colors, width - 6))
-        self.view = view
+        self.fill_tasks(view, width, inner, colors)
+        self.fill_panel("#needs-you", needs_lines(view, colors, inner - 4))
+        self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
+
+    def on_resize(self) -> None:
+        last = getattr(self, "last", None)
+        if last is not None and self.scrollable_content_region.width != self.inner:
+            self.show(*last)
 
     def fill_panel(self, selector: str, lines: list[Text]) -> None:
         panel = self.query_one(selector, Static)
@@ -279,7 +286,7 @@ class EffortPane(VerticalScroll):
             joined.append_text(line)
         panel.update(joined)
 
-    def fill_tasks(self, view: model.EffortView, width: int, colors: dict[str, str]) -> None:
+    def fill_tasks(self, view: model.EffortView, width: int, room: int, colors: dict[str, str]) -> None:
         table = self.query_one("#tasks", DataTable)
         table.display = bool(view.tasks)
         keep = None
@@ -289,7 +296,7 @@ class EffortPane(VerticalScroll):
         columns = task_columns(width)
         for name in columns:
             table.add_column(name, key=name)
-        room = title_width(columns, width - 6, view.tasks)
+        room = title_width(columns, room - 4, view.tasks)
         for task in view.tasks:
             table.add_row(*task_cells(task, columns, room, colors), key=task.id)
         if keep is not None and keep in table.rows:
@@ -321,10 +328,11 @@ class DashboardApp(App[None]):
     #needs-you { height: auto; margin-top: 1; border: round $warning; border-title-color: $warning; padding: 0 1; }
     #activity { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     """
+    ENABLE_COMMAND_PALETTE = False
     BINDINGS = [
         ("q", "quit", "quit"),
-        Binding("tab", "next_effort", "next effort", priority=True),
-        Binding("shift+tab", "previous_effort", "previous", priority=True),
+        Binding("tab", "next_effort", "switch", priority=True),
+        Binding("shift+tab", "previous_effort", "previous", show=False, priority=True),
         ("r", "refresh", "refresh"),
     ]
 

@@ -66,6 +66,14 @@ def seeded(store, cli, defs):
         extra_payload={"blocking": True, "scope": "which backend"},
     )
     h.create_generic_record(
+        cli, defs, "project:assignment", subject="a-assign",
+        extra_payload={"work_item": running["id"], "executor": "sub-1", "effort": "alpha"},
+    )
+    h.create_generic_record(
+        cli, defs, "project:execution-report", subject="a-report",
+        extra_payload={"work_item": done["id"], "result": "done it", "verdict": "pass"},
+    )
+    h.create_generic_record(
         cli, defs, "project:check-run", subject="a-check",
         extra_payload={"method": "check", "signed_by": "", "result": "pass", "effort": "alpha"},
     )
@@ -150,10 +158,60 @@ def test_needs_you_panel_and_activity_feed_show_their_items(seeded, width):
         assert app.query_one("#needs-you").display
         assert "which backend" in _text(app, "#needs-you")
         activity = _text(app, "#activity")
-        assert "check: pass" in activity
+        lines = activity.splitlines()
+        assert len(lines) == 3
+        assert any(line.endswith("a-check check passed") for line in lines)
+        assert any(line.endswith("a-done reported pass") for line in lines)
+        assert any(line.endswith("a-running assigned to sub-1") for line in lines)
+        assert "(" not in activity
         assert "now" in activity or "ago" in activity
 
     _run(seeded, width, scenario)
+
+
+def test_long_activity_lines_are_clipped_not_wrapped_at_60_columns(store, cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "g", "kind": "deliver"},
+    )
+    item = _work_item(cli, defs, "alpha", "a-very-long-task-name-for-wrapping", "p")
+    h.create_generic_record(
+        cli, defs, "project:assignment", subject="a-assign",
+        extra_payload={"work_item": item["id"], "executor": "sub-with-an-equally-long-executor-name", "effort": "alpha"},
+    )
+
+    async def scenario(app, pilot):
+        lines = _text(app, "#activity").splitlines()
+        assert len(lines) == 1
+        assert lines[0].endswith("…") and len(lines[0]) <= 54
+
+    _run(store, 60, scenario)
+
+
+def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
+    async def scenario(app, pilot):
+        await pilot.pause()
+        keys = list(app.query("FooterKey"))
+        assert [str(key.description) for key in keys] == ["switch", "quit", "refresh"]
+        assert all(key.region.right <= 60 for key in keys)
+
+    _run(seeded, 60, scenario)
+
+
+def test_task_title_uses_spare_width_at_120_columns(store, cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "g", "kind": "deliver"},
+    )
+    title = "Integration-test the readable layout and verify 54ch"[:54]
+    payload = {"title": title, "phase": "readable-layout", "kind": "deliver", "assignee": "sub-dashboard-snapshot", "effort": "alpha"}
+    result = cli("create", "--type", "project:work-item", "--subject", "a-long", "--payload", json.dumps(payload),
+                 "--body", h.generic_body(defs["project:work-item"]))
+    assert result.returncode == 0, result.stdout
+
+    async def scenario(app, pilot):
+        await pilot.pause(0.5)
+        assert str(app.query_one("#tasks").get_row_at(0)[1]) == title
+
+    _run(store, 120, scenario)
 
 
 def test_needs_you_panel_is_hidden_when_nothing_needs_you(store, cli, defs):

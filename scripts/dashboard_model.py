@@ -17,6 +17,7 @@ TASK_ORDER = ("running", "ready", "waiting", "done", "withdrawn")
 NEEDS_ORDER = ("blocking-question", "needs-human", "unsigned-check", "open-question")
 LIVE_PHASE_STATES = ("planned", "in_progress", "done")
 COUNTED_TASK_STATES = ("planned", "in_progress", "done")
+CHECK_RESULT = {"pass": "passed", "fail": "failed"}
 TOKEN_DIRS = ("records", "history")
 
 
@@ -209,10 +210,13 @@ def _activity(
     for record in reports:
         effort, subject = work_item(record)
         payload = _payload(record)
-        add(effort, "execution-report", record, f"{subject}: {payload.get('result', '')} ({payload.get('verdict', '')})")
+        add(effort, "execution-report", record, f"{subject} reported {payload.get('verdict', '')}")
     for record in checks:
         payload = _payload(record)
-        add(payload.get("effort"), "check-run", record, f"{payload.get('method', '')} check: {payload.get('result', '')}")
+        outcome = CHECK_RESULT.get(payload.get("result", ""), payload.get("result", ""))
+        method = payload.get("method", "").replace("check", "").strip()
+        label = " ".join(part for part in (record["subject"], method, "check", outcome) if part)
+        add(payload.get("effort"), "check-run", record, label)
     for items in by_effort.values():
         items.sort(key=lambda item: item.recorded_at, reverse=True)
     return by_effort
