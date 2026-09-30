@@ -136,6 +136,8 @@ It needs `uv`. The first run downloads `textual`.
 | Key | Action |
 |---|---|
 | `tab` / `shift+tab` | Switch effort |
+| `enter` / click | Open the task detail |
+| `esc` | Back from the detail |
 | `r` | Refresh now |
 | `q` | Quit |
 

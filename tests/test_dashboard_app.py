@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import subprocess
 import sys
 import time
@@ -84,10 +85,10 @@ def _text(app, selector):
     return str(app.query_one(selector).render())
 
 
-def _run(store, width, scenario, interval=60.0):
+def _run(store, width, scenario, interval=60.0, height=40):
     async def go():
         app = app_module.DashboardApp(artifact_store.resolve(store), interval=interval)
-        async with app.run_test(size=(width, 40)) as pilot:
+        async with app.run_test(size=(width, height)) as pilot:
             await _until(pilot, lambda: bool(app.query("#goal")) and bool(_text(app, "#goal")))
             await scenario(app, pilot)
 
@@ -191,7 +192,7 @@ def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
     async def scenario(app, pilot):
         await pilot.pause()
         keys = list(app.query("FooterKey"))
-        assert [str(key.description) for key in keys] == ["switch", "quit", "refresh"]
+        assert sorted(str(key.description) for key in keys) == ["open", "quit", "refresh", "switch"]
         assert all(key.region.right <= 60 for key in keys)
 
     _run(seeded, 60, scenario)
@@ -259,6 +260,294 @@ def test_keeps_the_cursor_row_across_a_refresh(seeded, cli, defs):
         assert table.coordinate_to_cell_key(table.cursor_coordinate).row_key == key
 
     _run(seeded, 120, scenario, interval=0.3)
+
+
+def _record(cli, defs, record_type, subject, payload, body=None, *rels):
+    args = ["create", "--type", record_type, "--subject", subject, "--payload", json.dumps(payload)]
+    for rel in rels:
+        args.extend(["--rel", rel])
+    body = body if body is not None else h.generic_body(defs[record_type])
+    if body:
+        args.extend(["--body", body])
+    result = cli(*args)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)["record"]
+
+
+@pytest.fixture()
+def detailed(store, cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "ship it", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "det-phase", 1, "in_progress")
+    busy = _work_item(cli, defs, "alpha", "det-busy", "det-phase")
+    h.transition(cli, "project:work-item", busy, "in_progress")
+    dep = _work_item(cli, defs, "alpha", "det-dep", "det-phase")
+    h.transition(cli, "project:work-item", dep, "in_progress", "done")
+    payload = {"title": "Detail task", "phase": "det-phase", "kind": "deliver", "assignee": "sub-d", "effort": "alpha"}
+    task = _record(
+        cli, defs, "project:work-item", "det-task", payload,
+        "## Description\n\nBuild the **detail** screen.\n\n- first point\n- second point", f"depends_on:{dep['id']}",
+    )
+    h.transition(cli, "project:work-item", task, "in_progress")
+    _work_item(cli, defs, "alpha", "det-blocked", "det-phase", f"depends_on:{task['id']}")
+    tests = _record(cli, defs, "project:acceptance", "det-task", {
+        "criterion": "unit tests pass", "method": "check", "verify_command": "pytest -q", "effort": "alpha", "phase": "det-phase"})
+    review = _record(cli, defs, "project:acceptance", "det-task-review", {
+        "criterion": "reviewer approves", "method": "manual", "verify_command": "", "effort": "alpha", "phase": "det-phase"})
+    _record(cli, defs, "project:acceptance", "det-task-docs", {
+        "criterion": "docs updated", "method": "manual", "verify_command": "", "effort": "alpha", "phase": "det-phase"})
+    assignment = _record(
+        cli, defs, "project:assignment", "det-task",
+        {"work_item": task["id"], "executor": "sub-d", "effort": "alpha"}, "## Orientation\n\nstart in the app module",
+    )
+    _record(cli, defs, "project:assignment-amendment", "det-task",
+            {"assignment": "det-task", "effort": "alpha"}, "## Correction\n\nuse the loader")
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:execution-report", "--subject", "det-task-first", "--body", "first attempt notes",
+        "--payload", json.dumps({"work_item": task["id"], "assignment": assignment["id"], "result": "no", "verdict": "fail", "revision": "r1"}),
+    )
+    _record(cli, defs, "project:execution-report", "det-task",
+            {"work_item": task["id"], "assignment": assignment["id"], "result": "ok", "verdict": "pass", "revision": "r2"},
+            "second attempt notes")
+    _record(cli, defs, "project:check-run", "det-task", {
+        "criterion_id": tests["id"], "method": "check", "result": "pass", "signed_by": "", "revision": "abc1234", "effort": "alpha"})
+    _record(cli, defs, "project:check-run", "det-task-review", {
+        "criterion_id": review["id"], "method": "manual", "result": "pass", "signed_by": "", "revision": "def5678", "effort": "alpha"})
+    _record(cli, defs, "project:finding", "det-task",
+            {"claim": "parser drops tabs", "basis": "b", "needs": "agent", "effort": "alpha", "invalidated_when": "w"})
+    return store, task, tests
+
+
+DETAIL_SIZES = ((60, 40), (160, 50))
+
+
+def _row_offset(table, key):
+    return 4, 2 + table.get_row_index(key)
+
+
+def _cursor_key(table):
+    return table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+
+
+def _detail_run(store, size, scenario, interval=60.0):
+    async def go():
+        app = app_module.DashboardApp(artifact_store.resolve(store), interval=interval)
+        async with app.run_test(size=size) as pilot:
+            await _until(pilot, lambda: app.query("#tasks") and app.query_one("#tasks").row_count >= 4)
+            await scenario(app, pilot)
+
+    asyncio.run(go())
+
+
+async def _open_by_enter(app, pilot, key):
+    table = app.query_one("#tasks")
+    table.focus()
+    table.move_cursor(row=table.get_row_index(key))
+    await pilot.pause()
+    await pilot.press("enter")
+
+
+async def _open_by_click(app, pilot, key):
+    table = app.query_one("#tasks")
+    assert table.get_row_index(key) > 0
+    await pilot.click("#tasks", offset=_row_offset(table, key))
+
+
+async def _shown(app, pilot):
+    await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen) and app.screen.loaded)
+    await pilot.pause(0.3)
+    return app.screen
+
+
+def _acceptance_rows(screen):
+    return [
+        f"{row.query_one('.mark').render()} {row.query_one('.body').render()}"
+        for row in screen.query(".acceptance") if row.query(".mark") and row.query(".body")
+    ]
+
+
+def _lines(screen, selector):
+    return str(screen.query_one(selector).render()).splitlines()
+
+
+OPENERS = pytest.mark.parametrize("opener", (_open_by_enter, _open_by_click))
+
+
+@OPENERS
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_screen_shows_header_chips_and_linked_tasks(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await opener(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        assert "Detail task" in _text(screen, "#detail-title")
+        chips = _text(screen, "#detail-chips")
+        assert "▶ running" in chips and "phase det-phase" in chips and "w2" in chips and "assignee sub-d" in chips
+        assert _text(screen, "#detail-depends").strip() == "Depends on: ✓ det-dep"
+        assert _text(screen, "#detail-blocks").strip() == "Blocks: ◌ det-blocked"
+        assert "det-task" in _text(screen, "#detail-bar") and "alpha" in _text(screen, "#detail-bar")
+
+    _detail_run(store, size, scenario)
+
+
+@OPENERS
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_screen_renders_the_description_as_markdown_without_its_heading(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await opener(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        markdown = screen.query_one("#description Markdown")
+        assert "Build the **detail** screen." in markdown.source
+        assert "## Description" not in markdown.source
+        assert len(markdown.query("MarkdownBulletList")) == 1
+        assert screen.query_one("#description").border_title == "Description"
+
+    _detail_run(store, size, scenario)
+
+
+@OPENERS
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_screen_lists_acceptances_with_result_glyphs_and_method_lines(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await opener(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        rows = _acceptance_rows(screen)
+        by_criterion = {row.splitlines()[0]: row.splitlines() for row in rows}
+        assert by_criterion["✓ unit tests pass"] == ["✓ unit tests pass", "check · pytest -q", "abc1234"]
+        assert by_criterion["✓ reviewer approves"] == ["✓ reviewer approves", "manual", "def5678 · unsigned"]
+        assert by_criterion["– docs updated"] == ["– docs updated", "manual"]
+        assert len(rows) == 3
+
+    _detail_run(store, size, scenario)
+
+
+@OPENERS
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_timeline_is_oldest_first_with_only_the_newest_report_expanded(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await opener(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        titles = [str(widget.title) if hasattr(widget, "title") else str(widget.render()) for widget in screen.query(".event")]
+        summaries = ["reported fail", "assigned to sub-d", "amended", "reported pass"]
+        positions = [next(i for i, title in enumerate(titles) if summary in title) for summary in summaries]
+        assert positions == sorted(positions)
+        assert sorted(i for i, title in enumerate(titles) if "check passed" in title) == [4, 5]
+        by_title = {re.search(r"[≡→·◇] .*", str(c.title)).group(): c for c in screen.query("Collapsible")}
+        assert not by_title["≡ reported pass"].collapsed
+        assert by_title["≡ reported fail"].collapsed and by_title["→ assigned to sub-d"].collapsed
+        assert by_title["· amended"].collapsed
+        assert "second attempt notes" in by_title["≡ reported pass"].query_one("Markdown").source
+        assert "now" in titles[-1] or "ago" in titles[-1]
+
+    _detail_run(store, size, scenario)
+
+
+@OPENERS
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_related_panel_lists_related_records(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await opener(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        assert _lines(screen, "#related") == ["finding: parser drops tabs"]
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_related_panel_is_hidden_without_related_records(detailed, cli, size):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        blocked = next(k.value for k in table.rows if "det-blocked" in str(table.get_row(k.value)[1]))
+        await _open_by_click(app, pilot, blocked)
+        screen = await _shown(app, pilot)
+        assert not screen.query_one("#related").display
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_screen_redraws_when_the_store_changes(detailed, cli, defs, size):
+    store, task, tests = detailed
+
+    async def scenario(app, pilot):
+        await _open_by_enter(app, pilot, task["id"])
+        screen = await _shown(app, pilot)
+        assert "✗" not in "".join(_acceptance_rows(screen))
+        _record(cli, defs, "project:check-run", "det-task", {
+            "criterion_id": tests["id"], "method": "check", "result": "fail", "signed_by": "", "revision": "fff9999", "effort": "alpha"})
+        await _until(pilot, lambda: "✗ unit tests pass" in "\n".join(_acceptance_rows(screen)))
+        await _until(pilot, lambda: any("check failed" in str(w.render()) for w in screen.query(".event") if not hasattr(w, "title")))
+
+    _detail_run(store, size, scenario, interval=0.3)
+
+
+@pytest.mark.parametrize("opener", (_open_by_enter, _open_by_click))
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_escape_returns_to_the_dashboard_on_the_same_row(detailed, size, opener):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        dashboard = app.screen
+        tab = app.query_one("#efforts").active
+        await opener(app, pilot, task["id"])
+        await _shown(app, pilot)
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is dashboard)
+        table = app.query_one("#tasks")
+        assert _cursor_key(table).value == task["id"]
+        assert app.query_one("#efforts").active == tab
+        assert len(app.screen_stack) == 1
+
+    _detail_run(store, size, scenario)
+
+
+def test_one_click_pushes_a_single_detail_screen(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await _open_by_click(app, pilot, task["id"])
+        await _shown(app, pilot)
+        assert len(app.screen_stack) == 2
+
+    _detail_run(store, (60, 40), scenario)
+
+
+def test_detail_footer_shows_back_refresh_and_quit_within_60_columns(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await _open_by_enter(app, pilot, task["id"])
+        await _shown(app, pilot)
+        keys = list(app.screen.query("FooterKey"))
+        assert sorted(str(key.description) for key in keys) == ["back", "quit", "refresh"]
+        assert all(key.region.right <= 60 for key in keys)
+
+    _detail_run(store, (60, 40), scenario)
+
+
+def test_detail_shows_loading_then_content(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await _open_by_enter(app, pilot, task["id"])
+        screen = app.screen
+        assert "Loading" in _text(screen, "#detail-loading") or screen.loaded
+        await _shown(app, pilot)
+        assert not screen.query_one("#detail-loading").display
+
+    _detail_run(store, (60, 40), scenario)
 
 
 def test_q_quits(seeded):
