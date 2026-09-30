@@ -30,6 +30,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll  # noqa: E40
 from textual.coordinate import Coordinate  # noqa: E402
 from textual.screen import Screen  # noqa: E402
 from textual.widget import Widget  # noqa: E402
+from textual.widgets._tabbed_content import ContentTabs  # noqa: E402
 from textual.widgets import (  # noqa: E402
     Collapsible, DataTable, Footer, Input, Markdown, ProgressBar, Static, TabbedContent, TabPane,
 )
@@ -527,6 +528,16 @@ class FilterInput(Input):
 
 
 class TaskTable(DataTable):
+    BINDINGS = [
+        Binding("enter", "select_cursor", "open"),
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+        Binding("pageup", "app.scroll_pane('page_up')", "page up", show=False),
+        Binding("pagedown", "app.scroll_pane('page_down')", "page down", show=False),
+        Binding("home", "app.scroll_pane('home')", "top", show=False),
+        Binding("end", "app.scroll_pane('end')", "bottom", show=False),
+    ]
+
     def on_click(self, event) -> None:
         row = event.style.meta.get("row", -1)
         if row >= 0 and row < self.row_count:
@@ -559,6 +570,7 @@ class TaskDetailScreen(Screen[None]):
     Markdown { margin: 0; padding: 0; background: transparent; }
     Markdown > MarkdownBlock:last-child { margin-bottom: 0; }
     """
+    AUTO_FOCUS = "#detail"
     BINDINGS = [
         Binding("escape", "back", "back"),
         Binding("c", "app.copy_slug", "copy"),
@@ -606,6 +618,7 @@ class TaskDetailScreen(Screen[None]):
 
     def action_back(self) -> None:
         self.app.pop_screen()
+        self.app.call_after_refresh(self.app.focus_tasks)
 
     def action_commit(self) -> None:
         if self.detail is None:
@@ -760,6 +773,7 @@ class CommitScreen(Screen[None]):
     #commit-message { margin-top: 1; }
     #commit-stat { margin-top: 1; height: auto; }
     """
+    AUTO_FOCUS = "#commit"
     BINDINGS = [Binding("escape", "back", "back")]
 
     def __init__(self, commit: Commit, root: Path, revision: str) -> None:
@@ -882,8 +896,27 @@ class DashboardApp(App[None]):
     def on_mount(self) -> None:
         self.query_one("#header", Static).update(header_text(self.target, None, palette_from(self.get_css_variables())))
         self.query_one("#empty", Static).update(f"No live efforts in {self.target.store}")
+        for tabs in self.query(ContentTabs):
+            tabs.can_focus = False
         self.set_interval(self.interval, self.poll)
         self.reload()
+
+    def focus_tasks(self) -> None:
+        pane = self.active_pane()
+        if pane is None or isinstance(self.screen, (TaskDetailScreen, CommitScreen)):
+            return
+        table = pane.query_one("#tasks", DataTable)
+        if table.display:
+            table.focus(scroll_visible=False)
+
+    def action_scroll_pane(self, where: str) -> None:
+        pane = self.active_pane()
+        if pane is not None:
+            getattr(pane, f"scroll_{where}")(animate=False)
+
+    def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
+        if not isinstance(self.focused, Input):
+            self.call_after_refresh(self.focus_tasks)
 
     def poll(self) -> None:
         try:
@@ -1050,6 +1083,8 @@ class DashboardApp(App[None]):
         self.query_one("#empty", Static).display = not names
         tabs.display = bool(names)
         self.paint()
+        if self.focused is None:
+            self.call_after_refresh(self.focus_tasks)
 
     def paint(self) -> None:
         snapshot = self.snapshot

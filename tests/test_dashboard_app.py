@@ -991,6 +991,144 @@ def test_g_shows_a_message_and_stays_on_the_detail_for_missing_dirty_or_unknown_
     _detail_run(store, (60, 40), scenario)
 
 
+def test_the_task_table_has_focus_on_load(seeded):
+    async def scenario(app, pilot):
+        assert app.focused is app.query_one("#tasks")
+
+    _run(seeded, 120, scenario)
+
+
+@pytest.mark.parametrize("down, up", (("down", "up"), ("j", "k")))
+def test_down_and_up_or_j_and_k_move_the_task_cursor(seeded, down, up):
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        await pilot.press(down, down)
+        assert table.cursor_row == 2
+        await pilot.press(up)
+        assert table.cursor_row == 1
+
+    _run(seeded, 120, scenario)
+
+
+def test_enter_opens_the_task_below_the_first_row_using_only_keys(seeded):
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        await pilot.press("down", "down")
+        key = _cursor_key(table).value
+        assert table.cursor_row == 2
+        await pilot.press("enter")
+        await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen))
+        assert app.screen.task_id == key
+
+    _run(seeded, 120, scenario)
+
+
+def test_table_keeps_focus_after_switching_effort_tabs(seeded, cli, defs):
+    _second_effort(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: len(app.panes) == 2)
+        await pilot.press("tab")
+        await pilot.pause()
+        assert app.focused is app.active_pane().query_one("#tasks")
+        await pilot.press("shift+tab")
+        await pilot.pause()
+        assert app.focused is app.active_pane().query_one("#tasks")
+        await pilot.press("down")
+        assert app.query_one("#efforts").active_pane.query_one("#tasks").cursor_row == 1
+
+    _run(seeded, 120, scenario)
+
+
+def test_table_keeps_focus_after_escape_from_detail(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await pilot.press("down")
+        await pilot.press("enter")
+        await _shown(app, pilot)
+        await pilot.press("escape")
+        await pilot.pause(0.2)
+        assert app.focused is app.query_one("#tasks")
+        await pilot.press("down")
+        assert app.query_one("#tasks").cursor_row == 2
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_filter_input_takes_focus_and_hands_it_back_to_the_table(seeded):
+    async def scenario(app, pilot):
+        await pilot.press("slash")
+        assert app.focused is app.query_one("#filter")
+        await pilot.press("enter")
+        assert app.focused is app.query_one("#tasks")
+        await pilot.press("slash", "escape")
+        assert app.focused is app.query_one("#tasks")
+
+    _run(seeded, 120, scenario)
+
+
+def test_pagedown_and_end_scroll_the_effort_pane_to_activity_and_home_returns(seeded):
+    async def scenario(app, pilot):
+        pane = app.active_pane()
+        assert pane.max_scroll_y > 0 and pane.scroll_y == 0
+        await pilot.press("pagedown")
+        await pilot.pause(0.3)
+        assert pane.scroll_y > 0
+        await pilot.press("end")
+        await pilot.pause(0.3)
+        assert pane.scroll_y == pane.max_scroll_y
+        assert pane.query_one("#activity").region.bottom <= pane.region.bottom
+        await pilot.press("pageup")
+        await pilot.pause(0.3)
+        assert pane.scroll_y < pane.max_scroll_y
+        await pilot.press("home")
+        await pilot.pause(0.3)
+        assert pane.scroll_y == 0
+        assert app.query_one("#tasks").cursor_row == 0
+
+    _run(seeded, 100, scenario, height=24)
+
+
+@pytest.mark.parametrize("keys", (("down",), ("pagedown",), ("end",)))
+def test_arrows_and_page_keys_scroll_the_detail_screen(detailed, keys):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        await _open_task(app, pilot, task)
+        scroll = app.screen.query_one("#detail")
+        assert app.focused is scroll
+        assert scroll.max_scroll_y > 0 and scroll.scroll_y == 0
+        await pilot.press(*keys)
+        await pilot.pause(0.3)
+        assert scroll.scroll_y > 0
+        await pilot.press("home")
+        await pilot.pause(0.3)
+        assert scroll.scroll_y == 0
+
+    _detail_run(store, (60, 20), scenario)
+
+
+def test_arrows_scroll_the_commit_screen(committed):
+    store, tasks, _ = committed
+
+    async def scenario(app, pilot):
+        await _open_task(app, pilot, tasks["c-good"])
+        await pilot.press("g")
+        screen = await _commit_shown(app, pilot)
+        scroll = screen.query_one("#commit")
+        assert app.focused is scroll
+        assert scroll.max_scroll_y > 0
+        await pilot.press("down")
+        await pilot.pause(0.3)
+        assert scroll.scroll_y > 0
+        await pilot.press("end")
+        await pilot.pause(0.3)
+        assert scroll.scroll_y == scroll.max_scroll_y
+
+    _detail_run(store, (60, 10), scenario)
+
+
 def test_q_quits(seeded):
     async def go():
         app = app_module.DashboardApp(artifact_store.resolve(seeded), interval=60.0)
