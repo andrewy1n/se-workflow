@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import select
 import shutil
 import subprocess
 from pathlib import Path
@@ -11,7 +12,7 @@ from pathlib import Path
 import pytest
 
 import helpers as h
-from conftest import AA_ROOT, REPO_ROOT
+from conftest import AA_ROOT, REPO_ROOT, git
 from test_dashboard_status import _goal, _work_item
 
 pytestmark = pytest.mark.skipif(shutil.which("tmux") is None, reason="tmux is not installed")
@@ -152,6 +153,85 @@ def test_prefix_a_popup_detail_screen_follows_a_task_through_its_lifecycle_and_e
     back = tmux.screen_text(["Running", "Ready", "Needs you"])
     assert all(n in back for n in ("Running", "Needs you")), back[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
+
+
+def test_prefix_a_popup_filters_hides_done_copies_a_slug_and_opens_a_commit_view(tmux, seeded, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    (seeded / "shipped.txt").write_text("shipped\n")
+    assert git(seeded, "add", "shipped.txt").returncode == 0
+    assert git(seeded, "commit", "-qm", "feat: ship the fx thing").returncode == 0
+    sha = git(seeded, "rev-parse", "HEAD").stdout.strip()
+    shipped = _work_item(cli, defs, EFFORT, "fx-shipped")
+    h.create_generic_record(
+        cli, defs, "project:execution-report", subject="fx-shipped",
+        extra_payload={"work_item": shipped["id"], "result": "ok", "verdict": "pass", "revision": sha},
+    )
+    old = _work_item(cli, defs, EFFORT, "fx-old")
+    h.transition(cli, "project:work-item", old, "in_progress", "done")
+    tmux("set-option", "-s", "set-clipboard", "on")
+
+    def full_screen(needles: list[str]) -> str:
+        while select.select([tmux.client_fd], [], [], 0.5)[0]:
+            os.read(tmux.client_fd, 65536)
+        tmux.output = b""
+        tmux("refresh-client")
+        return tmux.screen_text([*needles, "Needs you"])
+
+    tmux.press("A")
+    assert "title of fx-old" in tmux.screen_text(["title of fx-old", "title of fx-shipped"])
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"d")
+    hidden = full_screen(["done hidden", "title of fx-shipped"])
+    assert "done hidden" in hidden and "title of fx-shipped" in hidden, hidden[-2000:]
+    assert "title of fx-old" not in hidden, hidden[-2000:]
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"/")
+    assert "filter tasks" in tmux.screen_text(["filter tasks"])
+    os.write(tmux.client_fd, b"shipped\r")
+    filtered = full_screen(["/shipped", "title of fx-shipped"])
+    assert "/shipped" in filtered and "title of fx-shipped" in filtered, filtered[-2000:]
+    assert "title of fx-ready" not in filtered and "title of fx-running" not in filtered, filtered[-2000:]
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"c")
+    assert "Copied fx-shipped" in tmux.screen_text(["Copied fx-shipped"])
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"\r")
+    detail = tmux.screen_text(["Timeline"])
+    assert "Timeline" in detail, detail[-2000:]
+    tmux.output = b""
+    os.write(tmux.client_fd, b"g")
+    commit = tmux.screen_text([sha[:7], "feat: ship the fx thing", "shipped.txt"])
+    assert all(n in commit for n in (sha[:7], "feat: ship the fx thing", "shipped.txt")), commit[-2000:]
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"\x1b")
+    assert "Timeline" in tmux.screen_text(["Timeline"])
+    tmux.output = b""
+    os.write(tmux.client_fd, b"\x1b")
+    back = full_screen(["/shipped", "title of fx-shipped"])
+    assert "/shipped" in back and "title of fx-shipped" in back, back[-2000:]
+    assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
+
+    os.write(tmux.client_fd, b"q")
+    while select.select([tmux.client_fd], [], [], 1.0)[0]:
+        os.read(tmux.client_fd, 65536)
+    side = tmux.open_side_pane("main")
+
+    def side_screen(needle: str):
+        return lambda: needle in tmux("capture-pane", "-p", "-J", "-t", side)
+
+    h.wait_for(side_screen("title of fx-shipped"), "side pane dashboard")
+    tmux("send-keys", "-t", side, "/")
+    h.wait_for(side_screen("filter tasks"), "side pane filter box")
+    tmux("send-keys", "-t", side, "shipped", "Enter")
+    h.wait_for(lambda: "title of fx-ready" not in tmux("capture-pane", "-p", "-J", "-t", side), "side pane filtered")
+    tmux("send-keys", "-t", side, "c")
+    copied = h.wait_for(lambda: tmux("show-buffer", check=False), "tmux buffer from OSC 52")
+    assert copied == "fx-shipped", copied
 
 
 def test_status_segment_counts_match_the_seeded_store(home, seeded):
