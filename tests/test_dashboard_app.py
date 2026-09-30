@@ -893,6 +893,46 @@ def test_g_opens_the_commit_screen_with_the_message_and_stat_of_the_latest_revis
     _detail_run(store, size, scenario)
 
 
+@pytest.mark.parametrize("size", ((60, 40), (80, 40)))
+def test_commit_stat_lines_with_a_long_path_fit_on_one_line_at_the_pane_width(committed, size):
+    store, tasks, _ = committed
+    long_path = store / "scripts/some/really/long/directory/name/dashboard_model_extension.py"
+    long_path.parent.mkdir(parents=True)
+    long_path.write_text("x\n" * 300)
+    (store / "short.py").write_text("y\n" * 200)
+    git(store, "add", "scripts", "short.py")
+    assert git(store, "commit", "-q", "-m", "wide stat").returncode == 0
+    wide = git(store, "rev-parse", "HEAD").stdout.strip()
+
+    async def scenario(app, pilot):
+        app.push_screen(app_module.CommitScreen(app_module.load_commit(store, wide, app_module.stat_width(app)), store, wide))
+        screen = await _commit_shown(app, pilot)
+        stat = screen.query_one("#commit-stat")
+        lines = str(stat.render()).splitlines()
+        assert len(lines) == 3
+        assert all(len(line) <= stat.size.width for line in lines)
+        assert all(line.rstrip().split("|")[1].split()[0].isdigit() and line.rstrip()[-1] in "+-" for line in lines[:2])
+
+    _detail_run(store, size, scenario)
+
+
+def test_commit_stat_reloads_at_the_new_width_after_a_resize(committed):
+    store, tasks, _ = committed
+    (store / "scripts").mkdir()
+    (store / "scripts/a_really_long_file_name_for_the_stat_width_check.py").write_text("x\n" * 300)
+    git(store, "add", "scripts")
+    assert git(store, "commit", "-q", "-m", "resize stat").returncode == 0
+    rev = git(store, "rev-parse", "HEAD").stdout.strip()
+
+    async def scenario(app, pilot):
+        app.push_screen(app_module.CommitScreen(app_module.load_commit(store, rev, 76), store, rev))
+        screen = await _commit_shown(app, pilot)
+        await pilot.resize_terminal(60, 40)
+        await _until(pilot, lambda: all(len(l) <= 56 for l in str(screen.query_one("#commit-stat").render()).splitlines()))
+
+    _detail_run(store, (80, 40), scenario)
+
+
 def test_escape_on_the_commit_screen_returns_to_the_detail_screen(committed):
     store, tasks, _ = committed
 

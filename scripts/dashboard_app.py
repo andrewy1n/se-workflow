@@ -384,10 +384,10 @@ def latest_revision(events: list[model.TimelineEvent]) -> str | None:
     return max(usable, key=lambda e: e.recorded_at).revision if usable else None
 
 
-def load_commit(root: Path, revision: str) -> Commit | None:
+def load_commit(root: Path, revision: str, width: int = 80) -> Commit | None:
     if revision.startswith("-"):
         return None
-    command = ["git", "-C", str(root), "show", "--stat", "--format=%H%x1f%an%x1f%aI%x1f%s%x1f%b%x1e", revision, "--"]
+    command = ["git", "-C", str(root), "show", f"--stat={max(width, 20)}", "--format=%H%x1f%an%x1f%aI%x1f%s%x1f%b%x1e", revision, "--"]
     try:
         done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError):
@@ -399,6 +399,10 @@ def load_commit(root: Path, revision: str) -> Commit | None:
     if len(fields) != 5:
         return None
     return Commit(*fields[:4], fields[4].strip(), [line for line in stat.splitlines() if line.strip()])
+
+
+def stat_width(app: App) -> int:
+    return app.size.width - 4
 
 
 def stat_line(line: str, colors: dict[str, str]) -> Text:
@@ -616,13 +620,13 @@ class TaskDetailScreen(Screen[None]):
 
     @work(thread=True, exclusive=True, group="commit")
     def open_commit(self, revision: str) -> None:
-        commit = load_commit(self.target.root, revision)
+        commit = load_commit(self.target.root, revision, stat_width(self.app))
         if commit is None:
             self.app.call_from_thread(
                 self.app.notify, f"Commit {revision} not found in {self.target.root}", timeout=4,
             )
             return
-        self.app.call_from_thread(self.app.push_screen, CommitScreen(commit))
+        self.app.call_from_thread(self.app.push_screen, CommitScreen(commit, self.target.root, revision))
 
     @work(thread=True, exclusive=True, group="detail")
     def load(self) -> None:
@@ -756,9 +760,12 @@ class CommitScreen(Screen[None]):
     """
     BINDINGS = [Binding("escape", "back", "back")]
 
-    def __init__(self, commit: Commit) -> None:
+    def __init__(self, commit: Commit, root: Path, revision: str) -> None:
         super().__init__()
         self.commit = commit
+        self.root = root
+        self.revision = revision
+        self.stat_cols = 0
         self.loaded = False
 
     def compose(self) -> ComposeResult:
@@ -770,6 +777,25 @@ class CommitScreen(Screen[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        self.stat_cols = stat_width(self.app)
+        self.render_commit()
+
+    def on_resize(self) -> None:
+        if self.loaded and stat_width(self.app) != self.stat_cols:
+            self.stat_cols = stat_width(self.app)
+            self.reload_commit(self.stat_cols)
+
+    @work(thread=True, exclusive=True, group="commit-stat")
+    def reload_commit(self, width: int) -> None:
+        commit = load_commit(self.root, self.revision, width)
+        if commit is not None:
+            self.app.call_from_thread(self.show_commit, commit)
+
+    def show_commit(self, commit: Commit) -> None:
+        self.commit = commit
+        self.render_commit()
+
+    def render_commit(self) -> None:
         colors = palette_from(self.app.get_css_variables())
         commit = self.commit
         bar = Text(no_wrap=True, overflow="ellipsis")
