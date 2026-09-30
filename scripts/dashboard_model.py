@@ -309,6 +309,7 @@ class TimelineEvent:
     recorded_at: datetime
     summary: str
     body: str
+    revision: str = ""
 
 
 @dataclass(frozen=True)
@@ -393,7 +394,10 @@ def _timeline(
         outcome = CHECK_RESULT.get(payload.get("result", ""), payload.get("result", ""))
         events.append(("check-run", record, f"{payload.get('method', '')} check {outcome}".strip()))
     timeline = [
-        TimelineEvent(kind, record["id"], _recorded_at(record), summary, record.get("body") or "")
+        TimelineEvent(
+            kind, record["id"], _recorded_at(record), summary, record.get("body") or "",
+            _payload(record).get("revision", "") if kind in ("execution-report", "check-run") else "",
+        )
         for kind, record, summary in events
     ]
     timeline.sort(key=lambda event: event.recorded_at)

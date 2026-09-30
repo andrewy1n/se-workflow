@@ -139,7 +139,9 @@ It needs `uv`. The first run downloads `textual`.
 | `enter` / click | Open the task detail |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
 | `d` | Hide or show done and withdrawn tasks |
-| `esc` | Clear the filter, or go back from the detail |
+| `esc` | Clear the filter, or go back |
+| `c` | Copy the selected task's slug |
+| `g` | In the detail, show the commit of the task's latest revision |
 | `r` | Refresh now |
 | `q` | Quit |
 

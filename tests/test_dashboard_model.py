@@ -328,6 +328,13 @@ def test_detail_timeline_is_oldest_first_and_carries_report_bodies(detail_store)
     assert sum(e.kind == "check-run" for e in timeline) == 2
 
 
+def test_detail_timeline_events_carry_revision_for_reports_and_check_runs_only(detail_store):
+    timeline = _detail(detail_store).timeline
+    revisions = {e.kind: e.revision for e in timeline if e.kind != "check-run"}
+    assert revisions == {"assignment": "", "assignment-amendment": "", "execution-report": "abc"}
+    assert sorted(e.revision for e in timeline if e.kind == "check-run") == ["rev-early", "rev-late"]
+
+
 def test_detail_lists_related_findings_decisions_attempts_and_observations(detail_store):
     related = {(r.kind, r.text) for r in _detail(detail_store).related}
     assert related == {

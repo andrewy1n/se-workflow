@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import re
+import subprocess
 import sys
 import time
 from dataclasses import dataclass
@@ -368,6 +369,60 @@ def slug(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
 
+@dataclass(frozen=True)
+class Commit:
+    sha: str
+    author: str
+    date: str
+    subject: str
+    message: str
+    stat: list[str]
+
+
+def latest_revision(events: list[model.TimelineEvent]) -> str | None:
+    usable = [e for e in events if e.kind in ("execution-report", "check-run") and e.revision and e.revision != "dirty"]
+    return max(usable, key=lambda e: e.recorded_at).revision if usable else None
+
+
+def load_commit(root: Path, revision: str) -> Commit | None:
+    if revision.startswith("-"):
+        return None
+    command = ["git", "-C", str(root), "show", "--stat", "--format=%H%x1f%an%x1f%aI%x1f%s%x1f%b%x1e", revision, "--"]
+    try:
+        done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if done.returncode != 0:
+        return None
+    head, _, stat = done.stdout.partition("\x1e")
+    fields = head.split("\x1f")
+    if len(fields) != 5:
+        return None
+    return Commit(*fields[:4], fields[4].strip(), [line for line in stat.splitlines() if line.strip()])
+
+
+def stat_line(line: str, colors: dict[str, str]) -> Text:
+    text = Text(no_wrap=True, overflow="ellipsis")
+    name, bar, graph = line.partition("|")
+    text.append(name + bar)
+    for match in re.finditer(r"\++|-+|[^+-]+", graph):
+        piece = match.group()
+        style = colors["success"] if piece[0] == "+" else colors["error"] if piece[0] == "-" else ""
+        text.append(piece, style=style)
+    return text
+
+
+def commit_header(commit: Commit, colors: dict[str, str]) -> Text:
+    text = Text()
+    for index, (label, value) in enumerate((
+        ("commit", commit.sha), ("author", commit.author), ("date", commit.date), ("subject", commit.subject),
+    )):
+        text.append("\n" if index else "")
+        text.append(f"{label:<8}", style=colors["muted"])
+        text.append(value)
+    return text
+
+
 class EffortPane(VerticalScroll):
     def __init__(self, effort: str) -> None:
         super().__init__(classes="effort")
@@ -500,7 +555,12 @@ class TaskDetailScreen(Screen[None]):
     Markdown { margin: 0; padding: 0; background: transparent; }
     Markdown > MarkdownBlock:last-child { margin-bottom: 0; }
     """
-    BINDINGS = [Binding("escape", "back", "back")]
+    BINDINGS = [
+        Binding("escape", "back", "back"),
+        Binding("c", "app.copy_slug", "copy"),
+        Binding("g", "commit", "commit"),
+        Binding("r", "app.refresh", "refresh"),
+    ]
 
     def __init__(self, target: artifact_store.Target, task_id: str) -> None:
         super().__init__()
@@ -542,6 +602,27 @@ class TaskDetailScreen(Screen[None]):
 
     def action_back(self) -> None:
         self.app.pop_screen()
+
+    def action_commit(self) -> None:
+        if self.detail is None:
+            return
+        revision = latest_revision(self.detail.timeline)
+        if revision is not None:
+            self.open_commit(revision)
+        elif any(e.revision for e in self.detail.timeline):
+            self.app.notify("Only uncommitted (dirty) revisions recorded", timeout=4)
+        else:
+            self.app.notify(f"No revision recorded for {self.detail.subject}", timeout=4)
+
+    @work(thread=True, exclusive=True, group="commit")
+    def open_commit(self, revision: str) -> None:
+        commit = load_commit(self.target.root, revision)
+        if commit is None:
+            self.app.call_from_thread(
+                self.app.notify, f"Commit {revision} not found in {self.target.root}", timeout=4,
+            )
+            return
+        self.app.call_from_thread(self.app.push_screen, CommitScreen(commit))
 
     @work(thread=True, exclusive=True, group="detail")
     def load(self) -> None:
@@ -665,6 +746,53 @@ class TaskDetailScreen(Screen[None]):
         await panel.mount_all(widgets)
 
 
+class CommitScreen(Screen[None]):
+    CSS = """
+    #commit-bar { height: 1; padding: 0 1; background: $panel; }
+    #commit { padding: 0 1; }
+    #commit-header { margin-top: 1; }
+    #commit-message { margin-top: 1; }
+    #commit-stat { margin-top: 1; height: auto; }
+    """
+    BINDINGS = [Binding("escape", "back", "back")]
+
+    def __init__(self, commit: Commit) -> None:
+        super().__init__()
+        self.commit = commit
+        self.loaded = False
+
+    def compose(self) -> ComposeResult:
+        yield Static(id="commit-bar")
+        with VerticalScroll(id="commit"):
+            yield Static(id="commit-header")
+            yield Static(id="commit-message")
+            yield Static(id="commit-stat")
+        yield Footer()
+
+    def on_mount(self) -> None:
+        colors = palette_from(self.app.get_css_variables())
+        commit = self.commit
+        bar = Text(no_wrap=True, overflow="ellipsis")
+        bar.append(commit.sha[:7], style="bold")
+        bar.append(f"  {commit.subject}")
+        self.query_one("#commit-bar", Static).update(bar)
+        self.query_one("#commit-header", Static).update(commit_header(commit, colors))
+        message = self.query_one("#commit-message", Static)
+        message.display = bool(commit.message)
+        message.update(Text(commit.message))
+        stat = self.query_one("#commit-stat", Static)
+        stat.display = bool(commit.stat)
+        joined = Text(no_wrap=True, overflow="ellipsis")
+        for index, line in enumerate(commit.stat):
+            joined.append("\n" if index else "")
+            joined.append_text(stat_line(line, colors))
+        stat.update(joined)
+        self.loaded = True
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+
+
 class DashboardApp(App[None]):
     CSS = """
     #header { height: 1; padding: 0 1; background: $panel; }
@@ -698,7 +826,8 @@ class DashboardApp(App[None]):
         ("q", "quit", "quit"),
         Binding("tab", "next_effort", "switch", priority=True),
         Binding("shift+tab", "previous_effort", "previous", show=False, priority=True),
-        ("r", "refresh", "refresh"),
+        Binding("r", "refresh", "refresh", show=False),
+        Binding("c", "copy_slug", "copy"),
         Binding("enter", "open_task", "open"),
         Binding("slash", "filter", "filter"),
         Binding("d", "toggle_done", "done"),
@@ -739,6 +868,24 @@ class DashboardApp(App[None]):
             if isinstance(screen, TaskDetailScreen):
                 screen.poll(token)
 
+    def action_copy_slug(self) -> None:
+        screen = self.screen
+        if isinstance(screen, TaskDetailScreen):
+            name = screen.detail.subject if screen.detail is not None else None
+        else:
+            name = self.cursor_subject()
+        if name:
+            self.copy_to_clipboard(name)
+            self.notify(f"Copied {name}", timeout=2)
+
+    def cursor_subject(self) -> str | None:
+        pane = self.active_pane()
+        table = pane.query_one("#tasks", DataTable) if pane is not None else None
+        if table is None or not table.row_count or self.snapshot is None:
+            return None
+        key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
+        return next((t.subject for v in self.snapshot.efforts for t in v.tasks if t.id == key), None)
+
     def action_refresh(self) -> None:
         self.reload()
         for screen in self.screen_stack:
@@ -746,6 +893,8 @@ class DashboardApp(App[None]):
                 screen.load()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if isinstance(self.screen, CommitScreen):
+            return action == "quit"
         detail = isinstance(self.screen, TaskDetailScreen)
         if detail and action in ("next_effort", "previous_effort", "open_task", "filter", "toggle_done", "clear_filter"):
             return False

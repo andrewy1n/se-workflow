@@ -14,7 +14,7 @@ import pytest
 pytest.importorskip("textual")
 
 import helpers as h  # noqa: E402
-from conftest import REPO_ROOT  # noqa: E402
+from conftest import REPO_ROOT, git  # noqa: E402
 
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import artifact_store  # noqa: E402
@@ -192,7 +192,7 @@ def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
     async def scenario(app, pilot):
         await pilot.pause()
         keys = list(app.query("FooterKey"))
-        assert sorted(str(key.description) for key in keys) == ["done", "filter", "open", "quit", "refresh", "switch"]
+        assert sorted(str(key.description) for key in keys) == ["copy", "done", "filter", "open", "quit", "switch"]
         assert all(key.region.right <= 60 for key in keys)
 
     _run(seeded, 60, scenario)
@@ -781,14 +781,14 @@ def test_one_click_pushes_a_single_detail_screen(detailed):
     _detail_run(store, (60, 40), scenario)
 
 
-def test_detail_footer_shows_back_refresh_and_quit_within_60_columns(detailed):
+def test_detail_footer_shows_back_copy_commit_refresh_and_quit_within_60_columns(detailed):
     store, task, _ = detailed
 
     async def scenario(app, pilot):
         await _open_by_enter(app, pilot, task["id"])
         await _shown(app, pilot)
         keys = list(app.screen.query("FooterKey"))
-        assert sorted(str(key.description) for key in keys) == ["back", "quit", "refresh"]
+        assert sorted(str(key.description) for key in keys) == ["back", "commit", "copy", "quit", "refresh"]
         assert all(key.region.right <= 60 for key in keys)
 
     _detail_run(store, (60, 40), scenario)
@@ -803,6 +803,137 @@ def test_detail_shows_loading_then_content(detailed):
         assert "Loading" in _text(screen, "#detail-loading") or screen.loaded
         await _shown(app, pilot)
         assert not screen.query_one("#detail-loading").display
+
+    _detail_run(store, (60, 40), scenario)
+
+
+@pytest.fixture()
+def committed(store, cli, defs):
+    (store / "feature.txt").write_text("one\ntwo\n")
+    git(store, "add", "feature.txt")
+    done = git(store, "commit", "-q", "-m", "add the feature file", "-m", "Body line for the feature.")
+    assert done.returncode == 0, done.stderr
+    sha = git(store, "rev-parse", "HEAD").stdout.strip()
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "ship it", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "c-phase", 1, "in_progress")
+    tasks = {}
+    for name, revisions in {
+        "c-good": ("dirty", sha), "c-dirty": ("dirty",), "c-unknown": ("0123456789abcdef0123456789abcdef01234567",), "c-none": (),
+    }.items():
+        tasks[name] = _work_item(cli, defs, "alpha", name, "c-phase")
+        for index, revision in enumerate(revisions):
+            _record(cli, defs, "project:execution-report", f"{name}-{index}", {
+                "work_item": tasks[name]["id"], "assignment": "x", "result": "ok", "verdict": "pass", "revision": revision})
+    return store, tasks, sha
+
+
+def _notices(app):
+    return [note.message for note in app._notifications]
+
+
+async def _open_task(app, pilot, task):
+    await _open_by_enter(app, pilot, task["id"])
+    return await _shown(app, pilot)
+
+
+async def _commit_shown(app, pilot):
+    await _until(pilot, lambda: isinstance(app.screen, app_module.CommitScreen) and app.screen.loaded)
+    await pilot.pause(0.2)
+    return app.screen
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_c_on_the_dashboard_copies_the_cursor_row_slug_and_notifies(committed, size):
+    store, tasks, _ = committed
+
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        table.focus()
+        table.move_cursor(row=table.get_row_index(tasks["c-dirty"]["id"]))
+        await pilot.pause()
+        await pilot.press("c")
+        await pilot.pause()
+        assert app.clipboard == "c-dirty"
+        assert "Copied c-dirty" in _notices(app)
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_c_on_the_detail_screen_copies_the_shown_slug_and_notifies(committed, size):
+    store, tasks, _ = committed
+
+    async def scenario(app, pilot):
+        await _open_task(app, pilot, tasks["c-unknown"])
+        await pilot.press("c")
+        await pilot.pause()
+        assert app.clipboard == "c-unknown"
+        assert "Copied c-unknown" in _notices(app)
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_g_opens_the_commit_screen_with_the_message_and_stat_of_the_latest_revision(committed, size):
+    store, tasks, sha = committed
+
+    async def scenario(app, pilot):
+        await _open_task(app, pilot, tasks["c-good"])
+        await pilot.press("g")
+        screen = await _commit_shown(app, pilot)
+        assert str(screen.query_one("#commit-bar").render()).split()[:4] == [sha[:7], "add", "the", "feature"]
+        header = str(screen.query_one("#commit-header").render())
+        assert sha in header and "test" in header and "add the feature file" in header
+        assert "Body line for the feature." in str(screen.query_one("#commit-message").render())
+        stat = str(screen.query_one("#commit-stat").render())
+        assert "feature.txt" in stat and "++" in stat
+
+    _detail_run(store, size, scenario)
+
+
+def test_escape_on_the_commit_screen_returns_to_the_detail_screen(committed):
+    store, tasks, _ = committed
+
+    async def scenario(app, pilot):
+        detail = await _open_task(app, pilot, tasks["c-good"])
+        await pilot.press("g")
+        await _commit_shown(app, pilot)
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is detail)
+        assert len(app.screen_stack) == 2
+
+    _detail_run(store, (60, 40), scenario)
+
+
+def test_commit_footer_shows_back_and_quit_within_60_columns(committed):
+    store, tasks, _ = committed
+
+    async def scenario(app, pilot):
+        await _open_task(app, pilot, tasks["c-good"])
+        await pilot.press("g")
+        screen = await _commit_shown(app, pilot)
+        keys = list(screen.query("FooterKey"))
+        assert sorted(str(key.description) for key in keys) == ["back", "quit"]
+        assert all(key.region.right <= 60 for key in keys)
+
+    _detail_run(store, (60, 40), scenario)
+
+
+@pytest.mark.parametrize("name, message", [
+    ("c-none", "No revision recorded for c-none"),
+    ("c-dirty", "Only uncommitted (dirty) revisions recorded"),
+    ("c-unknown", "not found in"),
+])
+def test_g_shows_a_message_and_stays_on_the_detail_for_missing_dirty_or_unknown_revisions(committed, name, message):
+    store, tasks, _ = committed
+
+    async def scenario(app, pilot):
+        detail = await _open_task(app, pilot, tasks[name])
+        await pilot.press("g")
+        await _until(pilot, lambda: any(message in note for note in _notices(app)))
+        assert app.screen is detail
 
     _detail_run(store, (60, 40), scenario)
 
