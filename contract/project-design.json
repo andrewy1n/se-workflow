@@ -365,6 +365,14 @@
               {
                 "field": "payload.needs",
                 "equals": "human"
+              },
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "asserted",
+                  "supported",
+                  "disputed"
+                ]
               }
             ]
           }
@@ -387,6 +395,10 @@
               {
                 "field": "payload.signed_by",
                 "equals": ""
+              },
+              {
+                "field": "derived.corrected",
+                "not_equals": true
               }
             ]
           }
@@ -767,6 +779,14 @@
               {
                 "field": "payload.needs",
                 "equals": "human"
+              },
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "asserted",
+                  "supported",
+                  "disputed"
+                ]
               }
             ]
           }
@@ -789,6 +809,10 @@
               {
                 "field": "payload.signed_by",
                 "equals": ""
+              },
+              {
+                "field": "derived.corrected",
+                "not_equals": true
               }
             ]
           }
