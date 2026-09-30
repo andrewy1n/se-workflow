@@ -89,6 +89,25 @@ def test_prefix_a_popup_renders_the_pane_repo_dashboard_on_the_client(tmux):
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
+def test_prefix_a_popup_redraws_as_a_task_moves_from_ready_to_running_to_done(tmux, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    task = _work_item(cli, defs, EFFORT, "fx-moving")
+    tmux.press("A")
+    opening = tmux.screen_text(["ready", "title of fx-moving"])
+    assert "ready" in opening and "title of fx-moving" in opening, opening[-2000:]
+
+    task = h.transition(cli, "project:work-item", task, "in_progress")
+    tmux.output = b""
+    running = tmux.screen_text(["running"])
+    assert "running" in running, running[-2000:]
+
+    h.transition(cli, "project:work-item", task, "done")
+    tmux.output = b""
+    done = tmux.screen_text(["done"])
+    assert "done" in done, done[-2000:]
+    assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
+
+
 def test_status_segment_counts_match_the_seeded_store(home, seeded):
     env = dict(os.environ, HOME=str(home), ADAPTIVE_ARTIFACTS_BIN=str(AA_ROOT / "bin" / "adaptive-artifacts"))
     expected = f"{EFFORT} · 1 running · 1 ready · 1 needs you\n"
