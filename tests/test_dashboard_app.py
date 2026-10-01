@@ -181,6 +181,21 @@ def test_wide_width_shows_phase_and_assignee_columns(seeded):
     _run(seeded, 120, scenario)
 
 
+def test_resize_rebuilds_task_columns_from_the_new_width(seeded):
+    async def scenario(app, pilot):
+        def labels():
+            return [str(col.label) for col in app.query_one("#tasks").columns.values()]
+
+        wide = ["status", "task", "wave", "phase", "assignee"]
+        assert labels() == wide
+        await pilot.resize_terminal(60, 40)
+        await _until(pilot, lambda: labels() == ["status", "task", "wave"])
+        await pilot.resize_terminal(120, 40)
+        await _until(pilot, lambda: labels() == wide)
+
+    _run(seeded, 120, scenario)
+
+
 @pytest.mark.parametrize("width", WIDTHS)
 def test_needs_you_panel_and_activity_feed_show_their_items(seeded, width):
     async def scenario(app, pilot):

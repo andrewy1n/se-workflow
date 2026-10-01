@@ -23,7 +23,7 @@ import dashboard_model as model  # noqa: E402
 from rich.console import Console, Group  # noqa: E402
 from rich.table import Table  # noqa: E402
 from rich.text import Text  # noqa: E402
-from textual import work  # noqa: E402
+from textual import events, work  # noqa: E402
 from textual.binding import Binding  # noqa: E402
 from textual.app import App, ComposeResult  # noqa: E402
 from textual.containers import Horizontal, Vertical, VerticalScroll  # noqa: E402
@@ -589,7 +589,8 @@ class EffortPane(VerticalScroll):
     def on_resize(self) -> None:
         last = getattr(self, "last", None)
         if last is not None and self.scrollable_content_region.width != self.inner:
-            self.show(*last)
+            view, now, _, colors = last
+            self.show(view, now, self.app.size.width, colors)
 
     def fill_panel(self, selector: str, lines: list[Text]) -> None:
         panel = self.query_one(selector, Static)
@@ -1364,19 +1365,20 @@ class DashboardApp(App[None]):
             self.focus_tasks()
             self.call_after_refresh(self.focus_tasks)
 
-    def paint(self) -> None:
+    def paint(self, width: int | None = None) -> None:
         snapshot = self.snapshot
         if snapshot is None:
             return
+        width = width or self.size.width
         colors = palette_from(self.get_css_variables())
         tabs = self.query_one("#efforts", TabbedContent)
-        self.query_one("#header", Static).update(header_text(self.target, snapshot.generated_at, colors, self.size.width))
+        self.query_one("#header", Static).update(header_text(self.target, snapshot.generated_at, colors, width))
         for view in snapshot.efforts:
             tabs.get_tab(f"effort-{slug(view.effort)}").label = Text(tab_label(view))
-            self.panes[view.effort].show(view, snapshot.generated_at, self.size.width, colors)
+            self.panes[view.effort].show(view, snapshot.generated_at, width, colors)
 
-    def on_resize(self) -> None:
-        self.paint()
+    def on_resize(self, event: events.Resize) -> None:
+        self.paint(event.size.width)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
