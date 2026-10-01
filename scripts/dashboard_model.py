@@ -33,6 +33,8 @@ class PhaseRow:
     state: str
     done: int
     total: int
+    id: str = ""
+    awaiting_signoff: bool = False
 
 
 @dataclass(frozen=True)
@@ -158,7 +160,26 @@ def _task_rows(records: list[dict[str, Any]]) -> list[TaskRow]:
     return rows
 
 
-def _phase_rows(records: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> list[PhaseRow]:
+def _awaits_signoff(
+    task: dict[str, Any], others: list[str], acceptances: list[dict[str, Any]], latest: dict[str, "CheckRun"],
+) -> bool:
+    effort = _payload(task).get("effort", "")
+    mine = [
+        record for record in acceptances
+        if record["lifecycle_state"] not in INACTIVE_STATES and _belongs(record, task["subject"], effort, others)
+    ]
+    runs = [latest.get(record["id"]) for record in mine]
+    if not mine or any(run is None or run.result != "pass" for run in runs):
+        return False
+    return any(run is not None and run.method == "manual" and not run.signed_by for run in runs)
+
+
+def _phase_rows(
+    records: list[dict[str, Any]], tasks: list[dict[str, Any]],
+    acceptances: list[dict[str, Any]] | None = None, checks: list[dict[str, Any]] | None = None,
+) -> list[PhaseRow]:
+    latest = _latest_checks(checks or [])
+    subjects = [task["subject"] for task in tasks]
     counted = [task for task in tasks if task["lifecycle_state"] in COUNTED_TASK_STATES]
     rows = []
     for record in records:
@@ -166,10 +187,15 @@ def _phase_rows(records: list[dict[str, Any]], tasks: list[dict[str, Any]]) -> l
             continue
         members = [task for task in counted if _payload(task).get("phase") == record["subject"]]
         payload = _payload(record)
+        open_tasks = [task for task in members if task["lifecycle_state"] != "done"]
+        awaiting = record["lifecycle_state"] != "done" and bool(open_tasks) and all(
+            _awaits_signoff(task, [s for s in subjects if s != task["subject"]], acceptances or [], latest)
+            for task in open_tasks
+        )
         rows.append(PhaseRow(
             subject=record["subject"], title=payload.get("title", ""), ordinal=payload.get("ordinal", 0),
             state=record["lifecycle_state"], done=sum(t["lifecycle_state"] == "done" for t in members),
-            total=len(members),
+            total=len(members), id=record["id"], awaiting_signoff=awaiting,
         ))
     rows.sort(key=lambda row: (row.ordinal, row.subject))
     return rows
@@ -250,6 +276,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     findings = _by_effort(_list(target, "project:finding"))
     checks_all = _list(target, "project:check-run")
     checks = _by_effort(checks_all)
+    acceptances = _by_effort(_list(target, "project:acceptance"))
     efforts_by_work_item = {}
     for task in all_tasks:
         entry = (_payload(task).get("effort"), task["subject"])
@@ -265,7 +292,9 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         efforts.append(EffortView(
             effort=effort,
             goal=_payload(goal).get("goal", ""),
-            phases=_phase_rows(phases.get(effort, []), tasks.get(effort, [])),
+            phases=_phase_rows(
+                phases.get(effort, []), tasks.get(effort, []), acceptances.get(effort, []), checks.get(effort, []),
+            ),
             tasks=_task_rows(tasks.get(effort, [])),
             needs_you=_needs_you(questions.get(effort, []), findings.get(effort, []), checks.get(effort, [])),
             activity=activity.get(effort, []),
@@ -450,4 +479,51 @@ def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
         depends_on=_linked((item.get("relationships") or {}).get("depends_on", []), rows),
         blocks=_linked((_derived(mine).get("referenced_by") or {}).get("depends_on", []), rows),
         acceptances=acceptances, timeline=_timeline(assignments, amendments, reports, checks), related=related,
+    )
+
+
+@dataclass(frozen=True)
+class PhaseDetail:
+    subject: str
+    effort: str
+    title: str
+    state: str
+    awaiting_signoff: bool
+    body: str
+    decisions: list[RelatedRecord]
+    constraints: list[RelatedRecord]
+    tasks: list[TaskRow]
+
+
+def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseDetail:
+    """Load one phase with its body, decisions, constraints, and tasks."""
+    snapshot_phases = _by_effort(_list(target, "project:phase")).get(effort, [])
+    record = next((r for r in snapshot_phases if r["subject"] == phase_subject), None)
+    if record is None:
+        raise ModelError(f"phase {phase_subject} not found in {effort}")
+    item = _run(target, "get", "--type", "project:phase", "--id", record["id"])
+    tasks = _by_effort(_list(target, "project:work-item")).get(effort, [])
+    row = next(
+        (p for p in _phase_rows(
+            [record], tasks, _by_effort(_list(target, "project:acceptance")).get(effort, []),
+            _by_effort(_list(target, "project:check-run")).get(effort, []),
+        )),
+        None,
+    )
+    decisions = [
+        RelatedRecord("decision", r["id"], r["subject"], _payload(r).get("choice", ""))
+        for r in _by_effort(_list(target, "project:decision")).get(effort, [])
+        if _payload(r).get("phase") == phase_subject and r["lifecycle_state"] not in INACTIVE_STATES
+    ]
+    constraints = [
+        RelatedRecord("constraint", r["id"], r["subject"], _payload(r).get("statement", ""))
+        for r in _by_effort(_list(target, "project:constraint")).get(effort, [])
+        if _payload(r).get("applies_to") == phase_subject and r["lifecycle_state"] not in INACTIVE_STATES
+    ]
+    payload = _payload(record)
+    return PhaseDetail(
+        subject=phase_subject, effort=effort, title=payload.get("title", ""), state=record["lifecycle_state"],
+        awaiting_signoff=bool(row and row.awaiting_signoff), body=item.get("body") or "",
+        decisions=decisions, constraints=constraints,
+        tasks=[t for t in _task_rows(tasks) if t.phase == phase_subject],
     )

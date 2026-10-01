@@ -132,12 +132,20 @@ tabs with counts (Active, Running, Ready, Waiting, Needs you, Done, All),
 the task table, what needs you, and recent activity. Active is the
 default and holds running, ready, and waiting tasks. It reloads when the store changes.
 
+The task table groups tasks under phase header rows in ordinal order.
+In-progress phases and phases awaiting sign-off are expanded. Done and
+planned phases are collapsed. When more than two phases are done, the
+older ones fold into one `N earlier phases done` row. A phase awaits
+sign-off when every open task waits only on an unsigned manual check.
+The progress bar covers the whole effort.
+
 It needs `uv`. The first run downloads `textual`.
 
 | Key | Action |
 |---|---|
 | `tab` / `shift+tab` | Switch effort |
-| `enter` / click | Open the task detail |
+| `enter` / click | Open the task detail, or expand or collapse a phase header or the earlier-phases row |
+| `p` | Open the phase detail (body, decisions, constraints, tasks) for the selected row |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
 | `1`-`7` / `left` / `right` / click | Pick a status tab; the filter applies on top |
 | `esc` | Clear the filter, or go back |

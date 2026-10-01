@@ -361,3 +361,76 @@ def test_detail_uses_three_cli_calls(detail_store, monkeypatch):
 def test_detail_of_an_unknown_id_raises_a_model_error(store):
     with pytest.raises(model.ModelError):
         model.load_task_detail(_target(store), "rec-missing")
+
+
+def _signoff_task(cli, defs, effort, phase, subject, manual_signed_by=None, result="pass"):
+    task = _work_item(cli, defs, effort, subject, phase)
+    h.transition(cli, "project:work-item", task, "in_progress")
+    acceptance = _record(cli, defs, "project:acceptance", subject,
+                         {"criterion": "reviewed", "method": "manual", "verify_command": "", "effort": effort, "phase": phase})
+    if manual_signed_by is not None:
+        _record(cli, defs, "project:check-run", subject,
+                {"criterion_id": acceptance["id"], "method": "manual", "result": result,
+                 "signed_by": manual_signed_by, "revision": "r", "effort": effort})
+    return task
+
+
+def _awaiting(store, effort="alpha"):
+    phases = _effort(model.load_snapshot(_target(store)), effort).phases
+    return {p.subject: p.awaiting_signoff for p in phases}
+
+
+def test_phase_awaits_sign_off_when_every_open_task_waits_only_on_an_unsigned_manual_check(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    for ordinal, name in enumerate(("p-wait", "p-plain", "p-mixed", "p-signed", "p-failed", "p-done"), 1):
+        _phase(cli, defs, "alpha", name, ordinal, "in_progress")
+    _signoff_task(cli, defs, "alpha", "p-wait", "t-wait", manual_signed_by="")
+    plain = _work_item(cli, defs, "alpha", "t-plain", "p-plain")
+    h.transition(cli, "project:work-item", plain, "in_progress")
+    _signoff_task(cli, defs, "alpha", "p-mixed", "t-mixed", manual_signed_by="")
+    plain = _work_item(cli, defs, "alpha", "t-other", "p-mixed")
+    h.transition(cli, "project:work-item", plain, "in_progress")
+    _signoff_task(cli, defs, "alpha", "p-signed", "t-signed", manual_signed_by="ayin")
+    _signoff_task(cli, defs, "alpha", "p-failed", "t-failed", manual_signed_by="", result="fail")
+    finished = _work_item(cli, defs, "alpha", "t-finished", "p-done")
+    h.transition(cli, "project:work-item", finished, "in_progress", "done")
+    assert _awaiting(store) == {
+        "p-wait": True, "p-plain": False, "p-mixed": False, "p-signed": False, "p-failed": False, "p-done": False,
+    }
+
+
+def test_a_phase_with_a_done_task_and_one_task_awaiting_sign_off_is_awaiting(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-one", 1, "in_progress")
+    finished = _work_item(cli, defs, "alpha", "t-finished", "p-one")
+    h.transition(cli, "project:work-item", finished, "in_progress", "done")
+    _signoff_task(cli, defs, "alpha", "p-one", "t-wait", manual_signed_by="")
+    assert _awaiting(store) == {"p-one": True}
+
+
+def test_phase_detail_carries_body_decisions_constraints_and_tasks(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-one", 1, "in_progress")
+    _phase(cli, defs, "alpha", "p-two", 2)
+    task = _work_item(cli, defs, "alpha", "t-one", "p-one")
+    _work_item(cli, defs, "alpha", "t-elsewhere", "p-two")
+    _record(cli, defs, "project:decision", "p-one-choice",
+            {"choice": "go left", "alternatives": "right", "effort": "alpha", "phase": "p-one"})
+    _record(cli, defs, "project:decision", "p-two-choice",
+            {"choice": "go right", "alternatives": "left", "effort": "alpha", "phase": "p-two"})
+    _record(cli, defs, "project:constraint", "p-one-limit",
+            {"statement": "no network", "applies_to": "p-one", "effort": "alpha"})
+    _record(cli, defs, "project:constraint", "other-limit",
+            {"statement": "elsewhere", "applies_to": "p-two", "effort": "alpha"})
+    detail = model.load_phase_detail(_target(store), "alpha", "p-one")
+    assert (detail.subject, detail.title, detail.state, detail.awaiting_signoff) == ("p-one", "title of p-one", "in_progress", False)
+    assert "placeholder text for Problem" in detail.body
+    assert [d.text for d in detail.decisions] == ["go left"]
+    assert [c.text for c in detail.constraints] == ["no network"]
+    assert [t.id for t in detail.tasks] == [task["id"]]
+
+
+def test_phase_detail_for_an_unknown_phase_raises(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    with pytest.raises(model.ModelError):
+        model.load_phase_detail(_target(store), "alpha", "nope")
