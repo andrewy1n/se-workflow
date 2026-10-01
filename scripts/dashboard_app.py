@@ -1238,6 +1238,7 @@ class DashboardApp(App[None]):
         self.filters.setdefault(pane.effort, TaskFilter()).tab = name
         self.repaint_pane(pane)
         pane.mark_status_tab(name)
+        self.focus_tasks()
 
     def clear_filter(self) -> None:
         pane = self.active_pane()

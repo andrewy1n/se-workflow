@@ -480,6 +480,28 @@ def test_needs_you_tab_is_empty_when_no_open_item_names_a_task(seeded, width):
 
 
 @pytest.mark.parametrize("width", WIDTHS)
+def test_table_regains_focus_when_a_tab_shows_it_after_an_empty_tab(seeded, width):
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        await pilot.press("5")
+        await pilot.pause()
+        assert not table.display
+        await pilot.press("1")
+        await pilot.pause()
+        assert app.focused is table
+        await pilot.press("down")
+        await pilot.pause()
+        assert table.cursor_row == 1
+        key = _cursor_key(table).value
+        assert not _is_section(key)
+        await pilot.press("enter")
+        await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen))
+        assert app.screen.task_id == key
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
 def test_status_tab_combines_with_the_slash_filter(seeded, width):
     async def scenario(app, pilot):
         await pilot.press("slash")
