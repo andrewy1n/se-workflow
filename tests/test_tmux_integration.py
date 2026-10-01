@@ -7,6 +7,7 @@ import os
 import select
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -236,6 +237,57 @@ def test_prefix_a_popup_switches_status_tabs_filters_copies_a_slug_and_opens_a_c
     tmux("send-keys", "-t", side, "c")
     copied = h.wait_for(lambda: tmux("show-buffer", check=False), "tmux buffer from OSC 52")
     assert copied == "fx-shipped", copied
+
+
+def test_prefix_a_popup_keys_only_walks_status_tabs_phase_sections_phase_detail_and_the_second_task(tmux, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    h.create_generic_record(
+        cli, defs, "project:phase", subject="px-later",
+        extra_payload={"title": "Phase px-later", "ordinal": 1, "effort": EFFORT},
+    )
+    for name in ("px-first", "px-second"):
+        payload = {"title": f"title of {name}", "phase": "px-later", "kind": "deliver", "assignee": "", "effort": EFFORT}
+        created = cli("create", "--type", "project:work-item", "--subject", name, "--payload", json.dumps(payload),
+                      "--body", h.generic_body(defs["project:work-item"]))
+        assert created.returncode == 0, created.stdout + created.stderr
+
+    def redraw() -> None:
+        while select.select([tmux.client_fd], [], [], 0.3)[0]:
+            os.read(tmux.client_fd, 65536)
+        tmux.output = b""
+        tmux("refresh-client")
+
+    def press(keys: bytes, *needles: str, absent: tuple[str, ...] = ()) -> str:
+        os.write(tmux.client_fd, keys)
+        end = time.monotonic() + h.DEADLINE
+        while True:
+            redraw()
+            text = tmux.screen_text(list(needles))
+            if all(n in text for n in needles) and not any(a in text for a in absent):
+                return text
+            assert time.monotonic() < end, f"{keys!r} needs {needles} without {absent}: {text[-2000:]}"
+
+    tmux.press("A")
+    assert "Phase px-later" in tmux.screen_text(["Phase px-later"])
+
+    press(b"1", "Phase px-later", "title of fx-running", "title of fx-ready", absent=("title of px-first", "title of px-second"))
+    press(b"2", "title of fx-running", absent=("title of fx-ready", "px-later 0/2"))
+    press(b"\x1b[C", "title of fx-ready", absent=("title of fx-running",))
+    press(b"\x1b[D", "title of fx-running", absent=("title of fx-ready",))
+    press(b"1", "Phase px-later", "title of fx-ready")
+
+    for _ in range(3):
+        press(b"\x1b[A", "px-later 0/2")
+    press(b"\r", "Phase px-later", "title of px-first", "title of px-second")
+
+    press(b"p", "planned · 0/2 tasks", "title of px-first", "title of px-second", absent=("px-later 0/2",))
+    press(b"\x1b", "▾ ○ Phase px-later 0/2", "title of px-first", "title of px-second", absent=("planned · 0/2 tasks",))
+
+    press(b"j", "px-later 0/2")
+    press(b"j", "px-later 0/2")
+    press(b"\r", "px-second tmuxfx", "title of px-second", "Description", absent=("px-later 0/2", "title of px-first", "title of fx-ready"))
+    press(b"\x1b", "▾ ○ Phase px-later 0/2", "title of px-first", "title of px-second", absent=("Description",))
+    assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
 def test_status_segment_counts_match_the_seeded_store(home, seeded):
