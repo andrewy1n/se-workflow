@@ -215,7 +215,9 @@ def _phase_rows(
 
 def _needs_you(
     questions: list[dict[str, Any]], findings: list[dict[str, Any]], checks: list[dict[str, Any]],
+    acceptances: dict[str, dict[str, Any]] | None = None,
 ) -> list[NeedsYouItem]:
+    acceptances = acceptances or {}
     items = []
     for record in questions:
         if record["lifecycle_state"] == "open":
@@ -227,8 +229,11 @@ def _needs_you(
     for record in checks:
         payload = _payload(record)
         if payload.get("method") == "manual" and payload.get("signed_by") == "" and not _derived(record).get("corrected"):
-            text = f"{payload.get('criterion_id', '')} {payload.get('result', '')}".strip()
-            items.append(NeedsYouItem("unsigned-check", record["id"], record["subject"], text))
+            acceptance = acceptances.get(payload.get("criterion_id", ""))
+            subject = acceptance["subject"] if acceptance else record["subject"]
+            criterion = _payload(acceptance).get("criterion", "") if acceptance else ""
+            text = f"{criterion} {payload.get('result', '')}".strip()
+            items.append(NeedsYouItem("unsigned-check", record["id"], subject, text))
     items.sort(key=lambda item: NEEDS_ORDER.index(item.kind))
     return items
 
@@ -289,7 +294,9 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     findings = _by_effort(listed["project:finding"])
     checks_all = listed["project:check-run"]
     checks = _by_effort(checks_all)
-    acceptances = _by_effort(_list(target, "project:acceptance"))
+    acceptances_all = _list(target, "project:acceptance")
+    acceptances = _by_effort(acceptances_all)
+    acceptances_by_id = {record["id"]: record for record in acceptances_all}
     efforts_by_work_item = {}
     for task in all_tasks:
         entry = (_payload(task).get("effort"), task["subject"])
@@ -309,7 +316,9 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
                 phases.get(effort, []), tasks.get(effort, []), acceptances.get(effort, []), checks.get(effort, []),
             ),
             tasks=_task_rows(tasks.get(effort, [])),
-            needs_you=_needs_you(questions.get(effort, []), findings.get(effort, []), checks.get(effort, [])),
+            needs_you=_needs_you(
+                questions.get(effort, []), findings.get(effort, []), checks.get(effort, []), acceptances_by_id,
+            ),
             activity=activity.get(effort, []),
         ))
     return Snapshot(efforts, token, now)

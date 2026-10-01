@@ -157,6 +157,23 @@ def test_collects_needs_you_items_and_drops_resolved_or_corrected_ones(store, cl
     assert [item.kind for item in items][:1] == ["blocking-question"]
 
 
+def test_unsigned_check_reads_as_its_criterion_and_task_not_a_record_id(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    acceptance = _record(cli, defs, "project:acceptance", "u-task-perf",
+                         {"criterion": "pages render", "method": "manual", "verify_command": "", "effort": "alpha",
+                          "phase": "a-one"})
+    check_payload = {"method": "manual", "signed_by": "", "result": "pass", "revision": "r", "effort": "alpha"}
+    _record(cli, defs, "project:check-run", "u-check", {**check_payload, "criterion_id": acceptance["id"]})
+    _record(cli, defs, "project:check-run", "u-orphan", {**check_payload, "criterion_id": "rec-missing"})
+
+    items = _effort(model.load_snapshot(_target(store)), "alpha").needs_you
+    assert sorted((item.subject, item.text) for item in items) == [
+        ("u-orphan", "pass"),
+        ("u-task-perf", "pages render pass"),
+    ]
+    assert not any("rec-" in item.text or "rec-" in item.subject for item in items)
+
+
 def test_recent_activity_lists_last_24h_newest_first_and_resolves_reports_to_their_effort(store, cli, defs):
     _goal(cli, defs, "alpha")
     _goal(cli, defs, "beta")
