@@ -185,7 +185,7 @@ def test_prefix_a_popup_switches_status_tabs_filters_copies_a_slug_and_opens_a_c
     assert "title of fx-shipped" in tmux.screen_text(["title of fx-shipped"])
 
     tmux.output = b""
-    os.write(tmux.client_fd, b"6")
+    os.write(tmux.client_fd, b"5")
     done_tab = full_screen(["title of fx-old"])
     assert "title of fx-old" in done_tab and "title of fx-shipped" not in done_tab, done_tab[-2000:]
 
@@ -310,7 +310,7 @@ def test_prefix_a_popup_regains_table_focus_after_an_empty_tab_and_narrows_its_c
     tmux.press("A")
     assert "assignee" in tmux.screen_text(["title of fx-ready", "assignee"])
 
-    press(b"5", "No tasks match", absent=("title of fx-running", "title of fx-ready"))
+    press(b"4", "No tasks match", absent=("title of fx-running", "title of fx-ready"))
     press(b"1", "title of fx-running", "title of fx-ready", absent=("No tasks match",))
     press(b"\x1b[B", "title of fx-ready")
     press(b"\r", "fx-ready tmuxfx", "Description", absent=("title of fx-running",))

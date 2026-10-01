@@ -116,7 +116,7 @@ def progress_label(view: model.EffortView) -> str:
 
 STATUS_TABS = (
     ("active", "Active", "1"), ("running", "Running", "2"), ("ready", "Ready", "3"),
-    ("waiting", "Waiting", "4"), ("needs", "Needs you", "5"), ("done", "Done", "6"), ("all", "All", "7"),
+    ("waiting", "Waiting", "4"), ("done", "Done", "5"), ("all", "All", "6"),
 )
 TAB_STATUSES = {
     "active": ("running", "ready", "waiting"), "running": ("running",), "ready": ("ready",),
@@ -127,9 +127,6 @@ TAB_STATUSES = {
 def tab_tasks(view: model.EffortView, tab: str) -> list[model.TaskRow]:
     if tab == "all":
         return list(view.tasks)
-    if tab == "needs":
-        subjects = {item.subject for item in view.needs_you}
-        return [task for task in view.tasks if task.subject in subjects]
     return [task for task in view.tasks if task.status in TAB_STATUSES[tab]]
 
 
@@ -329,7 +326,7 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
                 table.add_row(*task_cells(task, columns, console.width, colors))
             console.print(Group(Text(), table))
         if view.needs_you:
-            console.print(Text("\nNeeds you", style=colors["warning"]))
+            console.print(Text(f"\nNeeds you {len(view.needs_you)}", style=colors["warning"]))
             for line in needs_lines(view, colors):
                 console.print(line)
         lines = activity_lines(view, snapshot.generated_at, colors)
@@ -579,6 +576,7 @@ class EffortPane(VerticalScroll):
         for tab in self.query(StatusTab):
             tab.show(tally[tab.tab_name], tab.tab_name == selected)
         self.fill_tasks(view, width, inner, colors)
+        self.query_one("#needs-you", Static).border_title = f"Needs you {len(view.needs_you)}"
         self.fill_panel("#needs-you", needs_lines(view, colors, inner - 4))
         self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
 
@@ -1098,13 +1096,12 @@ class DashboardApp(App[None]):
         Binding("enter", "open_task", "open"),
         Binding("p", "open_phase", "phase"),
         Binding("slash", "filter", "filter"),
-        Binding("1", "status_tab('active')", "status", key_display="1-7"),
+        Binding("1", "status_tab('active')", "status", key_display="1-6"),
         Binding("2", "status_tab('running')", "running", show=False),
         Binding("3", "status_tab('ready')", "ready", show=False),
         Binding("4", "status_tab('waiting')", "waiting", show=False),
-        Binding("5", "status_tab('needs')", "needs", show=False),
-        Binding("6", "status_tab('done')", "done", show=False),
-        Binding("7", "status_tab('all')", "all", show=False),
+        Binding("5", "status_tab('done')", "done", show=False),
+        Binding("6", "status_tab('all')", "all", show=False),
         Binding("escape", "clear_filter", "clear filter", show=False),
     ]
 

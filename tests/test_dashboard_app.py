@@ -427,45 +427,62 @@ def _needs_task(cli, defs):
 
 
 @pytest.mark.parametrize("width", WIDTHS)
-def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, cli, defs, width):
-    _needs_task(cli, defs)
-
+def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, width):
     async def scenario(app, pilot):
-        await _until(pilot, lambda: _tab_labels(app).get("needs", "").endswith("1"))
         labels = _tab_labels(app)
         assert {k: v.split() for k, v in labels.items()} == {
             "active": ["Active", "3"], "running": ["Running", "1"], "ready": ["Ready", "1"],
-            "waiting": ["Waiting", "1"], "needs": ["Needs", "you", "1"], "done": ["Done", "1"], "all": ["All", "4"],
+            "waiting": ["Waiting", "1"], "done": ["Done", "1"], "all": ["All", "4"],
         }
         assert all(tab.region.right <= width for tab in app.query(app_module.StatusTab))
         assert _selected(app) == ["active"]
         assert _titles(app) == _all_titles()
         assert not list(app.query("#tiles"))
 
+    _run(seeded, width, scenario)
+
+
+def test_status_tabs_are_six_on_keys_one_to_six_without_a_needs_you_tab():
+    assert [(name, key) for name, _, key in app_module.STATUS_TABS] == [
+        ("active", "1"), ("running", "2"), ("ready", "3"), ("waiting", "4"), ("done", "5"), ("all", "6"),
+    ]
+    keys = {binding.key: binding for binding in app_module.DashboardApp.BINDINGS
+            if isinstance(binding, app_module.Binding) and binding.action.startswith("status_tab(")}
+    assert sorted(keys) == ["1", "2", "3", "4", "5", "6"]
+    assert keys["1"].key_display == "1-6"
+    assert not any("needs" in binding.action for binding in keys.values())
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_needs_you_panel_title_counts_every_item_including_effort_level_questions(seeded, cli, defs, width):
+    async def scenario(app, pilot):
+        panel = app.query_one("#needs-you")
+        assert panel.border_title == "Needs you 1"
+        assert "which backend" in _text(app, "#needs-you")
+        _needs_task(cli, defs)
+        await _until(pilot, lambda: panel.border_title == "Needs you 2")
+        assert not list(app.query("#status-needs"))
+
     _run(seeded, width, scenario, interval=0.3)
 
 
 @pytest.mark.parametrize("width", WIDTHS)
-def test_number_keys_filter_the_table_by_status_tab(seeded, cli, defs, width):
-    _needs_task(cli, defs)
-
+def test_number_keys_filter_the_table_by_status_tab(seeded, width):
     async def scenario(app, pilot):
-        await _until(pilot, lambda: len(_titles(app)) == 3 and _tab_labels(app)["needs"].endswith("1"))
         expected = {
             "2": ("running", ["title of a-running"]), "3": ("ready", ["title of a-ready"]),
-            "4": ("waiting", ["title of a-waiting"]), "5": ("needs", ["title of a-waiting"]),
-            "6": ("done", ["title of a-done"]), "7": ("all", ["title of a-done"] + _all_titles()),
-            "1": ("active", _all_titles()),
+            "4": ("waiting", ["title of a-waiting"]), "5": ("done", ["title of a-done"]),
+            "6": ("all", ["title of a-done"] + _all_titles()), "1": ("active", _all_titles()),
         }
         for key, (name, titles) in expected.items():
             await pilot.press(key)
-            if key == "6":
+            if key == "5":
                 await pilot.press("enter")
             await pilot.pause()
             assert _titles(app) == titles
             assert _selected(app) == [name]
 
-    _run(seeded, width, scenario, interval=0.3)
+    _run(seeded, width, scenario)
 
 
 @pytest.mark.parametrize("width", WIDTHS)
@@ -483,23 +500,29 @@ def test_clicking_a_status_tab_filters_the_table(seeded, width):
     _run(seeded, width, scenario)
 
 
+def _seed_unwaited(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "ship it", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "two", 1, "in_progress")
+    running = _work_item(cli, defs, "alpha", "u-running", "two")
+    h.transition(cli, "project:work-item", running, "in_progress")
+    _work_item(cli, defs, "alpha", "u-ready", "two")
+
+
+@pytest.fixture()
+def unwaited(store):
+    stamped_store(store, "unwaited", lambda root, cli, defs: _seed_unwaited(cli, defs))
+    return store
+
+
 @pytest.mark.parametrize("width", WIDTHS)
-def test_needs_you_tab_is_empty_when_no_open_item_names_a_task(seeded, width):
-    async def scenario(app, pilot):
-        await pilot.press("5")
-        await pilot.pause()
-        assert _titles(app) == []
-        assert app.query_one("#tasks-empty").display
-
-    _run(seeded, width, scenario)
-
-
-@pytest.mark.parametrize("width", WIDTHS)
-def test_table_regains_focus_when_a_tab_shows_it_after_an_empty_tab(seeded, width):
+def test_table_regains_focus_when_a_tab_shows_it_after_an_empty_tab(unwaited, width):
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
-        await pilot.press("5")
+        await pilot.press("4")
         await pilot.pause()
+        assert _titles(app) == []
         assert not table.display
         await pilot.press("1")
         await pilot.pause()
@@ -513,7 +536,7 @@ def test_table_regains_focus_when_a_tab_shows_it_after_an_empty_tab(seeded, widt
         await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen))
         assert app.screen.task_id == key
 
-    _run(seeded, width, scenario)
+    _run(unwaited, width, scenario)
 
 
 @pytest.mark.parametrize("width", WIDTHS)
@@ -522,7 +545,7 @@ def test_status_tab_combines_with_the_slash_filter(seeded, width):
         await pilot.press("slash")
         await pilot.press(*"a-")
         await pilot.press("enter")
-        await pilot.press("6")
+        await pilot.press("5")
         await pilot.press("enter")
         await pilot.pause()
         assert _titles(app) == ["title of a-done"]
@@ -589,7 +612,7 @@ def test_status_tab_is_per_effort_tab(seeded, cli, defs, width):
         await _until(pilot, lambda: len(app.panes) == 2)
         tabs = app.query_one("#efforts")
         first = tabs.active
-        await pilot.press("6")
+        await pilot.press("5")
         await pilot.press("enter")
         await pilot.press("tab")
         await pilot.pause()
@@ -1304,7 +1327,7 @@ def test_once_prints_a_plain_text_frame(seeded):
     assert result.returncode == 0, result.stderr
     out = result.stdout
     assert "\x1b" not in out
-    for needle in ("alpha", "ship the alpha dashboard", "✓ Phase one", "Running", "title of a-running", "which backend"):
+    for needle in ("alpha", "ship the alpha dashboard", "✓ Phase one", "Running", "title of a-running", "which backend", "Needs you 1"):
         assert needle in out
     assert max(len(line) for line in out.splitlines()) <= 100
 
@@ -1335,7 +1358,7 @@ def test_left_and_right_step_the_status_tabs_and_wrap(seeded, width):
 @pytest.mark.parametrize("width", WIDTHS)
 def test_status_tab_survives_a_store_refresh(seeded, cli, defs, width):
     async def scenario(app, pilot):
-        await pilot.press("6")
+        await pilot.press("5")
         await pilot.press("enter")
         _work_item(cli, defs, "alpha", "a-fresh", "two")
         await _until(pilot, lambda: _tab_labels(app)["all"].split()[-1] == "5")
@@ -1415,7 +1438,7 @@ def test_a_phase_awaiting_sign_off_expands_and_says_so(phased, width):
 @pytest.mark.parametrize("width", WIDTHS)
 def test_done_phases_collapse_and_older_ones_fold_into_one_row(phased, width):
     async def scenario(app, pilot):
-        await pilot.press("7")
+        await pilot.press("6")
         await pilot.pause()
         keys = _keys(app)
         assert keys[:3] == ["fold", "phase:d3", "phase:d4"]
@@ -1430,7 +1453,7 @@ def test_done_phases_collapse_and_older_ones_fold_into_one_row(phased, width):
 @pytest.mark.parametrize("width", WIDTHS)
 def test_enter_on_the_fold_row_expands_and_collapses_the_older_phases(phased, width):
     async def scenario(app, pilot):
-        await pilot.press("7")
+        await pilot.press("6")
         await pilot.pause()
         app.query_one("#tasks").move_cursor(row=0)
         await pilot.press("enter")
@@ -1455,7 +1478,7 @@ def test_two_done_phases_do_not_fold(store, cli, defs, width):
         h.transition(cli, "project:work-item", done, "in_progress", "done")
 
     async def scenario(app, pilot):
-        await pilot.press("7")
+        await pilot.press("6")
         await pilot.pause()
         assert _keys(app) == ["phase:d1", "phase:d2"]
 
@@ -1585,7 +1608,7 @@ def test_p_on_a_task_row_opens_the_detail_of_that_tasks_phase(phased):
 
 def test_p_does_nothing_on_the_fold_row(phased):
     async def scenario(app, pilot):
-        await pilot.press("7")
+        await pilot.press("6")
         await pilot.pause()
         app.query_one("#tasks").move_cursor(row=0)
         await pilot.press("p")
