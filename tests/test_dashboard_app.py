@@ -187,7 +187,7 @@ def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
     async def scenario(app, pilot):
         await pilot.pause()
         keys = list(app.query("FooterKey"))
-        assert sorted(str(key.description) for key in keys) == ["copy", "filter", "open", "quit", "switch"]
+        assert sorted(str(key.description) for key in keys) == ["copy", "filter", "open", "quit", "status", "switch"]
         assert all(key.region.right <= 60 for key in keys)
 
     _run(seeded, 60, scenario)
@@ -379,7 +379,7 @@ def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, cli
         labels = _tab_labels(app)
         assert {k: v.split() for k, v in labels.items()} == {
             "active": ["Active", "3"], "running": ["Running", "1"], "ready": ["Ready", "1"],
-            "needs": ["Needs", "you", "1"], "done": ["Done", "1"],
+            "waiting": ["Waiting", "1"], "needs": ["Needs", "you", "1"], "done": ["Done", "1"], "all": ["All", "4"],
         }
         assert all(tab.region.right <= width for tab in app.query(app_module.StatusTab))
         assert _selected(app) == ["active"]
@@ -397,7 +397,8 @@ def test_number_keys_filter_the_table_by_status_tab(seeded, cli, defs, width):
         await _until(pilot, lambda: len(_titles(app)) == 3 and _tab_labels(app)["needs"].endswith("1"))
         expected = {
             "2": ("running", ["title of a-running"]), "3": ("ready", ["title of a-ready"]),
-            "4": ("needs", ["title of a-waiting"]), "5": ("done", ["title of a-done"]),
+            "4": ("waiting", ["title of a-waiting"]), "5": ("needs", ["title of a-waiting"]),
+            "6": ("done", ["title of a-done"]), "7": ("all", _all_titles() + ["title of a-done"]),
             "1": ("active", _all_titles()),
         }
         for key, (name, titles) in expected.items():
@@ -426,7 +427,7 @@ def test_clicking_a_status_tab_filters_the_table(seeded, width):
 @pytest.mark.parametrize("width", WIDTHS)
 def test_needs_you_tab_is_empty_when_no_open_item_names_a_task(seeded, width):
     async def scenario(app, pilot):
-        await pilot.press("4")
+        await pilot.press("5")
         await pilot.pause()
         assert _titles(app) == []
         assert app.query_one("#tasks-empty").display
@@ -440,7 +441,7 @@ def test_status_tab_combines_with_the_slash_filter(seeded, width):
         await pilot.press("slash")
         await pilot.press(*"a-")
         await pilot.press("enter")
-        await pilot.press("5")
+        await pilot.press("6")
         await pilot.pause()
         assert _titles(app) == ["title of a-done"]
         assert app.query_one("#tasks").border_title == "Tasks · 1 of 1 · /a-"
@@ -506,7 +507,7 @@ def test_status_tab_is_per_effort_tab(seeded, cli, defs, width):
         await _until(pilot, lambda: len(app.panes) == 2)
         tabs = app.query_one("#efforts")
         first = tabs.active
-        await pilot.press("5")
+        await pilot.press("6")
         await pilot.press("tab")
         await pilot.pause()
         assert tabs.active != first
@@ -1197,3 +1198,30 @@ def test_once_without_a_store_exits_one(tmp_path):
     )
     assert result.returncode == 1
     assert "store" in result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_left_and_right_step_the_status_tabs_and_wrap(seeded, width):
+    async def scenario(app, pilot):
+        await pilot.press("right")
+        await pilot.pause()
+        assert _selected(app) == ["running"]
+        assert _titles(app) == ["title of a-running"]
+        await pilot.press("left", "left")
+        await pilot.pause()
+        assert _selected(app) == ["all"]
+        assert len(_titles(app)) == 4
+
+    _run(seeded, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_status_tab_survives_a_store_refresh(seeded, cli, defs, width):
+    async def scenario(app, pilot):
+        await pilot.press("6")
+        _work_item(cli, defs, "alpha", "a-fresh", "two")
+        await _until(pilot, lambda: _tab_labels(app)["all"].split()[-1] == "5")
+        assert _selected(app) == ["done"]
+        assert _titles(app) == ["title of a-done"]
+
+    _run(seeded, width, scenario, interval=0.3)

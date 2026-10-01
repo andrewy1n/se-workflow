@@ -181,7 +181,7 @@ def test_prefix_a_popup_switches_status_tabs_filters_copies_a_slug_and_opens_a_c
     assert "title of fx-shipped" in tmux.screen_text(["title of fx-shipped"])
 
     tmux.output = b""
-    os.write(tmux.client_fd, b"5")
+    os.write(tmux.client_fd, b"6")
     done_tab = full_screen(["title of fx-old"])
     assert "title of fx-old" in done_tab and "title of fx-shipped" not in done_tab, done_tab[-2000:]
 

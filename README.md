@@ -127,9 +127,10 @@ Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).
 
 `scripts/dashboard` runs the Textual app `scripts/dashboard_app.py`
 through `uv` for the repo of the current directory. The app shows one
-tab per live effort: the goal, the phase stepper, progress, tiles
-(Running, Ready, Needs you, Done), the task table, what needs you, and
-recent activity. It reloads when the store changes.
+tab per live effort: the goal, the phase stepper, progress, status
+tabs with counts (Active, Running, Ready, Waiting, Needs you, Done, All),
+the task table, what needs you, and recent activity. Active is the
+default and holds running, ready, and waiting tasks. It reloads when the store changes.
 
 It needs `uv`. The first run downloads `textual`.
 
@@ -138,7 +139,7 @@ It needs `uv`. The first run downloads `textual`.
 | `tab` / `shift+tab` | Switch effort |
 | `enter` / click | Open the task detail |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
-| `d` | Hide or show done and withdrawn tasks |
+| `1`-`7` / `left` / `right` / click | Pick a status tab; the filter applies on top |
 | `esc` | Clear the filter, or go back |
 | `c` | Copy the selected task's slug |
 | `g` | In the detail, show the commit of the task's latest revision |

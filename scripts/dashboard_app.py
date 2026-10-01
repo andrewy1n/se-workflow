@@ -112,15 +112,17 @@ def progress_label(view: model.EffortView) -> str:
 
 STATUS_TABS = (
     ("active", "Active", "1"), ("running", "Running", "2"), ("ready", "Ready", "3"),
-    ("needs", "Needs you", "4"), ("done", "Done", "5"),
+    ("waiting", "Waiting", "4"), ("needs", "Needs you", "5"), ("done", "Done", "6"), ("all", "All", "7"),
 )
 TAB_STATUSES = {
     "active": ("running", "ready", "waiting"), "running": ("running",), "ready": ("ready",),
-    "done": ("done", "withdrawn"),
+    "waiting": ("waiting",), "done": ("done", "withdrawn"),
 }
 
 
 def tab_tasks(view: model.EffortView, tab: str) -> list[model.TaskRow]:
+    if tab == "all":
+        return list(view.tasks)
     if tab == "needs":
         subjects = {item.subject for item in view.needs_you}
         return [task for task in view.tasks if task.subject in subjects]
@@ -437,9 +439,11 @@ class EffortPane(VerticalScroll):
         yield Static(id="stepper")
         yield Static(id="progress-label")
         yield ProgressBar(id="progress", show_eta=False, show_percentage=False)
-        with Horizontal(id="status-tabs"):
-            for name, label, _ in STATUS_TABS:
-                yield StatusTab(name, label)
+        with Vertical(id="status-tabs"):
+            for row in (STATUS_TABS[:4], STATUS_TABS[4:]):
+                with Horizontal(classes="status-row"):
+                    for name, label, _ in row:
+                        yield StatusTab(name, label)
         filter_input = FilterInput(placeholder="filter tasks", id="filter")
         filter_input.display = False
         yield filter_input
@@ -545,6 +549,8 @@ class FilterInput(Input):
 class TaskTable(DataTable):
     BINDINGS = [
         Binding("enter", "select_cursor", "open"),
+        Binding("left", "app.step_status_tab(-1)", "previous tab", show=False),
+        Binding("right", "app.step_status_tab(1)", "next tab", show=False),
         Binding("j", "cursor_down", "down", show=False),
         Binding("k", "cursor_up", "up", show=False),
         Binding("pageup", "app.scroll_pane('page_up')", "page up", show=False),
@@ -863,7 +869,8 @@ class DashboardApp(App[None]):
     #progress-label { margin-top: 1; color: $text-muted; }
     #progress { height: 1; }
     #progress Bar { width: 1fr; }
-    #status-tabs { height: 1; margin-top: 1; }
+    #status-tabs { height: auto; margin-top: 1; }
+    .status-row { height: 1; }
     .status-tab { width: auto; height: 1; margin-right: 1; color: $text-muted; }
     .status-tab.selected { color: $text; text-style: bold reverse; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
@@ -882,11 +889,13 @@ class DashboardApp(App[None]):
         Binding("c", "copy_slug", "copy"),
         Binding("enter", "open_task", "open"),
         Binding("slash", "filter", "filter"),
-        Binding("1", "status_tab('active')", "active", show=False),
+        Binding("1", "status_tab('active')", "status", key_display="1-7"),
         Binding("2", "status_tab('running')", "running", show=False),
         Binding("3", "status_tab('ready')", "ready", show=False),
-        Binding("4", "status_tab('needs')", "needs you", show=False),
-        Binding("5", "status_tab('done')", "done", show=False),
+        Binding("4", "status_tab('waiting')", "waiting", show=False),
+        Binding("5", "status_tab('needs')", "needs", show=False),
+        Binding("6", "status_tab('done')", "done", show=False),
+        Binding("7", "status_tab('all')", "all", show=False),
         Binding("escape", "clear_filter", "clear filter", show=False),
     ]
 
@@ -971,7 +980,7 @@ class DashboardApp(App[None]):
         if isinstance(self.screen, CommitScreen):
             return action == "quit"
         detail = isinstance(self.screen, TaskDetailScreen)
-        if detail and action in ("next_effort", "previous_effort", "open_task", "filter", "status_tab", "clear_filter"):
+        if detail and action in ("next_effort", "previous_effort", "open_task", "filter", "status_tab", "step_status_tab", "clear_filter"):
             return False
         if action == "clear_filter":
             return self.active_filter().active
@@ -1004,6 +1013,11 @@ class DashboardApp(App[None]):
 
     def action_status_tab(self, name: str) -> None:
         self.select_status_tab(name)
+
+    def action_step_status_tab(self, delta: int) -> None:
+        names = [name for name, _, _ in STATUS_TABS]
+        current = self.active_filter().tab
+        self.select_status_tab(names[(names.index(current) + delta) % len(names)])
 
     def select_status_tab(self, name: str) -> None:
         pane = self.active_pane()
