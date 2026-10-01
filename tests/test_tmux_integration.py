@@ -104,8 +104,8 @@ def test_prefix_a_popup_redraws_as_a_task_moves_from_ready_to_running_to_done(tm
 
     h.transition(cli, "project:work-item", task, "done")
     tmux.output = b""
-    done = tmux.screen_text(["done"])
-    assert "done" in done, done[-2000:]
+    done = tmux.screen_text(["Done 1"])
+    assert "Done 1" in done, done[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
@@ -155,7 +155,7 @@ def test_prefix_a_popup_detail_screen_follows_a_task_through_its_lifecycle_and_e
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
-def test_prefix_a_popup_filters_hides_done_copies_a_slug_and_opens_a_commit_view(tmux, seeded, cli, resolved_contract):
+def test_prefix_a_popup_switches_status_tabs_filters_copies_a_slug_and_opens_a_commit_view(tmux, seeded, cli, resolved_contract):
     defs = h.record_defs_by_id(resolved_contract)
     (seeded / "shipped.txt").write_text("shipped\n")
     assert git(seeded, "add", "shipped.txt").returncode == 0
@@ -178,13 +178,17 @@ def test_prefix_a_popup_filters_hides_done_copies_a_slug_and_opens_a_commit_view
         return tmux.screen_text([*needles, "Needs you"])
 
     tmux.press("A")
-    assert "title of fx-old" in tmux.screen_text(["title of fx-old", "title of fx-shipped"])
+    assert "title of fx-shipped" in tmux.screen_text(["title of fx-shipped"])
 
     tmux.output = b""
-    os.write(tmux.client_fd, b"d")
-    hidden = full_screen(["done hidden", "title of fx-shipped"])
-    assert "done hidden" in hidden and "title of fx-shipped" in hidden, hidden[-2000:]
-    assert "title of fx-old" not in hidden, hidden[-2000:]
+    os.write(tmux.client_fd, b"5")
+    done_tab = full_screen(["title of fx-old"])
+    assert "title of fx-old" in done_tab and "title of fx-shipped" not in done_tab, done_tab[-2000:]
+
+    tmux.output = b""
+    os.write(tmux.client_fd, b"1")
+    hidden = full_screen(["title of fx-shipped"])
+    assert "title of fx-shipped" in hidden and "title of fx-old" not in hidden, hidden[-2000:]
 
     tmux.output = b""
     os.write(tmux.client_fd, b"/")

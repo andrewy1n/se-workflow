@@ -110,32 +110,42 @@ def progress_label(view: model.EffortView) -> str:
     return f"phase {index}/{len(view.phases)} · {phase.done} of {phase.total} tasks"
 
 
+STATUS_TABS = (
+    ("active", "Active", "1"), ("running", "Running", "2"), ("ready", "Ready", "3"),
+    ("needs", "Needs you", "4"), ("done", "Done", "5"),
+)
+TAB_STATUSES = {
+    "active": ("running", "ready", "waiting"), "running": ("running",), "ready": ("ready",),
+    "done": ("done", "withdrawn"),
+}
+
+
+def tab_tasks(view: model.EffortView, tab: str) -> list[model.TaskRow]:
+    if tab == "needs":
+        subjects = {item.subject for item in view.needs_you}
+        return [task for task in view.tasks if task.subject in subjects]
+    return [task for task in view.tasks if task.status in TAB_STATUSES[tab]]
+
+
 def counts(view: model.EffortView) -> dict[str, int]:
-    tally = {status: 0 for status in model.TASK_ORDER}
-    for task in view.tasks:
-        tally[task.status] += 1
-    return {
-        "running": tally["running"], "ready": tally["ready"],
-        "needs": len(view.needs_you), "done": tally["done"],
-    }
+    return {name: len(tab_tasks(view, name)) for name, _, _ in STATUS_TABS}
 
 
 @dataclass
 class TaskFilter:
     text: str = ""
-    hide_done: bool = False
+    tab: str = "active"
 
     @property
     def active(self) -> bool:
-        return bool(self.text) or self.hide_done
+        return bool(self.text)
 
 
 def visible_tasks(tasks: list[model.TaskRow], task_filter: TaskFilter) -> list[model.TaskRow]:
     needle = task_filter.text.lower()
     return [
         task for task in tasks
-        if not (task_filter.hide_done and task.status in ("done", "withdrawn"))
-        and (not needle or needle in task.title.lower() or needle in task.subject.lower())
+        if not needle or needle in task.title.lower() or needle in task.subject.lower()
     ]
 
 
@@ -143,10 +153,7 @@ def tasks_title(shown: int, total: int, task_filter: TaskFilter) -> str:
     parts = ["Tasks"]
     if task_filter.active:
         parts.append(f"{shown} of {total}")
-    if task_filter.text:
         parts.append(f"/{task_filter.text}")
-    if task_filter.hide_done:
-        parts.append("done hidden")
     return " · ".join(parts)
 
 
@@ -219,12 +226,6 @@ def tab_label(view: model.EffortView) -> str:
     return f"⚠ {view.effort}" if view.needs_you else view.effort
 
 
-def tile_class(name: str, view: model.EffortView) -> str:
-    if name == "needs" and view.needs_you:
-        return "blocking" if any(i.kind == "blocking-question" for i in view.needs_you) else "attention"
-    return name
-
-
 def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console: Console) -> None:
     colors = ANSI_PALETTE
     console.print(header_text(target, snapshot.generated_at, colors))
@@ -239,9 +240,7 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         if label:
             console.print(Text(label, style=colors["muted"]))
         tally = counts(view)
-        console.print(
-            f"Running {tally['running']}   Ready {tally['ready']}   Needs you {tally['needs']}   Done {tally['done']}"
-        )
+        console.print("   ".join(f"{label} {tally[name]}" for name, label, _ in STATUS_TABS))
         if view.tasks:
             columns = task_columns(console.width)
             table = Table(box=None, pad_edge=False, header_style=colors["muted"])
@@ -438,11 +437,9 @@ class EffortPane(VerticalScroll):
         yield Static(id="stepper")
         yield Static(id="progress-label")
         yield ProgressBar(id="progress", show_eta=False, show_percentage=False)
-        with Horizontal(id="tiles"):
-            for name, label in (("running", "Running"), ("ready", "Ready"), ("needs", "Needs you"), ("done", "Done")):
-                tile = Static(id=f"tile-{name}", classes="tile")
-                tile.tile_label = label
-                yield tile
+        with Horizontal(id="status-tabs"):
+            for name, label, _ in STATUS_TABS:
+                yield StatusTab(name, label)
         filter_input = FilterInput(placeholder="filter tasks", id="filter")
         filter_input.display = False
         yield filter_input
@@ -474,13 +471,16 @@ class EffortPane(VerticalScroll):
         if found is not None:
             bar.update(total=max(found[1].total, 1), progress=found[1].done)
         tally = counts(view)
-        for name, number in tally.items():
-            tile = self.query_one(f"#tile-{name}", Static)
-            tile.update(Text.assemble((f"{number}\n", "bold"), (tile.tile_label, "")))
-            tile.set_classes(f"tile {tile_class(name, view)}" if number or name != "needs" else "tile quiet")
+        selected = self.app.filters.get(self.effort, TaskFilter()).tab
+        for tab in self.query(StatusTab):
+            tab.show(tally[tab.tab_name], tab.tab_name == selected)
         self.fill_tasks(view, width, inner, colors)
         self.fill_panel("#needs-you", needs_lines(view, colors, inner - 4))
         self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
+
+    def mark_status_tab(self, selected: str) -> None:
+        for tab in self.query(StatusTab):
+            tab.set_class(tab.tab_name == selected, "selected")
 
     def on_resize(self) -> None:
         last = getattr(self, "last", None)
@@ -499,12 +499,13 @@ class EffortPane(VerticalScroll):
     def fill_tasks(self, view: model.EffortView, width: int, room: int, colors: dict[str, str]) -> None:
         table = self.query_one("#tasks", DataTable)
         task_filter = self.app.filters.get(self.effort, TaskFilter())
-        tasks = visible_tasks(view.tasks, task_filter)
-        title = tasks_title(len(tasks), len(view.tasks), task_filter)
+        pool = tab_tasks(view, task_filter.tab)
+        tasks = visible_tasks(pool, task_filter)
+        title = tasks_title(len(tasks), len(pool), task_filter)
         table.display = bool(tasks)
         table.border_title = title
         empty = self.query_one("#tasks-empty", Static)
-        empty.display = bool(view.tasks) and not tasks
+        empty.display = not tasks
         empty.border_title = title
         keep = None
         if table.row_count:
@@ -518,6 +519,20 @@ class EffortPane(VerticalScroll):
             table.add_row(*task_cells(task, columns, room, colors), key=task.id)
         if keep is not None and keep in table.rows:
             table.move_cursor(row=table.get_row_index(keep))
+
+
+class StatusTab(Static):
+    def __init__(self, name: str, label: str) -> None:
+        super().__init__(id=f"status-{name}", classes="status-tab")
+        self.tab_name = name
+        self.tab_label = label
+
+    def show(self, number: int, selected: bool) -> None:
+        self.update(Text.assemble((self.tab_label, ""), " ", (str(number), "bold")))
+        self.set_class(selected, "selected")
+
+    def on_click(self) -> None:
+        self.app.select_status_tab(self.tab_name)
 
 
 class FilterInput(Input):
@@ -848,14 +863,9 @@ class DashboardApp(App[None]):
     #progress-label { margin-top: 1; color: $text-muted; }
     #progress { height: 1; }
     #progress Bar { width: 1fr; }
-    #tiles { height: 5; margin-top: 1; }
-    .tile { width: 1fr; height: 5; margin-right: 1; border: round $panel; content-align: center middle; text-align: center; }
-    .tile:last-child { margin-right: 0; }
-    .tile.running { border: round $primary; color: $primary; }
-    .tile.ready { border: round $success; color: $success; }
-    .tile.attention { border: round $warning; color: $warning; }
-    .tile.blocking { border: round $error; color: $error; }
-    .tile.done, .tile.quiet { color: $text-muted; }
+    #status-tabs { height: 1; margin-top: 1; }
+    .status-tab { width: auto; height: 1; margin-right: 1; color: $text-muted; }
+    .status-tab.selected { color: $text; text-style: bold reverse; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
     #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }
     #filter:focus { border: none; background: $panel; }
@@ -872,7 +882,11 @@ class DashboardApp(App[None]):
         Binding("c", "copy_slug", "copy"),
         Binding("enter", "open_task", "open"),
         Binding("slash", "filter", "filter"),
-        Binding("d", "toggle_done", "done"),
+        Binding("1", "status_tab('active')", "active", show=False),
+        Binding("2", "status_tab('running')", "running", show=False),
+        Binding("3", "status_tab('ready')", "ready", show=False),
+        Binding("4", "status_tab('needs')", "needs you", show=False),
+        Binding("5", "status_tab('done')", "done", show=False),
         Binding("escape", "clear_filter", "clear filter", show=False),
     ]
 
@@ -957,7 +971,7 @@ class DashboardApp(App[None]):
         if isinstance(self.screen, CommitScreen):
             return action == "quit"
         detail = isinstance(self.screen, TaskDetailScreen)
-        if detail and action in ("next_effort", "previous_effort", "open_task", "filter", "toggle_done", "clear_filter"):
+        if detail and action in ("next_effort", "previous_effort", "open_task", "filter", "status_tab", "clear_filter"):
             return False
         if action == "clear_filter":
             return self.active_filter().active
@@ -988,12 +1002,16 @@ class DashboardApp(App[None]):
         box.focus()
         box.cursor_position = len(box.value)
 
-    def action_toggle_done(self) -> None:
+    def action_status_tab(self, name: str) -> None:
+        self.select_status_tab(name)
+
+    def select_status_tab(self, name: str) -> None:
         pane = self.active_pane()
-        if pane is not None:
-            current = self.filters.setdefault(pane.effort, TaskFilter())
-            current.hide_done = not current.hide_done
-            self.repaint_pane(pane)
+        if pane is None or isinstance(self.focused, Input):
+            return
+        self.filters.setdefault(pane.effort, TaskFilter()).tab = name
+        self.repaint_pane(pane)
+        pane.mark_status_tab(name)
 
     def clear_filter(self) -> None:
         pane = self.active_pane()

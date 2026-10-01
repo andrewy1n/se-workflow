@@ -85,6 +85,7 @@ def test_e2e_side_pane_and_status_follow_every_lifecycle_step(home, adopted, sid
     defs = h.record_defs_by_id(json.loads((repo / ".artifacts" / "resolved-contract.json").read_text()))
 
     def expect(status: str, needs: bool = False, **tasks: list[str]) -> None:
+        finished = tasks.pop("done", [])
         expected = {name: sorted(subjects) for name, subjects in tasks.items()}
         tab = f"⚠ {EFFORT}" if needs else EFFORT
         last: dict = {}
@@ -92,7 +93,7 @@ def test_e2e_side_pane_and_status_follow_every_lifecycle_step(home, adopted, sid
         def redrawn():
             screen = side_pane()
             last["map"] = _task_map(screen)
-            return last["map"] == expected and f"ship {EFFORT}" in screen and tab in screen and (needs or "⚠" not in screen)
+            return last["map"] == expected and f"Done {len(finished)}" in screen and f"ship {EFFORT}" in screen and tab in screen and (needs or "⚠" not in screen)
 
         h.wait_for(redrawn, f"side pane tasks {expected}", lambda: f"{last.get('map')}\n{side_pane()}", REDRAW)
         want = f"{EFFORT} · {status}\n"
