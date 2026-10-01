@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 import helpers as h
-from conftest import REPO_ROOT
+from conftest import REPO_ROOT, stamped_store
 
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import artifact_store  # noqa: E402
@@ -54,8 +54,7 @@ def defs(resolved_contract):
     return h.record_defs_by_id(resolved_contract)
 
 
-@pytest.fixture()
-def seeded(store, cli, defs):
+def _seed_models(cli, defs):
     _goal(cli, defs, "alpha")
     _goal(cli, defs, "beta")
     _phase(cli, defs, "alpha", "a-one", 1, "in_progress", "done")
@@ -71,6 +70,11 @@ def seeded(store, cli, defs):
     h.transition(cli, "project:work-item", withdrawn, "withdrawn")
     _work_item(cli, defs, "beta", "b-ready", "b-one")
     _work_item(cli, defs, "gone", "gone-ready", "gone-phase")
+
+
+@pytest.fixture()
+def seeded(store):
+    stamped_store(store, "model-seeded", lambda root, cli, defs: _seed_models(cli, defs))
     return store
 
 

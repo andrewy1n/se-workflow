@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 import pytest
+
+os.environ.setdefault("TEXTUAL_ANIMATIONS", "none")
 
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parent
@@ -27,6 +30,7 @@ CLI = AA_ROOT / "tools" / "artifacts.py"
 
 
 def pytest_configure(config):
+    config.addinivalue_line("markers", "tmux: drives a real tmux server; run serially")
     if not CLI.is_file():
         raise pytest.UsageError(
             f"adaptive-artifacts CLI not found at {CLI}. "
@@ -36,6 +40,12 @@ def pytest_configure(config):
         )
     if not CONTRACT_PATH.is_file():
         raise pytest.UsageError(f"se-workflow contract not found at {CONTRACT_PATH}.")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if item.path.name in ("test_tmux_integration.py", "test_e2e_dashboard.py"):
+            item.add_marker(pytest.mark.tmux)
 
 
 def run_cli(*args: str, root: Path | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -80,19 +90,7 @@ def resolve_contract(root: Path) -> dict:
     return json.loads((root / ".artifacts" / "resolved-contract.json").read_text())
 
 
-@pytest.fixture()
-def resolved_contract(tmp_path):
-    """The current resolved contract, re-resolved fresh for this test."""
-    design_dir = tmp_path / ".artifacts"
-    design_dir.mkdir()
-    (design_dir / "project-design.json").write_text(CONTRACT_PATH.read_text())
-    return resolve_contract(tmp_path)
-
-
-@pytest.fixture()
-def store(tmp_path):
-    """A fresh, disposable, git-backed artifact store initialized from the
-    current on-disk contract. Torn down automatically with tmp_path."""
+def build_store() -> Path:
     root = make_git_repo()
     design_dir = root / ".artifacts"
     design_dir.mkdir()
@@ -102,6 +100,60 @@ def store(tmp_path):
     init_result = run_cli("init", root=root)
     assert init_result.returncode == 0, init_result.stdout + init_result.stderr
     return root
+
+
+def copy_store(template: Path) -> Path:
+    root = Path(tempfile.mkdtemp(prefix="se-workflow-test-"))
+    shutil.copytree(template, root, symlinks=True, dirs_exist_ok=True)
+    return root
+
+
+@pytest.fixture(scope="session")
+def store_template():
+    root = build_store()
+    yield root
+    shutil.rmtree(root, ignore_errors=True)
+
+
+@pytest.fixture(scope="session")
+def resolved_contract(store_template):
+    """The current resolved contract, resolved once per session."""
+    return resolve_contract(store_template)
+
+
+_STAMPED: dict = {}
+
+
+def stamped_store(store: Path, name: str, build):
+    """Replace `store` with a copy of one seeded once per session by build(root, cli, defs); return build's result."""
+    if name not in _STAMPED:
+        import helpers as h
+
+        root = build_store()
+
+        def cli(*args):
+            return run_cli(*args, root=root)
+
+        _STAMPED[name] = (root, build(root, cli, h.record_defs_by_id(resolve_contract(root))))
+    root, extra = _STAMPED[name]
+    shutil.rmtree(store)
+    shutil.copytree(root, store, symlinks=True)
+    return extra
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _drop_stamped_stores():
+    yield
+    for root, _ in _STAMPED.values():
+        shutil.rmtree(root, ignore_errors=True)
+
+
+@pytest.fixture()
+def store(store_template):
+    """A fresh, disposable, git-backed artifact store copied from one built once per session."""
+    root = copy_store(store_template)
+    yield root
+    shutil.rmtree(root, ignore_errors=True)
 
 
 @pytest.fixture()

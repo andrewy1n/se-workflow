@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -123,6 +124,17 @@ def _list(target: Target, record_type: str) -> list[dict[str, Any]]:
         return output["records"]
     except (KeyError, TypeError) as exc:
         raise ModelError(f"list {record_type} returned unreadable output") from exc
+
+
+_SNAPSHOT_TYPES = (
+    "project:active-goal", "project:phase", "project:work-item", "project:continuity-question",
+    "project:finding", "project:check-run", "project:assignment", "project:execution-report",
+)
+
+
+def _list_all(target: Target, record_types: tuple[str, ...]) -> dict[str, list[dict[str, Any]]]:
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        return dict(zip(record_types, pool.map(lambda record_type: _list(target, record_type), record_types)))
 
 
 def _payload(record: dict[str, Any]) -> dict[str, Any]:
@@ -268,13 +280,14 @@ def _by_effort(records: list[dict[str, Any]], key: str = "effort") -> dict[str, 
 def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     now = now or datetime.now(timezone.utc)
     token = change_token(target)
-    goals = [r for r in _list(target, "project:active-goal") if r["lifecycle_state"] == "active"]
-    phases = _by_effort(_list(target, "project:phase"))
-    all_tasks = _list(target, "project:work-item")
+    listed = _list_all(target, _SNAPSHOT_TYPES)
+    goals = [r for r in listed["project:active-goal"] if r["lifecycle_state"] == "active"]
+    phases = _by_effort(listed["project:phase"])
+    all_tasks = listed["project:work-item"]
     tasks = _by_effort(all_tasks)
-    questions = _by_effort(_list(target, "project:continuity-question"), "subject")
-    findings = _by_effort(_list(target, "project:finding"))
-    checks_all = _list(target, "project:check-run")
+    questions = _by_effort(listed["project:continuity-question"], "subject")
+    findings = _by_effort(listed["project:finding"])
+    checks_all = listed["project:check-run"]
     checks = _by_effort(checks_all)
     acceptances = _by_effort(_list(target, "project:acceptance"))
     efforts_by_work_item = {}
@@ -283,7 +296,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         efforts_by_work_item[task["id"]] = entry
         efforts_by_work_item.setdefault(task["subject"], entry)
     activity = _activity(
-        _list(target, "project:assignment"), _list(target, "project:execution-report"), checks_all,
+        listed["project:assignment"], listed["project:execution-report"], checks_all,
         efforts_by_work_item, now - RECENT,
     )
     efforts = []

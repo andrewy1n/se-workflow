@@ -230,6 +230,14 @@ python3 -m pip install --user pytest   # if not already available
 python3 -m pytest tests -q
 ```
 
+For a fast run, use `pytest-xdist` for everything except the tmux tests,
+which run serially because parallel load makes them flaky:
+
+```bash
+uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" \
+  && uv run --with textual --with pytest python -m pytest tests -q -m tmux
+```
+
 By default it looks for the runtime at `~/adaptive-artifacts`. Point it
 elsewhere with `ADAPTIVE_ARTIFACTS_ROOT`:
 

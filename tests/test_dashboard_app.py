@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+import hashlib
 import json
 import re
 import subprocess
@@ -14,10 +16,11 @@ import pytest
 pytest.importorskip("textual")
 
 import helpers as h  # noqa: E402
-from conftest import REPO_ROOT, git  # noqa: E402
+from conftest import REPO_ROOT, git, stamped_store  # noqa: E402
 
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 import artifact_store  # noqa: E402
+import dashboard_model as model_module  # noqa: E402
 import dashboard_app as app_module  # noqa: E402
 
 SCRIPT = REPO_ROOT / "scripts" / "dashboard_app.py"
@@ -47,8 +50,7 @@ def defs(resolved_contract):
     return h.record_defs_by_id(resolved_contract)
 
 
-@pytest.fixture()
-def seeded(store, cli, defs):
+def _seed_alpha(cli, defs):
     h.create_generic_record(
         cli, defs, "project:active-goal", subject="alpha",
         extra_payload={"goal": "ship the alpha dashboard", "kind": "deliver"},
@@ -78,6 +80,36 @@ def seeded(store, cli, defs):
         cli, defs, "project:check-run", subject="a-check",
         extra_payload={"method": "check", "signed_by": "", "result": "pass", "effort": "alpha"},
     )
+
+
+_CLI_CACHE: dict = {}
+
+
+def _store_digest(store):
+    digest = hashlib.sha1()
+    for path in sorted(store.rglob("*")):
+        if path.is_file():
+            digest.update(f"{path.relative_to(store)}\0".encode())
+            digest.update(path.read_bytes())
+    return digest.digest()
+
+
+@pytest.fixture(autouse=True)
+def _memoized_cli(monkeypatch):
+    real = model_module._run
+
+    def run(target, *args):
+        key = (args, _store_digest(target.store))
+        if key not in _CLI_CACHE:
+            _CLI_CACHE[key] = real(target, *args)
+        return copy.deepcopy(_CLI_CACHE[key])
+
+    monkeypatch.setattr(model_module, "_run", run)
+
+
+@pytest.fixture()
+def seeded(store):
+    stamped_store(store, "seeded", lambda root, cli, defs: _seed_alpha(cli, defs))
     return store
 
 
@@ -90,6 +122,7 @@ def _run(store, width, scenario, interval=60.0, height=40):
         app = app_module.DashboardApp(artifact_store.resolve(store), interval=interval)
         async with app.run_test(size=(width, height)) as pilot:
             await _until(pilot, lambda: bool(app.query("#goal")) and bool(_text(app, "#goal")))
+            await app.workers.wait_for_complete()
             await scenario(app, pilot)
 
     asyncio.run(go())
@@ -99,7 +132,7 @@ async def _until(pilot, condition, timeout=20.0):
     deadline = time.monotonic() + timeout
     while not condition():
         assert time.monotonic() < deadline, "condition not met in time"
-        await pilot.pause(0.1)
+        await pilot.pause(0.02)
 
 
 @pytest.mark.parametrize("width", WIDTHS)
@@ -204,8 +237,9 @@ def test_task_title_uses_spare_width_at_120_columns(store, cli, defs):
     assert result.returncode == 0, result.stdout
 
     async def scenario(app, pilot):
-        await pilot.pause(0.5)
-        assert str(app.query_one("#tasks").get_row_at(0)[1]) == title
+        tasks = app.query_one("#tasks")
+        await _until(pilot, lambda: tasks.row_count and str(tasks.get_row_at(0)[1]) == title)
+        assert str(tasks.get_row_at(0)[1]) == title
 
     _run(store, 120, scenario)
 
@@ -326,7 +360,7 @@ def test_enter_keeps_the_filter_returns_focus_and_does_not_open_a_task(seeded, w
         await pilot.press("slash")
         await pilot.press(*"ready")
         await pilot.press("enter")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: len(app.screen_stack) == 1)
         assert len(app.screen_stack) == 1
         assert _titles(app) == ["title of a-ready"]
         assert not app.query_one("#filter").display
@@ -546,8 +580,7 @@ def _record(cli, defs, record_type, subject, payload, body=None, *rels):
     return json.loads(result.stdout)["record"]
 
 
-@pytest.fixture()
-def detailed(store, cli, defs):
+def _build_detailed(store, cli, defs):
     h.create_generic_record(
         cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "ship it", "kind": "deliver"},
     )
@@ -589,6 +622,12 @@ def detailed(store, cli, defs):
         "criterion_id": review["id"], "method": "manual", "result": "pass", "signed_by": "", "revision": "def5678", "effort": "alpha"})
     _record(cli, defs, "project:finding", "det-task",
             {"claim": "parser drops tabs", "basis": "b", "needs": "agent", "effort": "alpha", "invalidated_when": "w"})
+    return task, tests
+
+
+@pytest.fixture()
+def detailed(store):
+    task, tests = stamped_store(store, "detailed", _build_detailed)
     return store, task, tests
 
 
@@ -608,6 +647,8 @@ def _detail_run(store, size, scenario, interval=60.0):
         app = app_module.DashboardApp(artifact_store.resolve(store), interval=interval)
         async with app.run_test(size=size) as pilot:
             await _until(pilot, lambda: app.query("#tasks") and app.query_one("#tasks").row_count >= 3)
+            await app.workers.wait_for_complete()
+            await pilot.pause()
             await scenario(app, pilot)
 
     asyncio.run(go())
@@ -624,12 +665,24 @@ async def _open_by_enter(app, pilot, key):
 async def _open_by_click(app, pilot, key):
     table = app.query_one("#tasks")
     assert table.get_row_index(key) > 0
-    await pilot.click("#tasks", offset=_row_offset(table, key))
+    deadline = time.monotonic() + 20.0
+    while not isinstance(app.screen, app_module.TaskDetailScreen):
+        assert time.monotonic() < deadline, "click never opened the task"
+        await pilot.click("#tasks", offset=_row_offset(table, key))
+        await pilot.pause(0.05)
+
+
+async def _settled(app, pilot):
+    await app.workers.wait_for_complete()
+    widgets = -1
+    while widgets != len(app.screen.query("*")):
+        widgets = len(app.screen.query("*"))
+        await pilot.pause(0.02)
 
 
 async def _shown(app, pilot):
     await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen) and app.screen.loaded)
-    await pilot.pause(0.3)
+    await _settled(app, pilot)
     return app.screen
 
 
@@ -872,8 +925,7 @@ def test_detail_shows_loading_then_content(detailed):
     _detail_run(store, (60, 40), scenario)
 
 
-@pytest.fixture()
-def committed(store, cli, defs):
+def _build_committed(store, cli, defs):
     (store / "feature.txt").write_text("one\ntwo\n")
     git(store, "add", "feature.txt")
     done = git(store, "commit", "-q", "-m", "add the feature file", "-m", "Body line for the feature.")
@@ -891,6 +943,12 @@ def committed(store, cli, defs):
         for index, revision in enumerate(revisions):
             _record(cli, defs, "project:execution-report", f"{name}-{index}", {
                 "work_item": tasks[name]["id"], "assignment": "x", "result": "ok", "verdict": "pass", "revision": revision})
+    return tasks, sha
+
+
+@pytest.fixture()
+def committed(store):
+    tasks, sha = stamped_store(store, "committed", _build_committed)
     return store, tasks, sha
 
 
@@ -905,7 +963,7 @@ async def _open_task(app, pilot, task):
 
 async def _commit_shown(app, pilot):
     await _until(pilot, lambda: isinstance(app.screen, app_module.CommitScreen) and app.screen.loaded)
-    await pilot.pause(0.2)
+    await _settled(app, pilot)
     return app.screen
 
 
@@ -1045,7 +1103,7 @@ def test_g_shows_a_message_and_stays_on_the_detail_for_missing_dirty_or_unknown_
 
 def test_the_task_table_has_focus_on_load(seeded):
     async def scenario(app, pilot):
-        assert app.focused is app.query_one("#tasks")
+        await _until(pilot, lambda: app.focused is app.query_one("#tasks"))
 
     _run(seeded, 120, scenario)
 
@@ -1079,15 +1137,25 @@ def test_table_keeps_focus_after_switching_effort_tabs(seeded, cli, defs):
     _second_effort(cli, defs)
 
     async def scenario(app, pilot):
-        await _until(pilot, lambda: len(app.panes) == 2)
-        await pilot.press("tab")
-        await pilot.pause()
-        assert app.focused is app.active_pane().query_one("#tasks")
+        await _until(pilot, lambda: len(app.panes) == 2 and len(app.query("TabPane")) == 2)
+        await _until(pilot, lambda: app.focused is app.active_pane().query_one("#tasks"))
+        tabs = app.query_one("#efforts")
+
+        async def switched():
+            if tabs.active != "effort-beta":
+                await pilot.press("tab")
+            return tabs.active == "effort-beta"
+
+        deadline = time.monotonic() + 20.0
+        while not await switched():
+            assert time.monotonic() < deadline, "tab never switched to beta"
+            await pilot.pause(0.05)
+        await _until(pilot, lambda: app.focused is app.active_pane().query_one("#tasks"))
         await pilot.press("shift+tab")
-        await pilot.pause()
-        assert app.focused is app.active_pane().query_one("#tasks")
+        await _until(pilot, lambda: app.query_one("#efforts").active == "effort-alpha")
+        await _until(pilot, lambda: app.focused is app.active_pane().query_one("#tasks"))
         await pilot.press("down")
-        assert app.query_one("#efforts").active_pane.query_one("#tasks").cursor_row == 1
+        await _until(pilot, lambda: app.query_one("#efforts").active_pane.query_one("#tasks").cursor_row == 1)
 
     _run(seeded, 120, scenario)
 
@@ -1100,7 +1168,7 @@ def test_table_keeps_focus_after_escape_from_detail(detailed):
         await pilot.press("enter")
         await _shown(app, pilot)
         await pilot.press("escape")
-        await pilot.pause(0.2)
+        await _until(pilot, lambda: app.focused is app.query_one("#tasks"))
         assert app.focused is app.query_one("#tasks")
         await pilot.press("down")
         assert app.query_one("#tasks").cursor_row == 2
@@ -1125,17 +1193,17 @@ def test_pagedown_and_end_scroll_the_effort_pane_to_activity_and_home_returns(se
         pane = app.active_pane()
         assert pane.max_scroll_y > 0 and pane.scroll_y == 0
         await pilot.press("pagedown")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: pane.scroll_y > 0)
         assert pane.scroll_y > 0
         await pilot.press("end")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: pane.scroll_y == pane.max_scroll_y)
         assert pane.scroll_y == pane.max_scroll_y
         assert pane.query_one("#activity").region.bottom <= pane.region.bottom
         await pilot.press("pageup")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: pane.scroll_y < pane.max_scroll_y)
         assert pane.scroll_y < pane.max_scroll_y
         await pilot.press("home")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: pane.scroll_y == 0)
         assert pane.scroll_y == 0
         assert app.query_one("#tasks").cursor_row == 0
 
@@ -1152,10 +1220,10 @@ def test_arrows_and_page_keys_scroll_the_detail_screen(detailed, keys):
         assert app.focused is scroll
         assert scroll.max_scroll_y > 0 and scroll.scroll_y == 0
         await pilot.press(*keys)
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: scroll.scroll_y > 0)
         assert scroll.scroll_y > 0
         await pilot.press("home")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: scroll.scroll_y == 0)
         assert scroll.scroll_y == 0
 
     _detail_run(store, (60, 20), scenario)
@@ -1172,10 +1240,10 @@ def test_arrows_scroll_the_commit_screen(committed):
         assert app.focused is scroll
         assert scroll.max_scroll_y > 0
         await pilot.press("down")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: scroll.scroll_y > 0)
         assert scroll.scroll_y > 0
         await pilot.press("end")
-        await pilot.pause(0.3)
+        await _until(pilot, lambda: scroll.scroll_y == scroll.max_scroll_y)
         assert scroll.scroll_y == scroll.max_scroll_y
 
     _detail_run(store, (60, 10), scenario)
