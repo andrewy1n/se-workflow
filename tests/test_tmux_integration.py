@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import select
 import shutil
+import struct
 import subprocess
+import termios
 import time
 from pathlib import Path
 
@@ -287,6 +290,35 @@ def test_prefix_a_popup_keys_only_walks_status_tabs_phase_sections_phase_detail_
     press(b"j", "px-later 0/2")
     press(b"\r", "px-second tmuxfx", "title of px-second", "Description", absent=("px-later 0/2", "title of px-first", "title of fx-ready"))
     press(b"\x1b", "▾ ○ Phase px-later 0/2", "title of px-first", "title of px-second", absent=("Description",))
+    assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
+
+
+def test_prefix_a_popup_regains_table_focus_after_an_empty_tab_and_narrows_its_columns_on_resize(tmux):
+    def press(keys: bytes, *needles: str, absent: tuple[str, ...] = ()) -> str:
+        os.write(tmux.client_fd, keys)
+        end = time.monotonic() + h.DEADLINE
+        while True:
+            while select.select([tmux.client_fd], [], [], 0.3)[0]:
+                os.read(tmux.client_fd, 65536)
+            tmux.output = b""
+            tmux("refresh-client")
+            text = tmux.screen_text(list(needles))
+            if all(n in text for n in needles) and not any(a in text for a in absent):
+                return text
+            assert time.monotonic() < end, f"{keys!r} needs {needles} without {absent}: {text[-2000:]}"
+
+    tmux.press("A")
+    assert "assignee" in tmux.screen_text(["title of fx-ready", "assignee"])
+
+    press(b"5", "No tasks match", absent=("title of fx-running", "title of fx-ready"))
+    press(b"1", "title of fx-running", "title of fx-ready", absent=("No tasks match",))
+    press(b"\x1b[B", "title of fx-ready")
+    press(b"\r", "fx-ready tmuxfx", "Description", absent=("title of fx-running",))
+    press(b"\x1b", "title of fx-running", "assignee", absent=("Description",))
+
+    fcntl.ioctl(tmux.client_fd, termios.TIOCSWINSZ, struct.pack("HHHH", tmux.rows, 80, 0, 0))
+    narrow = press(b"", "title of fx-running", "title of fx-ready", "wave", absent=("assignee",))
+    assert "No live efforts" not in narrow, narrow[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
