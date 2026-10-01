@@ -293,7 +293,19 @@ def test_prefix_a_popup_keys_only_walks_status_tabs_phase_sections_phase_detail_
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
-def test_prefix_a_popup_regains_table_focus_after_an_empty_tab_and_narrows_its_columns_on_resize(tmux):
+def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_regains_focus_and_narrows_on_resize(
+    tmux, cli, resolved_contract,
+):
+    defs = h.record_defs_by_id(resolved_contract)
+    criterion = h.create_generic_record(
+        cli, defs, "project:acceptance", subject="fx-ready",
+        extra_payload={"criterion": "pages render on mobile", "method": "manual", "verify_command": "", "effort": EFFORT, "phase": f"{EFFORT}-phase"},
+    )
+    h.create_generic_record(
+        cli, defs, "project:check-run", subject="fx-check",
+        extra_payload={"criterion_id": criterion["id"], "method": "manual", "result": "pass", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
+    )
+
     def press(keys: bytes, *needles: str, absent: tuple[str, ...] = ()) -> str:
         os.write(tmux.client_fd, keys)
         end = time.monotonic() + h.DEADLINE
@@ -310,6 +322,15 @@ def test_prefix_a_popup_regains_table_focus_after_an_empty_tab_and_narrows_its_c
     tmux.press("A")
     assert "assignee" in tmux.screen_text(["title of fx-ready", "assignee"])
 
+    tabs = ("Active 2", "Running 1", "Ready 1", "Waiting 0", "Done 0", "All 2")
+    opening = press(b"", *tabs, "Needs you 2", "unsigned pages render on mobile pass fx-ready")
+    assert opening.count("Needs you") == 1, opening[-2000:]
+    assert "rec-" not in opening, opening[-2000:]
+
+    press(b"2", "title of fx-running", absent=("title of fx-ready",))
+    press(b"3", "title of fx-ready", absent=("title of fx-running",))
+    press(b"5", "No tasks match", absent=("title of fx-running", "title of fx-ready"))
+    press(b"6", "title of fx-running", "title of fx-ready", absent=("No tasks match",))
     press(b"4", "No tasks match", absent=("title of fx-running", "title of fx-ready"))
     press(b"1", "title of fx-running", "title of fx-ready", absent=("No tasks match",))
     press(b"\x1b[B", "title of fx-ready")
