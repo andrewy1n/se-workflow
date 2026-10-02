@@ -24,6 +24,9 @@ check with no script). Do not stuff a metric delta into
 
 ## Focus
 
+A **live** goal is an `active-goal` in lifecycle `active` whose
+`payload.status` is not `closed` (missing means open).
+
 Focus is a **subject string**, not a record. Name it (from `engage`, the
 user, or the only live `active-goal` subject). Then:
 

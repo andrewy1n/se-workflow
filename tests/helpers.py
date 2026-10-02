@@ -122,6 +122,8 @@ def create_generic_record(
                 target_record = create_generic_record(cli, defs, target_type, target_cache=target_cache)
                 target_cache[target_type] = target_record["subject"]
             payload[field] = target_cache[target_type]
+        elif field in record_def.get("payload_enum", {}):
+            payload[field] = record_def["payload_enum"][field][0]
         else:
             payload[field] = generic_payload_value(field)
     if extra_payload:

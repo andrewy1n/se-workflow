@@ -281,7 +281,10 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     now = now or datetime.now(timezone.utc)
     token = change_token(target)
     listed = _list_all(target, _SNAPSHOT_TYPES)
-    goals = [r for r in listed["project:active-goal"] if r["lifecycle_state"] == "active"]
+    goals = [
+        r for r in listed["project:active-goal"]
+        if r["lifecycle_state"] == "active" and _payload(r).get("status") != "closed"
+    ]
     phases = _by_effort(listed["project:phase"])
     all_tasks = listed["project:work-item"]
     tasks = _by_effort(all_tasks)

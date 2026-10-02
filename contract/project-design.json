@@ -22,8 +22,18 @@
       "payload": [
         "goal",
         "scope",
-        "kind"
-      ]
+        "kind",
+        "status"
+      ],
+      "optional_payload": [
+        "status"
+      ],
+      "payload_enum": {
+        "status": [
+          "open",
+          "closed"
+        ]
+      }
     },
     {
       "name": "current-position",
@@ -36,13 +46,21 @@
         "position",
         "scope",
         "effort",
-        "phase"
+        "phase",
+        "status"
       ],
       "optional_payload": [
-        "phase"
+        "phase",
+        "status"
       ],
       "payload_references": {
         "phase": "project:phase"
+      },
+      "payload_enum": {
+        "status": [
+          "open",
+          "closed"
+        ]
       }
     },
     {
@@ -295,6 +313,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -311,6 +333,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -668,6 +694,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -707,6 +737,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }

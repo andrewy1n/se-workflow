@@ -195,6 +195,23 @@ adaptive-artifacts supersede --type project:current-position --id <id> \
    Skip both for incidental. Do **not** materialize the next phase's
    tasks unless the user asks (`plan-phase` promotes it). Do not touch
    other subjects.
+
+   If no `planned` or `in_progress` phase is left for this effort, ask
+   the user whether more phases follow. If yes, stop; `plan-phase`
+   adds the next one. If no, close the effort: supersede its goal and
+   position with `status: closed` (`supersede` merges the payload, so
+   the other fields carry over). Closed efforts drop out of handoff,
+   brief and the dashboard:
+
+```bash
+adaptive-artifacts supersede --type project:active-goal --id <goal-id> \
+  --expected-revision <revision> --payload '{"status":"closed"}'
+
+adaptive-artifacts supersede --type project:current-position --id <position-id> \
+  --expected-revision <revision> --payload '{"status":"closed"}'
+```
+
+   To reopen an effort, supersede the goal with `status: open`.
 9. Regenerate views (including `project:brief`); `adaptive-artifacts validate`.
 
 ## Do not
