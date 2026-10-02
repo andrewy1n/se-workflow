@@ -18,6 +18,7 @@ import pytest
 pytest.importorskip("textual")
 
 from rich.style import Style  # noqa: E402
+from textual.widgets._markdown import MarkdownHeader  # noqa: E402
 
 import helpers as h  # noqa: E402
 from conftest import REPO_ROOT, git, stamped_store  # noqa: E402
@@ -1229,6 +1230,17 @@ def test_enter_on_the_phase_link_opens_the_phase_detail(detailed, size):
     _detail_run(store, size, scenario)
 
 
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_task_description_headings_have_no_blank_line_above(detailed, size):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        screen = await _open_task(app, pilot, task)
+        await _assert_headings_follow_text(app, pilot, screen.query_one("#description Markdown"), HEADED_BODY)
+
+    _detail_run(store, size, scenario)
+
+
 def test_link_list_skips_empty_groups_and_keeps_scroll_focus_on_open(detailed):
     store, task, _ = detailed
 
@@ -1959,6 +1971,37 @@ def test_p_does_nothing_on_the_fold_row(phased):
     _detail_run(phased, (120, 40), scenario)
 
 
+HEADED_BODY = "## Problem\n\nText one.\n\n- a point\n\n## Approach\n\nText two.\n\n### Detail\n\nText three."
+
+
+def _headings_after_a_blank_line(markdown):
+    blocks = list(markdown.children)
+    headings = [block for block in blocks if isinstance(block, MarkdownHeader)]
+    assert headings and all(heading.region.height for heading in headings)
+    filled = {y for block in blocks for y in range(block.region.y, block.region.bottom)}
+    return [str(heading.region.y) for heading in headings
+            if heading.region.y > markdown.region.y and heading.region.y - 1 not in filled]
+
+
+async def _assert_headings_follow_text(app, pilot, markdown, source=None):
+    if source is not None:
+        await markdown.update(source)
+        await _settled(app, pilot)
+    assert markdown.children[0].region.y == markdown.region.y
+    assert _headings_after_a_blank_line(markdown) == []
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_phase_body_headings_have_no_blank_line_above(phased, size):
+    async def scenario(app, pilot):
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        await _assert_headings_follow_text(app, pilot, screen.query_one("#phase-body Markdown"))
+        await _assert_headings_follow_text(app, pilot, screen.query_one("#phase-body Markdown"), HEADED_BODY)
+
+    _detail_run(phased, size, scenario)
+
+
 def _seed_finished(cli, defs):
     for effort in ("alpha", "beta"):
         h.create_generic_record(
@@ -2110,6 +2153,20 @@ def _needy(cli, defs):
     return _record(cli, defs, "project:continuity-question", "alpha",
                    {"subject": "alpha", "owner": "ayin", "blocking": False, "scope": LONG_SCOPE},
                    "Pick the **home** store unless the repo pins one.")
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_needs_you_body_headings_have_no_blank_line_above(seeded, cli, defs, size):
+    _needy(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await _focus_needs(app, pilot, LONG_SCOPE)
+        await pilot.press("enter")
+        screen = await _needs_shown(app, pilot)
+        await _assert_headings_follow_text(app, pilot, screen.query_one("#needs-body Markdown"), HEADED_BODY)
+
+    _detail_run(seeded, size, scenario)
 
 
 def _item(app, text):

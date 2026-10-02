@@ -826,7 +826,9 @@ class TaskDetailScreen(Screen[None]):
     CollapsibleTitle { padding: 0; background: transparent; }
     Collapsible > Contents { padding: 0 0 0 2; }
     Markdown { margin: 0; padding: 0; background: transparent; }
-    Markdown > MarkdownBlock:last-child { margin-bottom: 0; }
+    Markdown > MarkdownBlock { margin: 1 0 0 0; }
+    Markdown > MarkdownHeader { margin: 0; }
+    Markdown > MarkdownBlock:first-child { margin-top: 0; }
     """
     AUTO_FOCUS = "#detail"
     BINDINGS = [
@@ -1046,6 +1048,9 @@ class PhaseDetailScreen(Screen[None]):
     #phase-title { margin-top: 1; text-style: bold; }
     .phase-panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     #phase-body Markdown { margin: 0; padding: 0; background: transparent; }
+    #phase-body Markdown > MarkdownBlock { margin: 1 0 0 0; }
+    #phase-body Markdown > MarkdownHeader { margin: 0; }
+    #phase-body Markdown > MarkdownBlock:first-child { margin-top: 0; }
     #phase-tasks { height: auto; max-height: 1000; background: transparent; }
     #phase-tasks:focus { border: round $accent; }
     """
@@ -1159,7 +1164,9 @@ class NeedsYouDetailScreen(Screen[None]):
     #needs-title { margin-top: 1; text-style: bold; }
     .needs-panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     .needs-panel Markdown { margin: 0; padding: 0; background: transparent; }
-    .needs-panel Markdown > MarkdownBlock:last-child { margin-bottom: 0; }
+    .needs-panel Markdown > MarkdownBlock { margin: 1 0 0 0; }
+    .needs-panel Markdown > MarkdownHeader { margin: 0; }
+    .needs-panel Markdown > MarkdownBlock:first-child { margin-top: 0; }
     """
     AUTO_FOCUS = "#needs-detail"
     BINDINGS = [
