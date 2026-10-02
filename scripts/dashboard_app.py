@@ -620,6 +620,12 @@ class EffortPane(VerticalScroll):
             tab.set_class(tab.tab_name == selected, "selected")
 
     def on_resize(self) -> None:
+        self.refit()
+
+    def watch_show_vertical_scrollbar(self) -> None:
+        self.call_after_refresh(self.refit)
+
+    def refit(self) -> None:
         last = getattr(self, "last", None)
         if last is not None and self.scrollable_content_region.width != self.inner:
             view, now, _, colors = last
@@ -1433,7 +1439,7 @@ class DashboardApp(App[None]):
             getattr(pane, f"scroll_{where}")(animate=False)
 
     def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
-        if not isinstance(self.focused, Input):
+        if self.screen_stack and not isinstance(self.focused, Input):
             self.call_after_refresh(self.focus_tasks)
 
     def poll(self) -> None:

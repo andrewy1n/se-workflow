@@ -179,15 +179,27 @@ def _seed_long_phases(cli, defs):
         _work_item(cli, defs, "billing", f"pdf-{index}", "pdf")
 
 
+def _stepper_lines(app):
+    stepper = app.query_one("#stepper")
+    lines = [stepper.render_line(y).text.rstrip() for y in range(stepper.size.height)]
+    return [line.lstrip() for line in lines if line.strip()]
+
+
+async def _pane_settled(app, pilot):
+    pane = app.query_one(app_module.EffortPane)
+    stepper = app.query_one("#stepper")
+    await _until(pilot, lambda: pane.inner == pane.scrollable_content_region.width == stepper.size.width, timeout=5.0)
+    await pilot.pause()
+
+
 def test_stepper_wraps_by_pane_width_and_keeps_glyph_with_label(store):
     stamped_store(store, "long-phases", lambda root, cli, defs: _seed_long_phases(cli, defs))
     glyphs = tuple(app_module.PHASE_GLYPH.values())
 
     async def scenario(app, pilot):
         pane = app.query_one(app_module.EffortPane)
-        stepper = app.query_one("#stepper")
-        lines = [stepper.render_line(y).text.rstrip() for y in range(stepper.size.height)]
-        lines = [line.lstrip() for line in lines if line.strip()]
+        await _pane_settled(app, pilot)
+        lines = _stepper_lines(app)
         assert len(lines) > 1
         assert all(line.startswith(glyphs) for line in lines), lines
         assert not any(line.endswith(glyphs) for line in lines), lines
@@ -197,6 +209,25 @@ def test_stepper_wraps_by_pane_width_and_keeps_glyph_with_label(store):
         assert "○ Audit trail" in joined and "…" in joined
 
     _run(store, 60, scenario, height=20)
+
+
+def test_stepper_fits_the_pane_after_its_scrollbar_appears(store):
+    stamped_store(store, "long-phases", lambda root, cli, defs: _seed_long_phases(cli, defs))
+
+    async def scenario(app, pilot):
+        pane = app.query_one(app_module.EffortPane)
+        assert not pane.show_vertical_scrollbar
+        before = pane.scrollable_content_region.width
+        app.query_one("#goal").styles.height = 80
+        await _until(pilot, lambda: pane.show_vertical_scrollbar)
+        await _pane_settled(app, pilot)
+        width = pane.scrollable_content_region.width
+        assert width < before
+        view, _, _, colors = pane.last
+        expected = app_module.stepper_text(view, colors, width).plain.split("\n")
+        assert _stepper_lines(app) == expected
+
+    _run(store, 60, scenario, height=40)
 
 
 @pytest.mark.parametrize("width", WIDTHS)
