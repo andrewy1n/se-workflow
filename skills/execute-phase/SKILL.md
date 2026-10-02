@@ -44,8 +44,10 @@ operational orientation.
 1. `adaptive-artifacts hook-start` if views were not injected. Resolve
    **focus**. Read `project:plan` section `## <focus>` and blocking
    `continuity-question`s for that subject. Do not dispatch while a
-   blocking question is open on this focus. Do not dispatch another
-   effort's tasks.
+   blocking question is open on this focus. A question whose `scope`
+   is `plan-review:<phase-slug>` is the plan review gate: it blocks
+   only that phase, and the user clears it by approving the plan. Do
+   not dispatch another effort's tasks.
 2. Select dispatchable work-items directly — `project:plan`'s rendered
    view does not carry `derived.ready`/`wave`, so query the store:
 

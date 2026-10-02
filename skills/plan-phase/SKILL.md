@@ -76,6 +76,15 @@ kind/focus are unset).
    handed off `phase: new`, the current phase is a new one: create it
    in step 3 with `ordinal` = highest existing ordinal for this effort
    plus one.
+   Check that the approach is settled: at least one
+   `project:decision` with `payload.phase` = this phase, or the user
+   fixed the approach in this chat. If neither, run `discuss` first,
+   or ask the user whether to skip it. Skip this check for incidental.
+
+```bash
+adaptive-artifacts list --type project:decision --where payload.phase=<current-phase-slug> --state active
+```
+
 3. Promote the current phase to `in_progress` with its real plan.
    `Get` its record to check lifecycle and `revision`:
 
@@ -215,4 +224,20 @@ adaptive-artifacts list --type project:work-item \
   --where payload.effort=<effort-slug> --where payload.phase=<current-phase-slug>
 ```
 
-   Do not execute unless the user asks (`execute-phase`).
+9. Open the plan review gate, so nothing dispatches before the user
+   has seen the tasks (skip for incidental):
+
+```bash
+adaptive-artifacts create --type project:continuity-question \
+  --subject "<effort-slug>" \
+  --payload '{"owner":"user","blocking":true,"scope":"plan-review:<current-phase-slug>"}'
+```
+
+   Ask the user to approve, change, or send the phase back to
+   `discuss`. Change tasks on request. On approval, answer the
+   question; only then may `execute-phase` run:
+
+```bash
+adaptive-artifacts update --type project:continuity-question --id <question-id> \
+  --transition answered --expected-revision <revision>
+```

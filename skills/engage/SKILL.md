@@ -56,12 +56,17 @@ Do not plan, implement, or verify in this skill.
    - `incidental` + may span chats or interrupts a live phase → records
      on the **new** focus subject. Next: `plan-phase`.
    - `deliver` / `repair` / `evaluate` and no store or no goal for
-     this focus → `init` (new subject) then `plan-phase`.
-   - Existing effort and no phase covers the ask → `plan-phase` with
-     `phase: new`.
+     this focus → `init` (new subject), then `discuss`, then
+     `plan-phase`.
+   - Existing effort and no phase covers the ask → `discuss` with
+     `phase: new`, then `plan-phase`.
    - Tasks for this focus already exist → `execute-phase` or
      `verify-work` if they only need a done-check.
-   - Otherwise → `plan-phase`.
+   - Otherwise → `discuss` if the phase has no decisions yet, else
+     `plan-phase`.
+
+   Skip `discuss` (go straight to `plan-phase`) when the user already
+   fixed the approach in this ask, or for `incidental`.
 5. Show the routing line, then follow that skill with focus and kind
    in context:
 

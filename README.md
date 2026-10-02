@@ -86,7 +86,8 @@ In whatever repo you are building:
 |---|---|
 | `engage` | Classify kind + focus, then hand off |
 | `init` | First time on a repo, or a new effort subject |
-| `plan-phase` | Planning finished, or tasks for this focus |
+| `discuss` | Settle the approach for a phase with the user before planning |
+| `plan-phase` | Approach settled; write tasks, then wait for plan review |
 | `execute-phase` | Dispatch ready work in waves to subagents |
 | `verify-work` | Show a task is done (check-run and/or finding) |
 
@@ -118,6 +119,7 @@ contract replace (`ensure-store.md`).
 
 - `engage`
 - `init`
+- `discuss`
 - `plan-phase`
 - `execute-phase`
 - `verify-work`
