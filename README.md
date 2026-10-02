@@ -167,6 +167,7 @@ It needs `uv`. The first run downloads `textual`.
 | `c` | Copy the selected task's slug, or the subject of the selected Needs you item |
 | `g` | In the detail, show the commit of the task's latest revision |
 | `l` | In the task detail, focus the links (depends on, blocks, phase); arrows or `j` / `k` move, `enter` opens the task or phase detail |
+| `enter` on a phase detail task | Open the task detail; the phase detail opens with its task list focused, arrows or `j` / `k` move |
 | `r` | Refresh now |
 | `q` | Quit |
 

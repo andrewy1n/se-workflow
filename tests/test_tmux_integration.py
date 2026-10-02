@@ -260,17 +260,21 @@ def test_prefix_a_popup_switches_status_tabs_filters_copies_a_slug_and_opens_a_c
     assert copied == "fx-shipped", copied
 
 
-def test_prefix_a_popup_keys_only_walks_status_tabs_phase_sections_phase_detail_and_the_second_task(tmux, cli, resolved_contract):
+def test_prefix_a_popup_keys_only_walks_tabs_phase_sections_phase_detail_and_detail_links_back_with_esc(tmux, cli, resolved_contract):
     defs = h.record_defs_by_id(resolved_contract)
     h.create_generic_record(
         cli, defs, "project:phase", subject="px-later",
         extra_payload={"title": "Phase px-later", "ordinal": 1, "effort": EFFORT},
     )
+    rels: list[str] = []
     for name in ("px-first", "px-second"):
         payload = {"title": f"title of {name}", "phase": "px-later", "kind": "deliver", "assignee": "", "effort": EFFORT}
-        created = cli("create", "--type", "project:work-item", "--subject", name, "--payload", json.dumps(payload),
-                      "--body", h.generic_body(defs["project:work-item"]))
+        args = ["create", "--type", "project:work-item", "--subject", name, "--payload", json.dumps(payload)]
+        for rel in rels:
+            args.extend(["--rel", rel])
+        created = cli(*args, "--body", h.generic_body(defs["project:work-item"]))
         assert created.returncode == 0, created.stdout + created.stderr
+        rels = [f"depends_on:{json.loads(created.stdout)['record']['id']}"]
 
     def redraw() -> None:
         while select.select([tmux.client_fd], [], [], 0.3)[0]:
@@ -306,7 +310,31 @@ def test_prefix_a_popup_keys_only_walks_status_tabs_phase_sections_phase_detail_
 
     press(b"j", "px-later 0/2")
     press(b"j", "px-later 0/2")
-    press(b"\r", "px-second tmuxfx", "title of px-second", "Description", absent=("px-later 0/2", "title of px-first", "title of fx-ready"))
+    second = press(b"\r", "px-second tmuxfx", "title of px-second", "Depends on:", "Phase: px-later",
+                   absent=("px-later 0/2", "title of px-first", "title of fx-ready"))
+
+    def pick(text: str, entry: str, *entries: str) -> bytes:
+        rows = sorted((entry, *entries), key=text.index)
+        return b"j" * rows.index(entry)
+
+    def focus_links() -> None:
+        press(b"l")
+        time.sleep(0.5)
+
+    focus_links()
+    press(pick(second, "Depends on:", "Phase: px-later"))
+    first = press(b"\r", "px-first tmuxfx", "title of px-first", "Blocks:", "Phase: px-later",
+                  absent=("title of px-second", "Depends on:"))
+    focus_links()
+    press(pick(first, "Phase: px-later", "Blocks:"))
+    phase = press(b"\r", "planned · 0/2 tasks", "─ Tasks", "title of px-first", "title of px-second", absent=("Loading…", "Blocks:", "Description"))
+    time.sleep(0.5)
+    press(pick(phase, "title of px-second", "title of px-first"))
+    press(b"\r", "px-second tmuxfx", "Depends on:", "Description", absent=("planned · 0/2 tasks", "Blocks:"))
+
+    press(b"\x1b", "planned · 0/2 tasks", absent=("Description",))
+    press(b"\x1b", "px-first tmuxfx", "Blocks:", absent=("planned · 0/2 tasks",))
+    press(b"\x1b", "px-second tmuxfx", "Depends on:", absent=("Blocks:",))
     press(b"\x1b", "▾ ○ Phase px-later 0/2", "title of px-first", "title of px-second", absent=("Description",))
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
