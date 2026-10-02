@@ -201,7 +201,8 @@ already bound.
 
 ### Status line segment
 
-`scripts/dashboard-status` prints one line per live effort, for example:
+`scripts/dashboard-status` prints one line per effort the dashboard
+shows, for example:
 
 ```text
 watch-dashboard · 1 running · 2 ready · 1 needs you
@@ -209,8 +210,10 @@ watch-dashboard · 1 running · 2 ready · 1 needs you
 
 "needs you" counts blocking questions, open questions, findings that
 need a human, and unsigned manual checks. The segment omits zero counts.
-It finds the store and the binary like `scripts/dashboard`. It prints
-nothing when there is no store or no dashboard view.
+It builds the same snapshot as the dashboard, so an effort without an
+active goal gets no line. It finds the store and the binary like
+`scripts/dashboard`. It prints nothing when there is no store, the CLI
+fails, or the snapshot takes more than 2 seconds.
 
 It reads Claude Code status JSON on stdin (`workspace.current_dir`, else
 `cwd`), or takes a directory argument. To add it to an existing status

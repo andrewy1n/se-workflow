@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -12,6 +13,10 @@ import pytest
 
 import helpers as h
 from conftest import AA_ROOT, REPO_ROOT, make_git_repo
+
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
+import artifact_store  # noqa: E402
+import dashboard_model  # noqa: E402
 
 SCRIPT = REPO_ROOT / "scripts" / "dashboard-status"
 
@@ -105,12 +110,36 @@ def test_prints_one_line_per_live_effort(home, store, cli, resolved_contract):
     assert sorted(_run(home, str(store)).stdout.splitlines()) == ["alpha", "beta · 1 ready"]
 
 
+def test_prints_nothing_for_an_effort_without_a_goal(home, store, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    _work_item(cli, defs, "orphan", "orphan-ready")
+    result = _run(home, str(store))
+    assert (result.returncode, result.stdout) == (0, "")
+
+
+def test_every_line_names_a_snapshot_effort_with_matching_counts(home, seeded, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    _goal(cli, defs, "calm")
+    _work_item(cli, defs, "orphan", "orphan-ready")
+    snapshot = dashboard_model.load_snapshot(artifact_store.resolve(seeded))
+    expected = []
+    for view in snapshot.efforts:
+        counts = {
+            "running": sum(task.status == "running" for task in view.tasks),
+            "ready": sum(task.status == "ready" for task in view.tasks),
+            "needs you": len(view.needs_you),
+        }
+        expected.append(" · ".join([view.effort, *(f"{n} {key}" for key, n in counts.items() if n)]))
+    assert _run(home, str(seeded)).stdout.splitlines() == expected
+    assert expected == ["calm", "seg · 1 running · 2 ready · 3 needs you"]
+
+
 def test_prints_nothing_without_a_store(home):
     result = _run(home, str(make_git_repo()))
     assert (result.returncode, result.stdout) == (0, "")
 
 
-def test_prints_nothing_without_a_dashboard_view(home, tmp_path):
+def test_prints_nothing_when_the_cli_fails(home):
     repo = make_git_repo()
     store = repo / ".artifacts"
     store.mkdir()

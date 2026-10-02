@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Print one status line per live effort in the project:dashboard view.
+"""Print one status line per effort the dashboard app shows, from dashboard_model.load_snapshot.
 
 Takes a directory argument, or Claude Code status JSON on stdin
 (workspace.current_dir, else cwd). Prints nothing when the directory has
-no store or the store's contract has no dashboard view.
+no store, the CLI fails, or the snapshot takes longer than TIMEOUT seconds.
 """
 
 from __future__ import annotations
 
 import json
-import subprocess
+import os
+import signal
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from artifact_store import DASHBOARD_VIEW, binary, resolve  # noqa: E402
+from artifact_store import resolve  # noqa: E402
+from dashboard_model import ModelError, Snapshot, load_snapshot  # noqa: E402
 
-NEEDS_YOU = frozenset({"Blocking Question", "Open Question", "Needs Human", "Unsigned Manual Check"})
+TIMEOUT = 2
 
 
 def target_directory(argv: list[str]) -> Path | None:
@@ -36,31 +38,20 @@ def target_directory(argv: list[str]) -> Path | None:
     return Path(directory) if isinstance(directory, str) and directory else None
 
 
-def summarize(markdown: str) -> list[str]:
-    efforts: dict[str, dict[str, int]] = {}
-    counts: dict[str, int] | None = None
-    section = None
-    for line in markdown.splitlines():
-        if line.startswith("## "):
-            counts = efforts.setdefault(line[3:].strip(), {"goal": 0, "running": 0, "ready": 0, "needs you": 0})
-            section = None
-        elif line.startswith("### "):
-            section = line[4:].strip()
-        elif line.startswith("- ") and counts is not None:
-            if section == "Goal":
-                counts["goal"] += 1
-            elif section == "Running":
-                counts["running"] += 1
-            elif section == "Ready":
-                counts["ready"] += 1
-            elif section in NEEDS_YOU:
-                counts["needs you"] += 1
+def summarize(snapshot: Snapshot) -> list[str]:
     lines = []
-    for effort, counts in efforts.items():
-        parts = [f"{counts[key]} {key}" for key in ("running", "ready", "needs you") if counts[key]]
-        if counts["goal"] or parts:
-            lines.append(" · ".join([effort, *parts]))
+    for view in snapshot.efforts:
+        counts = {
+            "running": sum(task.status == "running" for task in view.tasks),
+            "ready": sum(task.status == "ready" for task in view.tasks),
+            "needs you": len(view.needs_you),
+        }
+        lines.append(" · ".join([view.effort, *(f"{count} {key}" for key, count in counts.items() if count)]))
     return lines
+
+
+def _give_up(signum, frame) -> None:
+    os._exit(0)
 
 
 def main(argv: list[str]) -> int:
@@ -68,18 +59,18 @@ def main(argv: list[str]) -> int:
     if directory is None or not directory.is_dir():
         return 0
     target = resolve(directory)
-    if target.store is None or not target.has_view(DASHBOARD_VIEW):
+    if target.store is None or target.contract is None:
         return 0
+    signal.signal(signal.SIGALRM, _give_up)
+    signal.alarm(TIMEOUT)
     try:
-        result = subprocess.run(
-            [binary(), *target.cli_args(), "view", "--id", DASHBOARD_VIEW],
-            capture_output=True, text=True, timeout=2, cwd=str(target.root),
-        )
-    except (OSError, subprocess.TimeoutExpired):
+        snapshot = load_snapshot(target)
+    except (ModelError, OSError):
         return 0
-    if result.returncode == 0:
-        for line in summarize(result.stdout):
-            print(line)
+    finally:
+        signal.alarm(0)
+    for line in summarize(snapshot):
+        print(line)
     return 0
 
 
