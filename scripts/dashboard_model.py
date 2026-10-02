@@ -20,7 +20,7 @@ LIVE_PHASE_STATES = ("planned", "in_progress", "done")
 COUNTED_TASK_STATES = ("planned", "in_progress", "done")
 CHECK_RESULT = {"pass": "passed", "fail": "failed"}
 TOKEN_DIRS = ("records", "history")
-FULL_TYPES = ("project:continuity-question", "project:finding", "project:check-run")
+FULL_TYPES = ("project:continuity-question", "project:finding", "project:check-run", "project:work-item")
 
 
 class ModelError(RuntimeError):
@@ -48,6 +48,8 @@ class TaskRow:
     assignee: str
     wave: int | None
     status: str
+    waits_on: tuple[str, ...] = ()
+    running_since: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -168,17 +170,27 @@ def _task_status(record: dict[str, Any]) -> str | None:
     return {"in_progress": "running", "done": "done", "withdrawn": "withdrawn"}.get(state)
 
 
-def _task_rows(records: list[dict[str, Any]]) -> list[TaskRow]:
+def _assigned_at(assignments: list[dict[str, Any]], record: dict[str, Any]) -> datetime | None:
+    names = {record["id"], record["subject"]}
+    stamps = [_recorded_at(a) for a in assignments if _payload(a).get("work_item") in names]
+    return max(stamps, default=None)
+
+
+def _task_rows(records: list[dict[str, Any]], assignments: list[dict[str, Any]] | None = None) -> list[TaskRow]:
+    by_id = {record["id"]: record for record in records}
     rows = []
     for record in records:
         status = _task_status(record)
         if status is None:
             continue
         payload = _payload(record)
+        depends_on = [by_id[ref] for ref in (record.get("relationships") or {}).get("depends_on", []) if ref in by_id]
         rows.append(TaskRow(
             id=record["id"], subject=record["subject"], title=payload.get("title", ""),
             phase=payload.get("phase", ""), assignee=payload.get("assignee", ""),
             wave=_derived(record).get("wave"), status=status,
+            waits_on=tuple(dep["subject"] for dep in depends_on if dep["lifecycle_state"] != "done"),
+            running_since=_assigned_at(assignments or [], record) if status == "running" else None,
         ))
     rows.sort(key=lambda row: (TASK_ORDER.index(row.status), row.wave if row.wave is not None else 0, row.subject))
     return rows
@@ -341,7 +353,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             phases=_phase_rows(
                 phases.get(effort, []), tasks.get(effort, []), acceptances.get(effort, []), checks.get(effort, []),
             ),
-            tasks=_task_rows(tasks.get(effort, [])),
+            tasks=_task_rows(tasks.get(effort, []), listed["project:assignment"]),
             needs_you=_needs_you(
                 questions.get(effort, []), findings.get(effort, []), checks.get(effort, []), acceptances_by_id,
                 tasks.get(effort, []),

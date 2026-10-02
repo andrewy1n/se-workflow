@@ -583,3 +583,67 @@ def test_finished_efforts_sort_after_live_ones(store, cli, defs):
     assert [(view.effort, view.finished) for view in snapshot.efforts] == [
         ("beta", False), ("gamma", False), ("alpha", True),
     ]
+
+
+def _assign(cli, defs, work_item: str, executor: str) -> dict:
+    return h.create_generic_record(
+        cli, defs, "project:assignment", subject=f"{executor}-assign",
+        extra_payload={"work_item": work_item, "executor": executor, "effort": "alpha"},
+    )
+
+
+def test_waits_on_lists_only_unfinished_dependency_slugs_in_dependency_order(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    done = _work_item(cli, defs, "alpha", "w-done", "p-one")
+    h.transition(cli, "project:work-item", done, "in_progress", "done")
+    later = _work_item(cli, defs, "alpha", "w-later", "p-one")
+    active = _work_item(cli, defs, "alpha", "w-active", "p-one")
+    h.transition(cli, "project:work-item", active, "in_progress")
+    _work_item(
+        cli, defs, "alpha", "w-task", "p-one",
+        f"depends_on:{later['id']}", f"depends_on:{done['id']}", f"depends_on:{active['id']}",
+    )
+    tasks = {task.subject: task for task in _effort(model.load_snapshot(_target(store)), "alpha").tasks}
+    assert tasks["w-task"].waits_on == ("w-later", "w-active")
+    assert tasks["w-later"].waits_on == ()
+
+
+def test_phase_detail_task_rows_carry_waits_on(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-one", 1, "in_progress")
+    dep = _work_item(cli, defs, "alpha", "w-dep", "p-one")
+    _work_item(cli, defs, "alpha", "w-task", "p-one", f"depends_on:{dep['id']}")
+    tasks = {t.subject: t for t in model.load_phase_detail(_target(store), "alpha", "p-one").tasks}
+    assert tasks["w-task"].waits_on == ("w-dep",)
+
+
+def test_running_since_is_the_latest_assignment_time_for_a_running_task(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    running = _work_item(cli, defs, "alpha", "r-running", "p-one")
+    h.transition(cli, "project:work-item", running, "in_progress")
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:assignment", "--subject", "old-assign",
+        "--payload", json.dumps({"work_item": running["id"], "executor": "old", "effort": "alpha"}),
+        "--body", h.generic_body(defs["project:assignment"]),
+    )
+    latest = _assign(cli, defs, "r-running", "new")
+    tasks = {task.subject: task for task in _effort(model.load_snapshot(_target(store)), "alpha").tasks}
+    assert tasks["r-running"].running_since == datetime.fromisoformat(latest["recorded_at"])
+
+
+def test_running_since_is_none_unless_the_task_is_in_progress(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    ready = _work_item(cli, defs, "alpha", "r-ready", "p-one")
+    _assign(cli, defs, ready["id"], "ready")
+    done = _work_item(cli, defs, "alpha", "r-done", "p-one")
+    _assign(cli, defs, done["id"], "done")
+    h.transition(cli, "project:work-item", done, "in_progress", "done")
+    unassigned = _work_item(cli, defs, "alpha", "r-unassigned", "p-one")
+    h.transition(cli, "project:work-item", unassigned, "in_progress")
+    tasks = {task.subject: task for task in _effort(model.load_snapshot(_target(store)), "alpha").tasks}
+    assert [tasks[s].running_since for s in ("r-ready", "r-done", "r-unassigned")] == [None, None, None]
+
+
+def test_task_row_defaults_leave_waits_on_empty_and_running_since_unset():
+    row = _task_row("running")
+    assert (row.waits_on, row.running_since) == ((), None)
