@@ -67,10 +67,24 @@ kind/focus are unset).
 2. If this focus has no `active-goal`, create it (`init` step 6) for
    **this subject only**. Resolve the current phase's slug by querying
    `project:phase` for this effort (`--where payload.effort=<focus>`)
-   and taking the one that is `in_progress`, or the lowest-`ordinal`
-   `planned` one if none is `in_progress` yet — never
+   and taking the one named in context (by `engage` or the user), else
+   the one that is `in_progress`, else the lowest-`ordinal` `planned`
+   one. Several phases of one effort may be `in_progress` at once (one
+   chat each); if more than one fits and none is named, ask — never
    `current-position.payload.scope`, which is a stable per-subject
-   value, not the phase slug (incidental has no phase).
+   value, not the phase slug (incidental has no phase). If `engage`
+   handed off `phase: new`, the current phase is a new one: create it
+   in step 3 with `ordinal` = highest existing ordinal for this effort
+   plus one.
+   Check that the approach is settled: at least one
+   `project:decision` with `payload.phase` = this phase, or the user
+   fixed the approach in this chat. If neither, run `discuss` first,
+   or ask the user whether to skip it. Skip this check for incidental.
+
+```bash
+adaptive-artifacts list --type project:decision --where payload.phase=<current-phase-slug> --state active
+```
+
 3. Promote the current phase to `in_progress` with its real plan.
    `Get` its record to check lifecycle and `revision`:
 
@@ -94,6 +108,19 @@ adaptive-artifacts update --type project:phase --id <phase-id> \
    first (`init` step 7 shape), then run the `update` above with the
    revision `create` returned. Skip this step entirely for incidental
    (no phase record).
+
+   Then create this phase's own position, so a chat on another phase
+   of the same effort never overwrites it. `subject` is the phase
+   slug; `scope` is always `phase`:
+
+```bash
+adaptive-artifacts create --type project:current-position \
+  --subject "<phase-slug>" \
+  --payload '{"position":"<what this phase is doing now>","scope":"phase","effort":"<effort-slug>","phase":"<phase-slug>"}'
+```
+
+   Update it during the phase with `supersede`. Leave the effort
+   position (`subject` = focus) alone until the phase closes.
 4. For each durable choice from planning, `create --type
    project:decision` with `choice`, `alternatives`, `phase`, `effort`
    payload and a `--body-file` with `## Rationale` / `##
@@ -197,4 +224,20 @@ adaptive-artifacts list --type project:work-item \
   --where payload.effort=<effort-slug> --where payload.phase=<current-phase-slug>
 ```
 
-   Do not execute unless the user asks (`execute-phase`).
+9. Open the plan review gate, so nothing dispatches before the user
+   has seen the tasks (skip for incidental):
+
+```bash
+adaptive-artifacts create --type project:continuity-question \
+  --subject "<effort-slug>" \
+  --payload '{"owner":"user","blocking":true,"scope":"plan-review:<current-phase-slug>"}'
+```
+
+   Ask the user to approve, change, or send the phase back to
+   `discuss`. Change tasks on request. On approval, answer the
+   question; only then may `execute-phase` run:
+
+```bash
+adaptive-artifacts update --type project:continuity-question --id <question-id> \
+  --transition answered --expected-revision <revision>
+```

@@ -334,6 +334,21 @@ def test_store_with_no_goals_has_no_efforts(store):
     assert model.load_snapshot(_target(store)).efforts == []
 
 
+def test_skips_an_effort_whose_goal_is_closed(store, cli, defs):
+    _goal(cli, defs, "open-one")
+    closed = h.create_generic_record(
+        cli, defs, "project:active-goal", subject="closed-one",
+        extra_payload={"goal": "ship closed-one", "kind": "deliver"},
+    )
+    result = cli(
+        "supersede", "--type", "project:active-goal", "--id", closed["id"],
+        "--expected-revision", closed["revision"], "--payload", json.dumps({**closed["payload"], "status": "closed"}),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    assert [view.effort for view in model.load_snapshot(_target(store)).efforts] == ["open-one"]
+
+
 def _record(cli, defs, record_type: str, subject: str, payload: dict, body: str | None = None, *rels: str) -> dict:
     args = ["create", "--type", record_type, "--subject", subject, "--payload", json.dumps(payload)]
     for rel in rels:
@@ -458,12 +473,12 @@ def test_detail_ignores_a_task_whose_slug_shares_a_prefix(detail_store):
     assert all(a.criterion != "foreign" for a in detail.acceptances)
 
 
-def test_detail_uses_three_cli_calls(detail_store, monkeypatch):
+def test_detail_uses_four_cli_calls(detail_store, monkeypatch):
     calls = []
     real = model.subprocess.run
     monkeypatch.setattr(model.subprocess, "run", lambda cmd, **kw: calls.append(cmd) or real(cmd, **kw))
     _detail(detail_store)
-    assert len([cmd for cmd in calls if cmd[0] != "git"]) == 3
+    assert len([cmd for cmd in calls if cmd[0] != "git"]) == 4
 
 
 def test_detail_of_an_unknown_id_raises_a_model_error(store):
@@ -647,3 +662,29 @@ def test_running_since_is_none_unless_the_task_is_in_progress(store, cli, defs):
 def test_task_row_defaults_leave_waits_on_empty_and_running_since_unset():
     row = _task_row("running")
     assert (row.waits_on, row.running_since) == ((), None)
+
+
+def _merged_store(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="merged",
+        extra_payload={"goal": "ship merged", "kind": "deliver", "merged_from": ["old-a", "old-b"]},
+    )
+    _phase(cli, defs, "merged", "m-one", 1, "in_progress")
+    task = _work_item(cli, defs, "merged", "m-task", "m-one")
+    h.transition(cli, "project:work-item", task, "in_progress")
+    _record(cli, defs, "project:check-run", "m-task",
+            {"criterion_id": "x", "method": "manual", "result": "pass", "signed_by": "", "revision": "r", "effort": "old-a"})
+    return task
+
+
+def test_snapshot_counts_a_check_run_of_a_merged_effort_under_the_new_effort(store, cli, defs):
+    _merged_store(cli, defs)
+    view = _effort(model.load_snapshot(_target(store)), "merged")
+    assert [item.kind for item in view.needs_you] == ["unsigned-check"]
+    assert [item.kind for item in view.activity] == ["check-run"]
+
+
+def test_task_detail_lists_a_check_run_recorded_under_a_merged_effort(store, cli, defs):
+    task = _merged_store(cli, defs)
+    detail = model.load_task_detail(_target(store), task["id"])
+    assert [e.kind for e in detail.timeline] == ["check-run"]

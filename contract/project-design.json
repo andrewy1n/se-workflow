@@ -22,8 +22,20 @@
       "payload": [
         "goal",
         "scope",
-        "kind"
-      ]
+        "kind",
+        "status",
+        "merged_from"
+      ],
+      "optional_payload": [
+        "status",
+        "merged_from"
+      ],
+      "payload_enum": {
+        "status": [
+          "open",
+          "closed"
+        ]
+      }
     },
     {
       "name": "current-position",
@@ -36,13 +48,21 @@
         "position",
         "scope",
         "effort",
-        "phase"
+        "phase",
+        "status"
       ],
       "optional_payload": [
-        "phase"
+        "phase",
+        "status"
       ],
       "payload_references": {
         "phase": "project:phase"
+      },
+      "payload_enum": {
+        "status": [
+          "open",
+          "closed"
+        ]
       }
     },
     {
@@ -295,6 +315,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -311,6 +335,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -668,6 +696,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -707,6 +739,10 @@
               {
                 "field": "lifecycle_state",
                 "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
               }
             ]
           }
@@ -922,7 +958,7 @@
   "backend": "git-filesystem",
   "view_params": {
     "project:handoff": {
-      "group_by": "subject"
+      "group_by": "effort"
     },
     "project:plan": {
       "group_by": "phase",

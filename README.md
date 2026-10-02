@@ -24,9 +24,11 @@ materialized as `work-item` + `acceptance`.
 | `evaluate` | The work is a campaign or comparison |
 | `incidental` | One-off; no records if it fits this chat |
 
-Focus is a subject string (which effort this chat is on). Other live
-goals stay live. Views group handoff by subject and the plan by
-`effort`. See [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
+Focus is a subject string (which effort this chat is on). An effort
+is a product area; new work in it is a new phase. Other live goals
+stay live; a finished effort closes with `status: closed`. A merged effort lists the old slugs in `merged_from`. Each
+running phase keeps its own position, so chats on different phases of
+one effort do not collide. Handoff groups by `effort`. See [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 
 ## Install
 
@@ -84,7 +86,8 @@ In whatever repo you are building:
 |---|---|
 | `engage` | Classify kind + focus, then hand off |
 | `init` | First time on a repo, or a new effort subject |
-| `plan-phase` | Planning finished, or tasks for this focus |
+| `discuss` | Settle the approach for a phase with the user before planning |
+| `plan-phase` | Approach settled; write tasks, then wait for plan review |
 | `execute-phase` | Dispatch ready work in waves to subagents |
 | `verify-work` | Show a task is done (check-run and/or finding) |
 
@@ -116,6 +119,7 @@ contract replace (`ensure-store.md`).
 
 - `engage`
 - `init`
+- `discuss`
 - `plan-phase`
 - `execute-phase`
 - `verify-work`

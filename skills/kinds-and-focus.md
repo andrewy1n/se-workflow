@@ -24,24 +24,33 @@ check with no script). Do not stuff a metric delta into
 
 ## Focus
 
+A **live** goal is an `active-goal` in lifecycle `active` whose
+`payload.status` is not `closed` (missing means open).
+
 Focus is a **subject string**, not a record. Name it (from `engage`, the
 user, or the only live `active-goal` subject). Then:
 
-- Read the `## <focus>` section of handoff (grouped by subject) and the
-  `## <focus>` section of `project:plan` (grouped by `effort`).
+- Read the `## <focus>` section of handoff (grouped by `effort`) and
+  the focus's phases in `project:plan` (grouped by phase).
 - Ignore other live goals. Do not supersede `active-goal` or
-  `current-position` whose `subject` is not the focus.
+  `current-position` that belongs to another effort.
 - Task-scoped records (`work-item`, `acceptance`, `check-run`,
   `decision`, `failed-attempt`, `investigation-observation`, `finding`,
   `assignment`, `assignment-amendment`, `execution-report`) use
   `subject` = task slug and `payload.effort` = focus.
-- Goal, position, and continuity-question use `subject` = focus.
+- Goal, the effort position, and continuity-question use `subject` =
+  focus. A running phase also has its own position: `subject` = phase
+  slug, `scope` = `phase`, `payload.effort` = focus. Each chat writes
+  only its own phase's position; the effort position changes when a
+  phase closes.
 - If `payload.effort` is missing (old records) and exactly one active
   goal exists, treat that subject as the effort. If several goals exist
   and `effort` is missing, stop and ask.
 
-A new effort is a new subject. Create its goal/position. Leave the
-others active.
+An effort is a product area or objective, not one ask. New work in
+an area a live goal already covers is a new phase of that effort. A
+new effort is a new subject only when no live goal covers the area.
+Create its goal/position. Leave the others active.
 
 ## Incidental
 
