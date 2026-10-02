@@ -1709,6 +1709,26 @@ def test_finished_effort_sorts_after_a_live_effort_with_a_dimmed_label(finished)
     _run(store, 120, scenario)
 
 
+def test_tab_and_shift_tab_switch_to_a_finished_effort_beside_live_needs_you_items(finished, cli, defs):
+    store, _ = finished
+    _record(cli, defs, "project:continuity-question", "beta", {"subject": "beta", "owner": "ayin", "blocking": False, "scope": "which one"})
+
+    async def scenario(app, pilot):
+        tabs = app.query_one("#efforts")
+        await _until(pilot, lambda: app.panes["beta"].query_one("#needs-you").option_count == 1)
+        assert tabs.active == "effort-beta"
+        for key in ("tab", "shift+tab"):
+            await pilot.press(key)
+            await pilot.pause(0.3)
+            assert tabs.active == "effort-alpha"
+            await pilot.press(key)
+            await pilot.pause(0.3)
+            assert tabs.active == "effort-beta"
+            assert isinstance(app.focused, app_module.TaskTable)
+
+    _run(store, 120, scenario)
+
+
 def test_effort_finished_mid_session_moves_last_and_dims(finished, cli):
     store, records = finished
 

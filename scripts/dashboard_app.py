@@ -1482,6 +1482,7 @@ class DashboardApp(App[None]):
         for pane in self.panes.values():
             pane.query_one("#filter", Input).display = False
         if ids and tabs.active in ids:
+            tabs.screen.set_focus(None)
             tabs.active = ids[(ids.index(tabs.active) + delta) % len(ids)]
 
     @work(thread=True, exclusive=True)
