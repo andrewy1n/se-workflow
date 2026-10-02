@@ -6,10 +6,12 @@ import asyncio
 import copy
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -156,7 +158,7 @@ def test_task_table_lists_rows_by_status_with_task_id_keys(seeded, width):
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
         rows = [table.get_row_at(i) for i in range(table.row_count) if not _is_section(list(table.rows)[i].value)]
-        statuses = [str(row[0]).split()[-1] for row in rows]
+        statuses = [str(row[0]).split()[1] for row in rows]
         assert statuses == ["running", "ready", "waiting"]
         assert "title of a-running" in str(rows[0][1])
         assert "w" in str(rows[0][2])
@@ -165,37 +167,117 @@ def test_task_table_lists_rows_by_status_with_task_id_keys(seeded, width):
     _run(seeded, width, scenario)
 
 
-def test_narrow_width_drops_phase_and_assignee_columns(seeded):
+def _labels(app):
+    return [str(col.label) for col in app.query_one("#tasks").columns.values()]
+
+
+@pytest.mark.parametrize(("width", "expected"), ((60, ["status", "task", "wave"]), (120, ["status", "task", "wave", "assignee"])))
+def test_grouped_task_table_has_no_phase_column(seeded, width, expected):
     async def scenario(app, pilot):
-        labels = [str(col.label) for col in app.query_one("#tasks").columns.values()]
-        assert labels == ["status", "task", "wave"]
+        assert _labels(app) == expected
 
-    _run(seeded, 60, scenario)
+    _run(seeded, width, scenario)
 
 
-def test_wide_width_shows_phase_and_assignee_columns(seeded):
+def test_wide_width_shows_the_assignee_without_a_phase_column(seeded):
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
-        labels = [str(col.label) for col in table.columns.values()]
-        assert labels == ["status", "task", "wave", "phase", "assignee"]
-        assert "agent-7" in str(table.get_row_at(1)[4])
+        assert "agent-7" in str(table.get_row_at(1)[3])
 
     _run(seeded, 120, scenario)
 
 
-def test_resize_rebuilds_task_columns_from_the_new_width(seeded):
+def test_resize_rebuilds_task_columns_without_a_phase_column(seeded):
     async def scenario(app, pilot):
-        def labels():
-            return [str(col.label) for col in app.query_one("#tasks").columns.values()]
-
-        wide = ["status", "task", "wave", "phase", "assignee"]
-        assert labels() == wide
+        wide = ["status", "task", "wave", "assignee"]
+        assert _labels(app) == wide
         await pilot.resize_terminal(60, 40)
-        await _until(pilot, lambda: labels() == ["status", "task", "wave"])
+        await _until(pilot, lambda: _labels(app) == ["status", "task", "wave"])
         await pilot.resize_terminal(120, 40)
-        await _until(pilot, lambda: labels() == wide)
+        await _until(pilot, lambda: _labels(app) == wide)
 
     _run(seeded, 120, scenario)
+
+
+def test_once_keeps_the_phase_column_when_wide(seeded):
+    result = subprocess.run(
+        ["uv", "run", "--script", str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(seeded),
+        env={**os.environ, "COLUMNS": "120"},
+    )
+    assert result.returncode == 0, result.stderr
+    header = next(line for line in result.stdout.splitlines() if line.lstrip().startswith("status"))
+    assert header.split() == ["status", "task", "wave", "phase", "assignee"]
+
+
+def _seed_waits_and_running(root, cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "g", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "two", 1, "in_progress")
+    running = _work_item(cli, defs, "alpha", "w-running", "two")
+    h.transition(cli, "project:work-item", running, "in_progress")
+    other = _work_item(cli, defs, "alpha", "w-other", "two")
+    h.transition(cli, "project:work-item", other, "in_progress")
+    done = _work_item(cli, defs, "alpha", "w-done", "two")
+    h.transition(cli, "project:work-item", done, "in_progress", "done")
+    _work_item(cli, defs, "alpha", "w-waiting", "two", f"depends_on:{running['id']}", f"depends_on:{other['id']}", f"depends_on:{done['id']}")
+    _work_item(cli, defs, "alpha", "w-ready", "two", f"depends_on:{done['id']}")
+    h.run_cli_48h_ago(
+        root, "create", "--type", "project:assignment", "--subject", "w-running",
+        "--payload", json.dumps({"work_item": running["id"], "executor": "sub-w", "effort": "alpha"}),
+        "--body", h.generic_body(defs["project:assignment"]),
+    )
+    return running
+
+
+@pytest.fixture()
+def waits(store):
+    running = stamped_store(store, "waits-running", _seed_waits_and_running)
+    return store, running
+
+
+def _row_by_title(table, title):
+    return next(table.get_row(k.value) for k in table.rows if title in str(table.get_row(k.value)[1]))
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_waiting_row_title_ends_with_muted_waits_on_its_unfinished_dependencies(waits, width):
+    store, _ = waits
+
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        cell = _row_by_title(table, "title of w-waiting")[1]
+        full = "title of w-waiting  waits on w-other, w-running"
+        plain = str(cell).strip()
+        assert plain == full if width == 120 else (plain.endswith("…") and full.startswith(plain[:-1]))
+        start = str(cell).index("waits on")
+        muted = app_module.palette_from(app.get_css_variables())["muted"]
+        assert any(span.start <= start and str(span.style) == muted for span in cell.spans)
+        assert "waits on" not in str(_row_by_title(table, "title of w-ready")[1])
+
+    _run(store, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_running_row_status_shows_its_running_time(waits, width):
+    store, _ = waits
+
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        row = _row_by_title(table, "title of w-running")
+        assert str(row[0]) == "▶ running 48h"
+        assert str(row[1]).strip() == "title of w-running"
+        assert str(_row_by_title(table, "title of w-other")[0]) == "▶ running"
+
+    _run(store, width, scenario)
+
+
+def test_detail_chips_show_running_time_from_the_running_since_stamp():
+    since = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    detail = app_module.model.TaskDetail(
+        "i", "s", "e", "t", "running", "", None, "", "", [], [], [], [], [], running_since=since)
+    chips = app_module.detail_chips(detail, app_module.ANSI_PALETTE, 100, since + timedelta(minutes=14))
+    assert chips.plain == "▶ running 14m"
 
 
 @pytest.mark.parametrize("width", WIDTHS)
@@ -355,7 +437,7 @@ def test_keeps_the_cursor_row_across_a_refresh(seeded, cli, defs):
 def _titles(app):
     table = app.query_one("#tasks")
     return [
-        str(table.get_row_at(i)[1]).strip() for i in range(table.row_count)
+        str(table.get_row_at(i)[1]).split("  waits on")[0].strip() for i in range(table.row_count)
         if not _is_section(list(table.rows)[i].value)
     ]
 
@@ -907,6 +989,18 @@ def test_split_fields_joins_continuation_lines_and_ignores_plain_markdown():
     assert app_module.split_fields("```\na: 1\n```\n\nafter") == ([("a", "1")], "after")
     assert app_module.split_fields("plain **text**") is None
     assert app_module.split_fields("```python\nprint(1)\n```") is None
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_task_detail_chips_show_the_running_time(waits, size):
+    store, running = waits
+
+    async def scenario(app, pilot):
+        await _open_by_enter(app, pilot, running["id"])
+        screen = await _shown(app, pilot)
+        assert str(screen.query_one("#detail-chips").render()).startswith("▶ running 48h")
+
+    _detail_run(store, size, scenario)
 
 
 def test_chips_never_split_a_label_from_its_value_when_narrow():

@@ -67,13 +67,18 @@ def palette_from(variables: dict[str, str]) -> dict[str, str]:
     }
 
 
-def relative_time(then: datetime, now: datetime) -> str:
+def elapsed(then: datetime, now: datetime) -> str:
     seconds = max(0, int((now - then).total_seconds()))
     if seconds < 60:
         return "now"
     if seconds < 3600:
-        return f"{seconds // 60}m ago"
-    return f"{seconds // 3600}h ago"
+        return f"{seconds // 60}m"
+    return f"{seconds // 3600}h"
+
+
+def relative_time(then: datetime, now: datetime) -> str:
+    age = elapsed(then, now)
+    return age if age == "now" else f"{age} ago"
 
 
 def current_phase(view: model.EffortView) -> tuple[int, model.PhaseRow] | None:
@@ -220,8 +225,13 @@ def empty_text(view: model.EffortView, task_filter: TaskFilter) -> str:
     return "No tasks match"
 
 
-def status_cell(task: model.TaskRow, colors: dict[str, str]) -> Text:
-    return Text(f"{STATUS_GLYPH[task.status]} {task.status}", style=colors[task.status])
+def status_label(status: str, running_since: datetime | None, now: datetime) -> str:
+    label = f"{STATUS_GLYPH.get(status, '·')} {status}"
+    return f"{label} {elapsed(running_since, now)}" if running_since is not None else label
+
+
+def status_cell(task: model.TaskRow, colors: dict[str, str], now: datetime) -> Text:
+    return Text(status_label(task.status, task.running_since, now), style=colors[task.status])
 
 
 def wave_cell(task: model.TaskRow) -> str:
@@ -234,14 +244,22 @@ def clip(text: str, width: int) -> str:
 
 def task_columns(width: int) -> list[str]:
     columns = ["status", "task", "wave"]
-    return columns + ["phase", "assignee"] if width >= WIDE else columns
+    return columns + ["assignee"] if width >= WIDE else columns
+
+
+def title_cell(task: model.TaskRow, width: int, colors: dict[str, str], indent: str = "") -> Text:
+    title = task.title or task.subject
+    note = f"  waits on {', '.join(sorted(task.waits_on))}" if task.status == "waiting" and task.waits_on else ""
+    text = Text(indent + clip(title + note, width - len(indent)))
+    text.stylize(colors["muted"], len(indent) + len(title))
+    return text
 
 
 def task_cells(
-    task: model.TaskRow, columns: list[str], title_width: int, colors: dict[str, str], indent: str = "",
+    task: model.TaskRow, columns: list[str], title_width: int, colors: dict[str, str], now: datetime, indent: str = "",
 ) -> list[Text | str]:
     values: dict[str, Text | str] = {
-        "status": status_cell(task, colors), "task": indent + clip(task.title or task.subject, title_width - len(indent)),
+        "status": status_cell(task, colors, now), "task": title_cell(task, title_width, colors, indent),
         "wave": wave_cell(task), "phase": task.phase, "assignee": task.assignee,
     }
     return [values[name] for name in columns]
@@ -268,8 +286,11 @@ def section_cells(row: SectionRow, columns: list[str], title_width: int, colors:
     return [values.get(name, "") for name in columns]
 
 
-def title_width(columns: list[str], width: int, tasks: list[model.TaskRow]) -> int:
-    fixed = {"status": 9, "wave": 4, "phase": max([len(t.phase) for t in tasks] + [5]), "assignee": max([len(t.assignee) for t in tasks] + [8])}
+def title_width(columns: list[str], width: int, tasks: list[model.TaskRow], now: datetime) -> int:
+    fixed = {
+        "status": max([len(status_label(t.status, t.running_since, now)) for t in tasks] + [9]), "wave": 4,
+        "assignee": max([len(t.assignee) for t in tasks] + [8]),
+    }
     used = sum(fixed[name] for name in columns if name != "task") + 2 * len(columns)
     return max(width - used, 12)
 
@@ -329,12 +350,12 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         tally = counts(view)
         console.print("   ".join(f"{label} {tally[name]}" for name, label, _ in STATUS_TABS))
         if view.tasks:
-            columns = task_columns(console.width)
+            columns = ["status", "task", "wave", "phase", "assignee"] if console.width >= WIDE else task_columns(console.width)
             table = Table(box=None, pad_edge=False, header_style=colors["muted"])
             for name in columns:
                 table.add_column(name, no_wrap=name != "task", overflow="ellipsis")
             for task in view.tasks:
-                table.add_row(*task_cells(task, columns, console.width, colors))
+                table.add_row(*task_cells(task, columns, console.width, colors, snapshot.generated_at))
             console.print(Group(Text(), table))
         if view.needs_you:
             console.print(Text(f"\nNeeds you {len(view.needs_you)}", style=colors["warning"]))
@@ -347,13 +368,9 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
                 console.print(line)
 
 
-def status_chip(status: str, colors: dict[str, str]) -> tuple[str, str]:
-    return f"{STATUS_GLYPH.get(status, '·')} {status}", colors.get(status, colors["muted"])
-
-
-def detail_chips(detail: model.TaskDetail, colors: dict[str, str], width: int = 100) -> Text:
-    label, style = status_chip(detail.status, colors)
-    chips = [(label, style)]
+def detail_chips(detail: model.TaskDetail, colors: dict[str, str], width: int = 100, now: datetime | None = None) -> Text:
+    label = status_label(detail.status, detail.running_since, now or datetime.now(timezone.utc))
+    chips = [(label, colors.get(detail.status, colors["muted"]))]
     if detail.phase:
         chips.append((f"phase {detail.phase}", colors["muted"]))
     if detail.wave is not None:
@@ -586,7 +603,7 @@ class EffortPane(VerticalScroll):
         selected = self.app.filters.get(self.effort, TaskFilter()).tab
         for tab in self.query(StatusTab):
             tab.show(tally[tab.tab_name], tab.tab_name == selected)
-        self.fill_tasks(view, width, inner, colors)
+        self.fill_tasks(view, now, width, inner, colors)
         self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
         self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
 
@@ -609,7 +626,7 @@ class EffortPane(VerticalScroll):
             joined.append_text(line)
         panel.update(joined)
 
-    def fill_tasks(self, view: model.EffortView, width: int, room: int, colors: dict[str, str]) -> None:
+    def fill_tasks(self, view: model.EffortView, now: datetime, width: int, room: int, colors: dict[str, str]) -> None:
         table = self.query_one("#tasks", DataTable)
         task_filter = self.app.filters.get(self.effort, TaskFilter())
         pool = tab_tasks(view, task_filter.tab)
@@ -628,7 +645,7 @@ class EffortPane(VerticalScroll):
         columns = task_columns(width)
         for name in columns:
             table.add_column(name, key=name)
-        room = title_width(columns, room - 4, tasks)
+        room = title_width(columns, room - 4, tasks, now)
         show_empty = task_filter.tab == "all" and not task_filter.text
         self.sections = {}
         for row in section_rows(view, tasks, task_filter.sections, show_empty):
@@ -637,7 +654,7 @@ class EffortPane(VerticalScroll):
                 table.add_row(*section_cells(row, columns, room, colors), key=row.key)
             else:
                 grouped = row.task.phase in {phase.subject for phase in view.phases}
-                table.add_row(*task_cells(row.task, columns, room, colors, "  " if grouped else ""), key=row.key)
+                table.add_row(*task_cells(row.task, columns, room, colors, now, "  " if grouped else ""), key=row.key)
         if keep is not None and keep in table.rows:
             table.move_cursor(row=table.get_row_index(keep))
 
@@ -1368,7 +1385,7 @@ class DashboardApp(App[None]):
             return
         for view in self.snapshot.efforts:
             if view.effort == pane.effort:
-                pane.fill_tasks(view, self.size.width, pane.inner, palette_from(self.get_css_variables()))
+                pane.fill_tasks(view, self.snapshot.generated_at, self.size.width, pane.inner, palette_from(self.get_css_variables()))
 
     def action_filter(self) -> None:
         pane = self.active_pane()

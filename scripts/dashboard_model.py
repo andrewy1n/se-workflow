@@ -427,6 +427,7 @@ class TaskDetail:
     acceptances: list[AcceptanceRow]
     timeline: list[TimelineEvent]
     related: list[RelatedRecord]
+    running_since: datetime | None = None
 
 
 RELATED_TEXT = {
@@ -534,13 +535,15 @@ def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
         for record_type, (kind, field) in RELATED_TEXT.items()
         for r in of_type.get(record_type, [])
     ]
+    status = _task_status(mine) or mine["lifecycle_state"]
     return TaskDetail(
         id=work_item_id, subject=slug, effort=effort, title=payload.get("title", ""),
-        status=_task_status(mine) or mine["lifecycle_state"], phase=payload.get("phase", ""),
+        status=status, phase=payload.get("phase", ""),
         wave=_derived(mine).get("wave"), assignee=payload.get("assignee", ""), body=item.get("body") or "",
         depends_on=_linked((item.get("relationships") or {}).get("depends_on", []), rows),
         blocks=_linked((_derived(mine).get("referenced_by") or {}).get("depends_on", []), rows),
         acceptances=acceptances, timeline=_timeline(assignments, amendments, reports, checks), related=related,
+        running_since=max(map(_recorded_at, assignments), default=None) if status == "running" else None,
     )
 
 
