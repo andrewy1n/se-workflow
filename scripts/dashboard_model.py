@@ -68,6 +68,7 @@ class ActivityItem:
     subject: str
     recorded_at: datetime
     summary: str
+    failed: bool = False
 
 
 @dataclass
@@ -268,10 +269,10 @@ def _activity(
 ) -> dict[str, list[ActivityItem]]:
     by_effort: dict[str, list[ActivityItem]] = {}
 
-    def add(effort: str | None, kind: str, record: dict[str, Any], summary: str) -> None:
+    def add(effort: str | None, kind: str, record: dict[str, Any], summary: str, failed: bool = False) -> None:
         if effort is not None and _recorded_at(record) >= since:
             by_effort.setdefault(effort, []).append(
-                ActivityItem(kind, record["id"], record["subject"], _recorded_at(record), summary)
+                ActivityItem(kind, record["id"], record["subject"], _recorded_at(record), summary, failed)
             )
 
     def work_item(record: dict[str, Any]) -> tuple[str | None, str]:
@@ -286,13 +287,14 @@ def _activity(
     for record in reports:
         effort, subject = work_item(record)
         payload = _payload(record)
-        add(effort, "execution-report", record, f"{subject} reported {payload.get('verdict', '')}")
+        add(effort, "execution-report", record, f"{subject} reported {payload.get('verdict', '')}",
+            "fail" in (payload.get("result"), payload.get("verdict")))
     for record in checks:
         payload = _payload(record)
         outcome = CHECK_RESULT.get(payload.get("result", ""), payload.get("result", ""))
         method = payload.get("method", "").replace("check", "").strip()
         label = " ".join(part for part in (record["subject"], method, "check", outcome) if part)
-        add(payload.get("effort"), "check-run", record, label)
+        add(payload.get("effort"), "check-run", record, label, payload.get("result") == "fail")
     for items in by_effort.values():
         items.sort(key=lambda item: item.recorded_at, reverse=True)
     return by_effort

@@ -15,6 +15,8 @@ import pytest
 
 pytest.importorskip("textual")
 
+from rich.style import Style  # noqa: E402
+
 import helpers as h  # noqa: E402
 from conftest import REPO_ROOT, git, stamped_store  # noqa: E402
 
@@ -211,6 +213,50 @@ def test_needs_you_panel_and_activity_feed_show_their_items(seeded, width):
         assert "now" in activity or "ago" in activity
 
     _run(seeded, width, scenario)
+
+
+def _seed_failed_check(store):
+    def seed(root, cli, defs):
+        _seed_alpha(cli, defs)
+        h.create_generic_record(
+            cli, defs, "project:check-run", subject="a-broken",
+            extra_payload={"method": "check", "signed_by": "", "result": "fail", "effort": "alpha"},
+        )
+
+    stamped_store(store, "failed-check", seed)
+    return store
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_failed_activity_line_uses_the_error_colour_and_a_cross(store, width):
+    _seed_failed_check(store)
+
+    async def scenario(app, pilot):
+        error = app_module.palette_from(app.get_css_variables())["error"]
+        rendered = app.query_one("#activity").render()
+        lines = str(rendered).splitlines()
+        failed = next(line for line in lines if line.endswith("a-broken check failed"))
+        assert " ✗ " in failed
+        assert not any("✗" in line for line in lines if line != failed)
+        start = str(rendered).index(failed)
+        colours = {
+            Style.parse(str(span.style)).color.get_truecolor()
+            for span in rendered.spans if span.start < start + len(failed) and span.end > start + 8
+        }
+        assert colours == {Style.parse(error).color.get_truecolor()}
+
+    _run(store, width, scenario)
+
+
+def test_once_marks_failed_activity_with_a_cross(store):
+    _seed_failed_check(store)
+    result = subprocess.run(
+        ["uv", "run", "--script", str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(store),
+    )
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+    assert any("✗" in line and line.endswith("a-broken check failed") for line in lines)
+    assert not any("✗" in line and "a-check check passed" in line for line in lines)
 
 
 def test_long_activity_lines_are_clipped_not_wrapped_at_60_columns(store, cli, defs):

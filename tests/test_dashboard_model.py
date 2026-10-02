@@ -268,6 +268,33 @@ def test_recent_activity_lists_last_24h_newest_first_and_resolves_reports_to_the
     assert _effort(snapshot, "beta").activity == []
 
 
+def test_activity_marks_failed_check_runs_and_failed_reports_only(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    item = _work_item(cli, defs, "alpha", "a-task", "a-phase")
+    h.create_generic_record(
+        cli, defs, "project:assignment", subject="a-assign",
+        extra_payload={"work_item": item["id"], "executor": "sub-1", "effort": "alpha"},
+    )
+    for subject, result, verdict in (
+        ("a-report-pass", "pass", "pass"), ("a-report-result-fail", "fail", "pass"), ("a-report-verdict-fail", "pass", "fail"),
+    ):
+        h.create_generic_record(
+            cli, defs, "project:execution-report", subject=subject,
+            extra_payload={"work_item": item["id"], "result": result, "verdict": verdict},
+        )
+    for subject, result in (("a-check-pass", "pass"), ("a-check-fail", "fail")):
+        h.create_generic_record(
+            cli, defs, "project:check-run", subject=subject,
+            extra_payload={"method": "check", "signed_by": "", "result": result, "effort": "alpha"},
+        )
+
+    activity = _effort(model.load_snapshot(_target(store)), "alpha").activity
+    assert sorted(a.subject for a in activity if a.failed) == [
+        "a-check-fail", "a-report-result-fail", "a-report-verdict-fail",
+    ]
+    assert len(activity) == 6
+
+
 def test_activity_window_follows_the_supplied_clock(store, cli, defs):
     _goal(cli, defs, "alpha")
     h.create_generic_record(

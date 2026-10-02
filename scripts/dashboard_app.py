@@ -291,8 +291,9 @@ def activity_lines(view: model.EffortView, now: datetime, colors: dict[str, str]
     for item in view.activity[:ACTIVITY_LINES]:
         line = Text(no_wrap=True, overflow="ellipsis")
         line.append(f"{relative_time(item.recorded_at, now):>7}", style=colors["muted"])
-        line.append(f" {ACTIVITY_GLYPH.get(item.kind, '·')} ")
-        line.append(clip(item.summary, max(width - 10, 10)))
+        style = colors["error"] if item.failed else ""
+        line.append(f" {'✗' if item.failed else ACTIVITY_GLYPH.get(item.kind, '·')} ", style=style)
+        line.append(clip(item.summary, max(width - 10, 10)), style=style)
         lines.append(line)
     return lines
 
