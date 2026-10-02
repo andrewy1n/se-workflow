@@ -200,7 +200,7 @@ def test_resize_rebuilds_task_columns_from_the_new_width(seeded):
 def test_needs_you_panel_and_activity_feed_show_their_items(seeded, width):
     async def scenario(app, pilot):
         assert app.query_one("#needs-you").display
-        assert "which backend" in _text(app, "#needs-you")
+        assert "which backend" in _needs_text(app)
         activity = _text(app, "#activity")
         lines = activity.splitlines()
         assert len(lines) == 3
@@ -235,7 +235,7 @@ def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
     async def scenario(app, pilot):
         await pilot.pause()
         keys = list(app.query("FooterKey"))
-        assert sorted(str(key.description) for key in keys) == ["copy", "filter", "open", "phase", "quit", "status", "switch"]
+        assert sorted(str(key.description) for key in keys) == ["copy", "filter", "needs", "phase", "quit", "status", "switch"]
         assert all(key.region.right <= 60 for key in keys)
 
     _run(seeded, 60, scenario)
@@ -458,7 +458,7 @@ def test_needs_you_panel_title_counts_every_item_including_effort_level_question
     async def scenario(app, pilot):
         panel = app.query_one("#needs-you")
         assert panel.border_title == "Needs you 1"
-        assert "which backend" in _text(app, "#needs-you")
+        assert "which backend" in _needs_text(app)
         _needs_task(cli, defs)
         await _until(pilot, lambda: panel.border_title == "Needs you 2")
         assert not list(app.query("#status-needs"))
@@ -1731,3 +1731,153 @@ def test_once_lists_finished_efforts_last(finished):
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout.index("ship beta") < result.stdout.index("ship alpha")
+
+
+LONG_SCOPE = (
+    "which storage backend should the dashboard read when both the home store and the repo store exist and disagree"
+    " about the live goal, the phases, and every open work-item in the effort"
+)
+
+
+def _needs_text(app):
+    return "\n".join(str(app.query_one("#needs-you").get_option_at_index(i).prompt)
+                     for i in range(app.query_one("#needs-you").option_count))
+
+
+def _needy(cli, defs):
+    _needs_task(cli, defs)
+    return _record(cli, defs, "project:continuity-question", "alpha",
+                   {"subject": "alpha", "owner": "ayin", "blocking": False, "scope": LONG_SCOPE},
+                   "Pick the **home** store unless the repo pins one.")
+
+
+def _item(app, text):
+    return next(item for view in app.snapshot.efforts for item in view.needs_you if item.text == text)
+
+
+async def _focus_needs(app, pilot, text):
+    await pilot.press("n")
+    await pilot.pause()
+    needs = app.query_one("#needs-you")
+    wanted = [option.id for option in needs.options].index(_item(app, text).id)
+    for _ in range(wanted):
+        await pilot.press("down")
+    await pilot.pause()
+    return needs
+
+
+async def _needs_shown(app, pilot):
+    await _until(pilot, lambda: isinstance(app.screen, app_module.NeedsYouDetailScreen) and app.screen.loaded)
+    await _settled(app, pilot)
+    return app.screen
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_n_focuses_the_needs_you_list_and_esc_returns_to_the_task_table(seeded, cli, defs, size):
+    _needy(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        assert app.focused is app.query_one("#tasks")
+        await pilot.press("n")
+        await pilot.pause()
+        needs = app.query_one("#needs-you")
+        assert app.focused is needs
+        assert needs.highlighted == 0
+        await pilot.press("down")
+        assert needs.highlighted == 1
+        await pilot.press("up")
+        assert needs.highlighted == 0
+        await pilot.press("escape")
+        await pilot.pause()
+        assert app.focused is app.query_one("#tasks")
+
+    _detail_run(seeded, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_needs_you_enter_on_a_linked_item_opens_its_task_detail(seeded, cli, defs, size):
+    _needy(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await _focus_needs(app, pilot, "need a call")
+        await pilot.press("enter")
+        screen = await _shown(app, pilot)
+        assert screen.task_id == _item(app, "need a call").task_id
+        assert screen.detail.subject == "a-waiting"
+
+    _detail_run(seeded, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_needs_you_enter_on_a_question_opens_the_needs_you_detail_with_full_text_and_body(seeded, cli, defs, size):
+    _needy(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        needs = app.query_one("#needs-you")
+        shown = [needs.render_line(y).text for y in range(needs.option_count)]
+        assert not any(LONG_SCOPE in line for line in shown) and any("which storage" in line for line in shown)
+        item = _item(app, LONG_SCOPE)
+        assert item.task_id == ""
+        await _focus_needs(app, pilot, LONG_SCOPE)
+        await pilot.press("enter")
+        screen = await _needs_shown(app, pilot)
+        assert str(screen.query_one("#needs-bar").render()).startswith("alpha")
+        chips = str(screen.query_one("#needs-chips").render())
+        assert chips.startswith("question") and "project:continuity-question" in chips
+        assert screen.query_one("#needs-text Markdown").source == LONG_SCOPE
+        assert screen.query_one("#needs-body Markdown").source == "Pick the **home** store unless the repo pins one."
+        await pilot.press("escape")
+        await pilot.pause(0.3)
+        assert not isinstance(app.screen, app_module.NeedsYouDetailScreen)
+        assert app.focused is app.query_one("#needs-you")
+        await pilot.press("escape")
+        await pilot.pause()
+        assert app.focused is app.query_one("#tasks")
+
+    _detail_run(seeded, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_c_on_the_needs_you_list_and_detail_copies_the_item_subject(seeded, cli, defs, size):
+    _needy(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await _focus_needs(app, pilot, "need a call")
+        await pilot.press("c")
+        await pilot.pause()
+        assert app.clipboard == "a-waiting"
+        assert "Copied a-waiting" in _notices(app)
+        await pilot.press("escape")
+        await _focus_needs(app, pilot, LONG_SCOPE)
+        await pilot.press("enter")
+        await _needs_shown(app, pilot)
+        await pilot.press("c")
+        await pilot.pause()
+        assert app.clipboard == "alpha"
+
+    _detail_run(seeded, size, scenario)
+
+
+def test_needs_you_detail_follows_the_store_and_blocks_dashboard_keys(seeded, cli, defs):
+    record = _needy(cli, defs)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await _focus_needs(app, pilot, LONG_SCOPE)
+        await pilot.press("enter")
+        screen = await _needs_shown(app, pilot)
+        for key in ("tab", "n", "p", "slash", "1"):
+            await pilot.press(key)
+            await pilot.pause()
+            assert app.screen is screen
+        result = cli("update", "--type", "project:continuity-question", "--id", record["id"],
+                     "--expected-revision", record["revision"],
+                     "--payload", json.dumps({**record["payload"], "scope": "which backend, revised"}))
+        assert result.returncode == 0, result.stdout + result.stderr
+        await _until(pilot, lambda: screen.query_one("#needs-text Markdown").source == "which backend, revised")
+
+    _detail_run(seeded, (120, 40), scenario, interval=0.3)

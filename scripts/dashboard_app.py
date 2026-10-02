@@ -32,8 +32,9 @@ from textual.screen import Screen  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets._tabbed_content import ContentTabs  # noqa: E402
 from textual.widgets import (  # noqa: E402
-    Collapsible, DataTable, Footer, Input, Markdown, ProgressBar, Static, TabbedContent, TabPane,
+    Collapsible, DataTable, Footer, Input, Markdown, OptionList, ProgressBar, Static, TabbedContent, TabPane,
 )
+from textual.widgets.option_list import Option  # noqa: E402
 
 WIDE = 90
 ACTIVITY_LINES = 10
@@ -45,6 +46,9 @@ RESULT_GLYPH = {"pass": "✓", "fail": "✗"}
 NEEDS_LABEL = {
     "blocking-question": "blocking", "needs-human": "needs you",
     "unsigned-check": "unsigned", "open-question": "question",
+}
+NEEDS_TEXT_TITLE = {
+    "blocking-question": "Question", "open-question": "Question", "needs-human": "Claim", "unsigned-check": "Check",
 }
 ANSI_PALETTE = {
     "primary": "cyan", "success": "green", "warning": "yellow", "error": "red", "muted": "dim",
@@ -556,7 +560,7 @@ class EffortPane(VerticalScroll):
         none.border_title = "Tasks"
         none.display = False
         yield none
-        needs = Static(id="needs-you")
+        needs = NeedsList(id="needs-you")
         needs.border_title = "Needs you"
         yield needs
         activity = Static(id="activity")
@@ -582,8 +586,7 @@ class EffortPane(VerticalScroll):
         for tab in self.query(StatusTab):
             tab.show(tally[tab.tab_name], tab.tab_name == selected)
         self.fill_tasks(view, width, inner, colors)
-        self.query_one("#needs-you", Static).border_title = f"Needs you {len(view.needs_you)}"
-        self.fill_panel("#needs-you", needs_lines(view, colors, inner - 4))
+        self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
         self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
 
     def mark_status_tab(self, selected: str) -> None:
@@ -661,7 +664,7 @@ class FilterInput(Input):
 
 class TaskTable(DataTable):
     BINDINGS = [
-        Binding("enter", "select_cursor", "open"),
+        Binding("enter", "select_cursor", "open", show=False),
         Binding("left", "app.step_status_tab(-1)", "previous tab", show=False),
         Binding("right", "app.step_status_tab(1)", "next tab", show=False),
         Binding("j", "cursor_down", "down", show=False),
@@ -678,6 +681,39 @@ class TaskTable(DataTable):
             event.prevent_default()
             self.move_cursor(row=row)
             self.app.activate(self.coordinate_to_cell_key(Coordinate(row, 0)).row_key.value)
+
+
+class NeedsList(OptionList):
+    BINDINGS = [
+        Binding("escape", "app.leave_needs", "back", show=False),
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+    ]
+
+    def __init__(self, id: str) -> None:
+        super().__init__(id=id)
+        self.items: list[model.NeedsYouItem] = []
+
+    def fill(self, view: model.EffortView, colors: dict[str, str], width: int) -> None:
+        kept = self.highlighted_item()
+        index = self.highlighted
+        self.items = list(view.needs_you)
+        self.border_title = f"Needs you {len(self.items)}"
+        self.display = bool(self.items)
+        self.clear_options()
+        self.add_options(Option(line, id=item.id) for item, line in zip(self.items, needs_lines(view, colors, width)))
+        ids = [item.id for item in self.items]
+        if kept is not None and kept.id in ids:
+            self.highlighted = ids.index(kept.id)
+        elif index is not None and ids:
+            self.highlighted = min(index, len(ids) - 1)
+        if not self.items and self.has_focus:
+            self.app.leave_needs()
+
+    def highlighted_item(self) -> model.NeedsYouItem | None:
+        if self.highlighted is None or self.highlighted >= len(self.items):
+            return None
+        return self.items[self.highlighted]
 
 
 class TaskDetailScreen(Screen[None]):
@@ -999,6 +1035,79 @@ class PhaseDetailScreen(Screen[None]):
         self.loaded = True
 
 
+class NeedsYouDetailScreen(Screen[None]):
+    CSS = """
+    #needs-bar { height: 1; padding: 0 1; background: $panel; }
+    #needs-error { height: auto; padding: 0 1; background: $warning 20%; color: $warning; display: none; }
+    #needs-detail { padding: 0 1; scrollbar-gutter: stable; }
+    #needs-title { margin-top: 1; text-style: bold; }
+    .needs-panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
+    .needs-panel Markdown { margin: 0; padding: 0; background: transparent; }
+    .needs-panel Markdown > MarkdownBlock:last-child { margin-bottom: 0; }
+    """
+    AUTO_FOCUS = "#needs-detail"
+    BINDINGS = [
+        Binding("escape", "back", "back"),
+        Binding("c", "app.copy_slug", "copy"),
+        Binding("r", "app.refresh", "refresh"),
+    ]
+
+    def __init__(self, item: model.NeedsYouItem, effort: str) -> None:
+        super().__init__()
+        self.item = item
+        self.effort = effort
+        self.loaded = False
+
+    def compose(self) -> ComposeResult:
+        yield Static(id="needs-bar")
+        yield Static(id="needs-error")
+        with VerticalScroll(id="needs-detail"):
+            yield Static(id="needs-title")
+            yield Static(id="needs-chips")
+            yield Vertical(Markdown(), id="needs-text", classes="needs-panel")
+            body = Vertical(Markdown(), id="needs-body", classes="needs-panel")
+            body.border_title = "Body"
+            yield body
+        yield Footer()
+
+    async def on_mount(self) -> None:
+        await self.show(self.item)
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+        self.app.call_after_refresh(self.app.refocus)
+
+    async def follow(self, snapshot: model.Snapshot) -> None:
+        found = next((i for v in snapshot.efforts for i in v.needs_you if i.id == self.item.id), None)
+        if found is None:
+            banner = self.query_one("#needs-error", Static)
+            banner.update(Text("No longer needs you", no_wrap=True, overflow="ellipsis"))
+            banner.display = True
+        elif found != self.item or not self.loaded:
+            await self.show(found)
+
+    async def show(self, item: model.NeedsYouItem) -> None:
+        if not self.is_attached:
+            return
+        colors = palette_from(self.app.get_css_variables())
+        self.item = item
+        self.query_one("#needs-error", Static).display = False
+        bar = Text(no_wrap=True, overflow="ellipsis")
+        bar.append(item.subject, style="bold")
+        if self.effort != item.subject:
+            bar.append(f"  {self.effort}", style=colors["muted"])
+        self.query_one("#needs-bar", Static).update(bar)
+        self.query_one("#needs-title", Static).update(Text(item.subject, style="bold"))
+        color = colors["error"] if item.kind == "blocking-question" else colors["warning"]
+        chips = Text.assemble((NEEDS_LABEL[item.kind], color), "  ", (item.record_type, colors["muted"]))
+        self.query_one("#needs-chips", Static).update(chips)
+        self.query_one("#needs-text").border_title = NEEDS_TEXT_TITLE[item.kind]
+        await self.query_one("#needs-text Markdown", Markdown).update(item.text)
+        self.query_one("#needs-body").display = bool(item.body.strip())
+        await self.query_one("#needs-body Markdown", Markdown).update(item.body.strip())
+        self.loaded = True
+
+
 class CommitScreen(Screen[None]):
     CSS = """
     #commit-bar { height: 1; padding: 0 1; background: $panel; }
@@ -1091,7 +1200,10 @@ class DashboardApp(App[None]):
     #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }
     #filter:focus { border: none; background: $panel; }
     #tasks-empty { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; color: $text-muted; }
-    #needs-you { height: auto; margin-top: 1; border: round $warning; border-title-color: $warning; padding: 0 1; }
+    #needs-you { height: auto; max-height: 12; margin-top: 1; border: round $warning; border-title-color: $warning; padding: 0 1; background: transparent; }
+    #needs-you:focus { border: round $warning; background-tint: $foreground 0%; }
+    #needs-you > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
+    #needs-you:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
     #activity { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     """
     ENABLE_COMMAND_PALETTE = False
@@ -1101,8 +1213,9 @@ class DashboardApp(App[None]):
         Binding("shift+tab", "previous_effort", "previous", show=False, priority=True),
         Binding("r", "refresh", "refresh", show=False),
         Binding("c", "copy_slug", "copy"),
-        Binding("enter", "open_task", "open"),
+        Binding("enter", "open_task", "open", show=False),
         Binding("p", "open_phase", "phase"),
+        Binding("n", "focus_needs", "needs"),
         Binding("slash", "filter", "filter"),
         Binding("1", "status_tab('active')", "status", key_display="1-6"),
         Binding("2", "status_tab('running')", "running", show=False),
@@ -1140,11 +1253,42 @@ class DashboardApp(App[None]):
 
     def focus_tasks(self) -> None:
         pane = self.active_pane()
-        if pane is None or isinstance(self.screen, (TaskDetailScreen, PhaseDetailScreen, CommitScreen)):
+        if pane is None or isinstance(self.screen, DETAIL_SCREENS):
             return
         table = pane.query_one("#tasks", DataTable)
         if table.display:
             table.focus(scroll_visible=False)
+
+    def action_focus_needs(self) -> None:
+        pane = self.active_pane()
+        needs = pane.query_one("#needs-you", NeedsList) if pane is not None else None
+        if needs is None or not needs.display:
+            return
+        if needs.highlighted is None:
+            needs.highlighted = 0
+        needs.focus()
+
+    def action_leave_needs(self) -> None:
+        self.leave_needs()
+
+    def leave_needs(self) -> None:
+        self.focus_tasks()
+        if isinstance(self.focused, NeedsList):
+            self.set_focus(None)
+
+    def refocus(self) -> None:
+        if self.focused is None or not self.focused.display:
+            self.focus_tasks()
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        needs = event.option_list
+        if not isinstance(needs, NeedsList) or event.option_index >= len(needs.items):
+            return
+        item = needs.items[event.option_index]
+        if item.task_id:
+            self.open_task(item.task_id)
+        elif not isinstance(self.screen, DETAIL_SCREENS):
+            self.push_screen(NeedsYouDetailScreen(item, needs.query_ancestor(EffortPane).effort))
 
     def action_scroll_pane(self, where: str) -> None:
         pane = self.active_pane()
@@ -1172,6 +1316,11 @@ class DashboardApp(App[None]):
             name = screen.detail.subject if screen.detail is not None else None
         elif isinstance(screen, PhaseDetailScreen):
             name = screen.phase_subject
+        elif isinstance(screen, NeedsYouDetailScreen):
+            name = screen.item.subject
+        elif isinstance(self.focused, NeedsList):
+            item = self.focused.highlighted_item()
+            name = item.subject if item is not None else None
         else:
             name = self.cursor_subject()
         if name:
@@ -1195,9 +1344,10 @@ class DashboardApp(App[None]):
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         if isinstance(self.screen, CommitScreen):
             return action == "quit"
-        detail = isinstance(self.screen, (TaskDetailScreen, PhaseDetailScreen))
+        detail = isinstance(self.screen, (TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen))
         if detail and action in (
             "next_effort", "previous_effort", "open_task", "open_phase", "filter", "status_tab", "step_status_tab", "clear_filter",
+            "focus_needs", "leave_needs",
         ):
             return False
         if action == "clear_filter":
@@ -1307,7 +1457,7 @@ class DashboardApp(App[None]):
             subject = key[len(PHASE_PREFIX):]
         else:
             subject = next((t.phase for v in self.snapshot.efforts for t in v.tasks if t.id == key), "")
-        if subject and not isinstance(self.screen, (TaskDetailScreen, PhaseDetailScreen)):
+        if subject and not isinstance(self.screen, DETAIL_SCREENS):
             self.push_screen(PhaseDetailScreen(self.target, pane.effort, subject))
 
     def open_task(self, task_id: str | None) -> None:
@@ -1371,6 +1521,9 @@ class DashboardApp(App[None]):
         self.query_one("#empty", Static).display = not names
         tabs.display = bool(names)
         self.paint()
+        for screen in self.screen_stack:
+            if isinstance(screen, NeedsYouDetailScreen):
+                await screen.follow(snapshot)
         if self.focused is None:
             self.focus_tasks()
             self.call_after_refresh(self.focus_tasks)
@@ -1391,6 +1544,9 @@ class DashboardApp(App[None]):
 
     def on_resize(self, event: events.Resize) -> None:
         self.paint(event.size.width)
+
+
+DETAIL_SCREENS = (TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen, CommitScreen)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

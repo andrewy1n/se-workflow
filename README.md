@@ -146,10 +146,12 @@ It needs `uv`. The first run downloads `textual`.
 | `tab` / `shift+tab` | Switch effort |
 | `enter` / click | Open the task detail, or expand or collapse a phase header or the earlier-phases row |
 | `p` | Open the phase detail (body, decisions, constraints, tasks) for the selected row |
+| `n` | Focus the Needs you list; arrows or `j` / `k` move, `esc` returns to the task table |
+| `enter` on a Needs you item | Open the task detail when the item has a task, else the Needs you detail (kind, record type, full text, body) |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
 | `1`-`6` / `left` / `right` / click | Pick a status tab; the filter applies on top |
 | `esc` | Clear the filter, or go back |
-| `c` | Copy the selected task's slug |
+| `c` | Copy the selected task's slug, or the subject of the selected Needs you item |
 | `g` | In the detail, show the commit of the task's latest revision |
 | `r` | Refresh now |
 | `q` | Quit |
