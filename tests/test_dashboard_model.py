@@ -174,6 +174,66 @@ def test_unsigned_check_reads_as_its_criterion_and_task_not_a_record_id(store, c
     assert not any("rec-" in item.text or "rec-" in item.subject for item in items)
 
 
+def test_needs_you_items_carry_record_type_and_full_body(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _record(cli, defs, "project:continuity-question", "alpha",
+            {"subject": "alpha", "owner": "ayin", "blocking": True, "scope": "which renderer"},
+            "Pick the PDF renderer before the render task starts.")
+    _record(cli, defs, "project:finding", "f-human",
+            {"claim": "human decides", "basis": "b", "needs": "human", "effort": "alpha", "invalidated_when": "w"})
+
+    items = {item.kind: item for item in _effort(model.load_snapshot(_target(store)), "alpha").needs_you}
+    assert items["blocking-question"].record_type == "project:continuity-question"
+    assert items["blocking-question"].body.strip() == "Pick the PDF renderer before the render task starts."
+    assert items["needs-human"].record_type == "project:finding"
+    assert "placeholder text for Follow-up." in items["needs-human"].body
+
+
+def test_needs_you_items_link_to_the_task_with_the_longest_matching_slug(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _goal(cli, defs, "beta")
+    pdf = _work_item(cli, defs, "alpha", "pdf", "a-one")
+    render = _work_item(cli, defs, "alpha", "pdf-render", "a-one")
+    _work_item(cli, defs, "beta", "pdf-render-check", "b-one")
+    finding = {"basis": "b", "needs": "human", "effort": "alpha", "invalidated_when": "w"}
+    _record(cli, defs, "project:finding", "pdf-render", {**finding, "claim": "exact"})
+    _record(cli, defs, "project:finding", "pdf-render-check", {**finding, "claim": "prefix"})
+    _record(cli, defs, "project:finding", "pdfx-render", {**finding, "claim": "no boundary"})
+    _record(cli, defs, "project:finding", "pdf-other", {**finding, "claim": "short prefix"})
+    acceptance = _record(cli, defs, "project:acceptance", "pdf-render-perf",
+                         {"criterion": "pages render", "method": "manual", "verify_command": "", "effort": "alpha",
+                          "phase": "a-one"})
+    _record(cli, defs, "project:check-run", "u-check",
+            {"method": "manual", "signed_by": "", "result": "pass", "revision": "r", "effort": "alpha",
+             "criterion_id": acceptance["id"]})
+
+    items = _effort(model.load_snapshot(_target(store)), "alpha").needs_you
+    assert sorted((item.text, item.task_id) for item in items) == sorted([
+        ("exact", render["id"]),
+        ("prefix", render["id"]),
+        ("no boundary", ""),
+        ("short prefix", pdf["id"]),
+        ("pages render pass", render["id"]),
+    ])
+
+
+def test_needs_you_effort_level_question_links_to_no_task(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _work_item(cli, defs, "alpha", "alpha-task", "a-one")
+    h.create_generic_record(
+        cli, defs, "project:continuity-question", subject="alpha",
+        extra_payload={"blocking": False, "scope": "effort scope"},
+    )
+
+    items = _effort(model.load_snapshot(_target(store)), "alpha").needs_you
+    assert [(item.kind, item.task_id) for item in items] == [("open-question", "")]
+
+
+def test_needs_you_item_defaults_keep_the_four_field_constructor_working():
+    item = model.NeedsYouItem("needs-human", "rec-1", "s", "t")
+    assert (item.record_type, item.body, item.task_id) == ("", "", "")
+
+
 def test_recent_activity_lists_last_24h_newest_first_and_resolves_reports_to_their_effort(store, cli, defs):
     _goal(cli, defs, "alpha")
     _goal(cli, defs, "beta")

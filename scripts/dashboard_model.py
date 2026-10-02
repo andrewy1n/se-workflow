@@ -20,6 +20,7 @@ LIVE_PHASE_STATES = ("planned", "in_progress", "done")
 COUNTED_TASK_STATES = ("planned", "in_progress", "done")
 CHECK_RESULT = {"pass": "passed", "fail": "failed"}
 TOKEN_DIRS = ("records", "history")
+FULL_TYPES = ("project:continuity-question", "project:finding", "project:check-run")
 
 
 class ModelError(RuntimeError):
@@ -55,6 +56,9 @@ class NeedsYouItem:
     id: str
     subject: str
     text: str
+    record_type: str = ""
+    body: str = ""
+    task_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -126,7 +130,7 @@ def _run(target: Target, *args: str) -> dict[str, Any]:
 
 
 def _list(target: Target, record_type: str) -> list[dict[str, Any]]:
-    output = _run(target, "list", "--type", record_type)
+    output = _run(target, "list", "--type", record_type, *(("--full",) if record_type in FULL_TYPES else ()))
     try:
         return output["records"]
     except (KeyError, TypeError) as exc:
@@ -220,19 +224,32 @@ def _phase_rows(
     return rows
 
 
+def _task_for(subject: str, tasks: list[dict[str, Any]]) -> str:
+    matches = [task for task in tasks if subject == task["subject"] or subject.startswith(task["subject"] + "-")]
+    return max(matches, key=lambda task: len(task["subject"]))["id"] if matches else ""
+
+
 def _needs_you(
     questions: list[dict[str, Any]], findings: list[dict[str, Any]], checks: list[dict[str, Any]],
-    acceptances: dict[str, dict[str, Any]] | None = None,
+    acceptances: dict[str, dict[str, Any]] | None = None, tasks: list[dict[str, Any]] | None = None,
 ) -> list[NeedsYouItem]:
     acceptances = acceptances or {}
+    tasks = tasks or []
+
+    def item(kind: str, record: dict[str, Any], subject: str, text: str) -> NeedsYouItem:
+        return NeedsYouItem(
+            kind, record["id"], subject, text, record_type=record.get("record_type", ""),
+            body=record.get("body") or "", task_id=_task_for(subject, tasks),
+        )
+
     items = []
     for record in questions:
         if record["lifecycle_state"] == "open":
             kind = "blocking-question" if _payload(record).get("blocking") is True else "open-question"
-            items.append(NeedsYouItem(kind, record["id"], record["subject"], _payload(record).get("scope", "")))
+            items.append(item(kind, record, record["subject"], _payload(record).get("scope", "")))
     for record in findings:
         if _payload(record).get("needs") == "human" and record["lifecycle_state"] in ("asserted", "supported", "disputed"):
-            items.append(NeedsYouItem("needs-human", record["id"], record["subject"], _payload(record).get("claim", "")))
+            items.append(item("needs-human", record, record["subject"], _payload(record).get("claim", "")))
     for record in checks:
         payload = _payload(record)
         if payload.get("method") == "manual" and payload.get("signed_by") == "" and not _derived(record).get("corrected"):
@@ -240,8 +257,8 @@ def _needs_you(
             subject = acceptance["subject"] if acceptance else record["subject"]
             criterion = _payload(acceptance).get("criterion", "") if acceptance else ""
             text = f"{criterion} {payload.get('result', '')}".strip()
-            items.append(NeedsYouItem("unsigned-check", record["id"], subject, text))
-    items.sort(key=lambda item: NEEDS_ORDER.index(item.kind))
+            items.append(item("unsigned-check", record, subject, text))
+    items.sort(key=lambda entry: NEEDS_ORDER.index(entry.kind))
     return items
 
 
@@ -325,6 +342,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             tasks=_task_rows(tasks.get(effort, [])),
             needs_you=_needs_you(
                 questions.get(effort, []), findings.get(effort, []), checks.get(effort, []), acceptances_by_id,
+                tasks.get(effort, []),
             ),
             activity=activity.get(effort, []),
         ))
