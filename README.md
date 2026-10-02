@@ -163,9 +163,10 @@ It needs `uv`. The first run downloads `textual`.
 | `enter` on a Needs you item | Open the task detail when the item has a task, else the Needs you detail (kind, record type, full text, body) |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
 | `1`-`6` / `left` / `right` / click | Pick a status tab; the filter applies on top |
-| `esc` | Clear the filter, or go back |
+| `esc` | Clear the filter, or go back one screen |
 | `c` | Copy the selected task's slug, or the subject of the selected Needs you item |
 | `g` | In the detail, show the commit of the task's latest revision |
+| `l` | In the task detail, focus the links (depends on, blocks, phase); arrows or `j` / `k` move, `enter` opens the task or phase detail |
 | `r` | Refresh now |
 | `q` | Quit |
 

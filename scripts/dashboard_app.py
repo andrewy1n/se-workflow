@@ -413,13 +413,19 @@ def phase_task_lines(tasks: list[model.TaskRow], colors: dict[str, str]) -> Text
     return text
 
 
-def linked_line(label: str, tasks: list[model.LinkedTask], colors: dict[str, str]) -> Text:
-    text = Text(f"{label} ")
-    for index, task in enumerate(tasks):
-        text.append("   " if index else "")
-        text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
-        text.append(task.subject, style=colors["muted"])
-    return text
+def link_options(detail: model.TaskDetail, colors: dict[str, str]) -> list[Option]:
+    options = []
+    for label, tasks in (("Depends on:", detail.depends_on), ("Blocks:", detail.blocks)):
+        for task in tasks:
+            text = Text(f"{label} ", no_wrap=True, overflow="ellipsis")
+            text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
+            text.append(task.subject, style=colors["muted"])
+            options.append(Option(text, id=f"task:{task.id}"))
+    if detail.phase:
+        text = Text("Phase: ", no_wrap=True, overflow="ellipsis")
+        text.append(detail.phase, style=colors["muted"])
+        options.append(Option(text, id=f"{PHASE_PREFIX}{detail.phase}"))
+    return options
 
 
 def description_source(body: str) -> str:
@@ -734,6 +740,23 @@ class NeedsList(OptionList):
         return self.items[self.highlighted]
 
 
+class LinkList(OptionList):
+    BINDINGS = [
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+    ]
+
+    def fill(self, options: list[Option]) -> None:
+        index = self.highlighted
+        self.display = bool(options)
+        self.clear_options()
+        self.add_options(options)
+        if index is not None and options:
+            self.highlighted = min(index, len(options) - 1)
+        if not options and self.has_focus:
+            self.screen.set_focus(self.screen.query_one("#detail"))
+
+
 class TaskDetailScreen(Screen[None]):
     CSS = """
     #detail-bar { height: 1; padding: 0 1; background: $panel; }
@@ -742,8 +765,10 @@ class TaskDetailScreen(Screen[None]):
     #detail-loading { margin-top: 1; color: $text-muted; }
     #detail-content { height: auto; display: none; }
     #detail-title { margin-top: 1; text-style: bold; }
-    #detail-depends, #detail-blocks { margin-top: 0; }
-    #detail-depends { margin-top: 1; }
+    #detail-links { height: auto; margin-top: 1; border: none; padding: 0; background: transparent; }
+    #detail-links:focus { border: none; background-tint: $foreground 0%; }
+    #detail-links > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
+    #detail-links:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
     .panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     .acceptance { height: auto; margin-bottom: 1; }
     .acceptance:last-child { margin-bottom: 0; }
@@ -763,6 +788,7 @@ class TaskDetailScreen(Screen[None]):
     AUTO_FOCUS = "#detail"
     BINDINGS = [
         Binding("escape", "back", "back"),
+        Binding("l", "focus_links", "links"),
         Binding("c", "app.copy_slug", "copy"),
         Binding("g", "commit", "commit"),
         Binding("r", "app.refresh", "refresh"),
@@ -787,8 +813,7 @@ class TaskDetailScreen(Screen[None]):
             with Vertical(id="detail-content"):
                 yield Static(id="detail-title")
                 yield Static(id="detail-chips")
-                yield Static(id="detail-depends")
-                yield Static(id="detail-blocks")
+                yield LinkList(id="detail-links")
                 description = Vertical(Markdown(), id="description", classes="panel")
                 description.border_title = "Description"
                 yield description
@@ -809,6 +834,24 @@ class TaskDetailScreen(Screen[None]):
     def action_back(self) -> None:
         self.app.pop_screen()
         self.app.call_after_refresh(self.app.focus_tasks)
+
+    def action_focus_links(self) -> None:
+        links = self.query_one("#detail-links", LinkList)
+        if not links.option_count:
+            return
+        if links.highlighted is None:
+            links.highlighted = 0
+        links.focus()
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        if not isinstance(event.option_list, LinkList) or self.detail is None:
+            return
+        event.stop()
+        key = event.option.id or ""
+        if key.startswith(PHASE_PREFIX):
+            self.app.push_screen(PhaseDetailScreen(self.target, self.detail.effort, key[len(PHASE_PREFIX):]))
+        elif key.startswith("task:"):
+            self.app.push_screen(TaskDetailScreen(self.target, key[len("task:"):]))
 
     def action_commit(self) -> None:
         if self.detail is None:
@@ -873,12 +916,7 @@ class TaskDetailScreen(Screen[None]):
         self.query_one("#detail-bar", Static).update(bar)
         self.query_one("#detail-title", Static).update(Text(detail.title or detail.subject, style="bold"))
         self.paint_chips()
-        for name, label, tasks in (
-            ("depends", "Depends on:", detail.depends_on), ("blocks", "Blocks:", detail.blocks),
-        ):
-            line = self.query_one(f"#detail-{name}", Static)
-            line.display = bool(tasks)
-            line.update(linked_line(label, tasks, colors))
+        self.query_one("#detail-links", LinkList).fill(link_options(detail, colors))
         await self.query_one("#description Markdown", Markdown).update(description_source(detail.body))
         await self.fill_acceptances(detail, colors)
         await self.fill_timeline(detail, now, colors)

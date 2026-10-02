@@ -899,8 +899,7 @@ def test_detail_screen_shows_header_chips_and_linked_tasks(detailed, size, opene
         assert "Detail task" in _text(screen, "#detail-title")
         chips = _text(screen, "#detail-chips")
         assert "▶ running" in chips and "phase det-phase" in chips and "w2" in chips and "assignee sub-d" in chips
-        assert _text(screen, "#detail-depends").strip() == "Depends on: ✓ det-dep"
-        assert _text(screen, "#detail-blocks").strip() == "Blocks: ◌ det-blocked"
+        assert _link_lines(screen) == ["Depends on: ✓ det-dep", "Blocks: ◌ det-blocked", "Phase: det-phase"]
         assert "det-task" in _text(screen, "#detail-bar") and "alpha" in _text(screen, "#detail-bar")
 
     _detail_run(store, size, scenario)
@@ -1099,14 +1098,14 @@ def test_one_click_pushes_a_single_detail_screen(detailed):
     _detail_run(store, (60, 40), scenario)
 
 
-def test_detail_footer_shows_back_copy_commit_refresh_and_quit_within_60_columns(detailed):
+def test_detail_footer_shows_back_links_copy_commit_refresh_and_quit_within_60_columns(detailed):
     store, task, _ = detailed
 
     async def scenario(app, pilot):
         await _open_by_enter(app, pilot, task["id"])
         await _shown(app, pilot)
         keys = list(app.screen.query("FooterKey"))
-        assert sorted(str(key.description) for key in keys) == ["back", "commit", "copy", "quit", "refresh"]
+        assert sorted(str(key.description) for key in keys) == ["back", "commit", "copy", "links", "quit", "refresh"]
         assert all(key.region.right <= 60 for key in keys)
 
     _detail_run(store, (60, 40), scenario)
@@ -1123,6 +1122,106 @@ def test_detail_shows_loading_then_content(detailed):
         assert not screen.query_one("#detail-loading").display
 
     _detail_run(store, (60, 40), scenario)
+
+
+def _link_lines(screen):
+    links = screen.query_one("#detail-links")
+    return [str(links.get_option_at_index(index).prompt).strip() for index in range(links.option_count)]
+
+
+async def _focus_links(app, pilot, screen):
+    await pilot.press("l")
+    await _until(pilot, lambda: app.focused is screen.query_one("#detail-links"))
+
+
+async def _open_link(app, pilot, screen, *moves):
+    await _focus_links(app, pilot, screen)
+    await pilot.press(*moves, "enter")
+    await _until(pilot, lambda: app.screen is not screen)
+    if isinstance(app.screen, app_module.TaskDetailScreen):
+        return await _shown(app, pilot)
+    return await _phase_shown(app, pilot)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_enter_on_a_dependency_link_opens_that_task(detailed, size):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        screen = await _open_task(app, pilot, task)
+        dep = screen.detail.depends_on[0]
+        opened = await _open_link(app, pilot, screen)
+        assert isinstance(opened, app_module.TaskDetailScreen)
+        assert opened.task_id == dep.id and opened.detail.subject == "det-dep"
+        assert len(app.screen_stack) == 3
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_enter_on_a_blocked_task_link_opens_it(detailed, size):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        screen = await _open_task(app, pilot, task)
+        opened = await _open_link(app, pilot, screen, "down")
+        assert isinstance(opened, app_module.TaskDetailScreen)
+        assert opened.detail.subject == "det-blocked"
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_enter_on_the_phase_link_opens_the_phase_detail(detailed, size):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        screen = await _open_task(app, pilot, task)
+        opened = await _open_link(app, pilot, screen, "j", "j")
+        assert isinstance(opened, app_module.PhaseDetailScreen)
+        assert opened.phase_subject == "det-phase" and opened.effort == "alpha"
+
+    _detail_run(store, size, scenario)
+
+
+def test_link_list_skips_empty_groups_and_keeps_scroll_focus_on_open(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        screen = await _open_task(app, pilot, task)
+        assert app.focused is screen.query_one("#detail")
+        dep = await _open_link(app, pilot, screen)
+        assert _link_lines(dep) == ["Blocks: ▶ det-task", "Phase: det-phase"]
+        assert app.focused is dep.query_one("#detail")
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_escape_walks_back_through_linked_screens_one_at_a_time(detailed):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        dashboard = app.screen
+        first = await _open_task(app, pilot, task)
+        dep = await _open_link(app, pilot, first)
+        phase = await _open_link(app, pilot, dep, "down")
+        assert phase.phase_subject == "det-phase"
+        assert len(app.screen_stack) == 4
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is dep)
+        await pilot.pause(0.1)
+        assert app.focused is dep.query_one("#detail-links")
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is first)
+        await pilot.pause(0.1)
+        assert app.focused is first.query_one("#detail-links")
+        assert len(app.screen_stack) == 2
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is dashboard)
+        await _until(pilot, lambda: app.focused is app.query_one("#tasks"))
+        assert _cursor_key(app.query_one("#tasks")).value == task["id"]
+
+    _detail_run(store, (120, 40), scenario)
 
 
 def _build_committed(store, cli, defs):
