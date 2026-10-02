@@ -1823,7 +1823,7 @@ def test_p_on_a_header_opens_the_phase_detail_with_body_decisions_constraints_an
         assert "placeholder text for Problem" in screen.query_one("#phase-body Markdown").source
         assert "go left" in str(screen.query_one("#phase-decisions").render())
         assert "no network" in str(screen.query_one("#phase-constraints").render())
-        tasks = str(screen.query_one("#phase-tasks").render())
+        tasks = " ".join(_phase_task_titles(screen))
         assert "title of cur-run" in tasks and "title of cur-ready" in tasks and "later-task" not in tasks
         await pilot.press("escape")
         await pilot.pause(0.3)
@@ -1831,6 +1831,63 @@ def test_p_on_a_header_opens_the_phase_detail_with_body_decisions_constraints_an
         assert app.focused is app.query_one("#tasks")
 
     _detail_run(phased, size, scenario)
+
+
+def _phase_task_titles(screen):
+    tasks = screen.query_one("#phase-tasks")
+    return [str(tasks.get_option_at_index(index).prompt) for index in range(tasks.option_count)]
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_phase_task_list_takes_focus_and_arrows_move_through_the_tasks(phased, size):
+    async def scenario(app, pilot):
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        tasks = screen.query_one("#phase-tasks")
+        assert app.focused is tasks
+        assert tasks.highlighted == 0
+        await pilot.press("down")
+        assert tasks.highlighted == 1
+        await pilot.press("up")
+        assert tasks.highlighted == 0
+
+    _detail_run(phased, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_phase_task_enter_opens_the_task_detail_and_escape_returns_to_the_phase_detail(phased, size):
+    async def scenario(app, pilot):
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        await pilot.press("down", "enter")
+        detail = await _shown(app, pilot)
+        assert detail.task_id == screen.detail.tasks[1].id
+        assert detail.detail.title in _phase_task_titles(screen)[1]
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is screen)
+        await pilot.pause(0.3)
+        assert app.screen is screen
+        assert app.focused is screen.query_one("#phase-tasks")
+        assert screen.query_one("#phase-tasks").highlighted == 1
+
+    _detail_run(phased, size, scenario)
+
+
+def test_phase_task_list_leaves_page_keys_scrolling_the_phase_detail(phased):
+    async def scenario(app, pilot):
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        scroll = screen.query_one("#phase")
+        assert scroll.max_scroll_y > 0
+        await pilot.press("home")
+        await _until(pilot, lambda: scroll.scroll_y == 0)
+        await pilot.press("pagedown")
+        await _until(pilot, lambda: scroll.scroll_y > 0)
+        await pilot.press("home")
+        await _until(pilot, lambda: scroll.scroll_y == 0)
+        assert app.focused is screen.query_one("#phase-tasks")
+
+    _detail_run(phased, (60, 20), scenario)
 
 
 def test_p_on_a_task_row_opens_the_detail_of_that_tasks_phase(phased):

@@ -28,6 +28,7 @@ from textual.binding import Binding  # noqa: E402
 from textual.app import App, ComposeResult  # noqa: E402
 from textual.containers import Horizontal, Vertical, VerticalScroll  # noqa: E402
 from textual.coordinate import Coordinate  # noqa: E402
+from textual.geometry import Region  # noqa: E402
 from textual.screen import Screen  # noqa: E402
 from textual.widget import Widget  # noqa: E402
 from textual.widgets._tabbed_content import ContentTabs  # noqa: E402
@@ -404,12 +405,10 @@ def phase_chips(detail: model.PhaseDetail, colors: dict[str, str]) -> Text:
     return text
 
 
-def phase_task_lines(tasks: list[model.TaskRow], colors: dict[str, str]) -> Text:
+def phase_task_line(task: model.TaskRow, colors: dict[str, str]) -> Text:
     text = Text(no_wrap=True, overflow="ellipsis")
-    for index, task in enumerate(tasks):
-        text.append("\n" if index else "")
-        text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
-        text.append(task.title or task.subject)
+    text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
+    text.append(task.title or task.subject)
     return text
 
 
@@ -757,6 +756,48 @@ class LinkList(OptionList):
             self.screen.set_focus(self.screen.query_one("#detail"))
 
 
+class PhaseTaskList(OptionList):
+    BINDINGS = [
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+        Binding("pageup", "scroll_phase('page_up')", "page up", show=False),
+        Binding("pagedown", "scroll_phase('page_down')", "page down", show=False),
+        Binding("home", "scroll_phase('home')", "top", show=False),
+        Binding("end", "scroll_phase('end')", "bottom", show=False),
+    ]
+
+    def __init__(self, id: str) -> None:
+        super().__init__(id=id)
+        self.tasks: list[model.TaskRow] = []
+
+    def fill(self, tasks: list[model.TaskRow], colors: dict[str, str]) -> None:
+        kept = self.tasks[self.highlighted].id if self.highlighted is not None and self.highlighted < len(self.tasks) else None
+        self.tasks = list(tasks)
+        self.clear_options()
+        self.add_options(Option(phase_task_line(task, colors), id=task.id) for task in self.tasks)
+        ids = [task.id for task in self.tasks]
+        if ids:
+            self.highlighted = ids.index(kept) if kept in ids else 0
+
+    def action_scroll_phase(self, where: str) -> None:
+        getattr(self.screen.query_one("#phase", VerticalScroll), f"scroll_{where}")(animate=False)
+
+    def action_cursor_down(self) -> None:
+        super().action_cursor_down()
+        self.follow()
+
+    def action_cursor_up(self) -> None:
+        super().action_cursor_up()
+        self.follow()
+
+    def follow(self) -> None:
+        if self.highlighted is None:
+            return
+        scroll = self.screen.query_one("#phase", VerticalScroll)
+        top = self.content_region.y - scroll.content_region.y + int(scroll.scroll_y) + self.highlighted
+        scroll.scroll_to_region(Region(0, top, 1, 1), animate=False, immediate=True)
+
+
 class TaskDetailScreen(Screen[None]):
     CSS = """
     #detail-bar { height: 1; padding: 0 1; background: $panel; }
@@ -1003,6 +1044,8 @@ class PhaseDetailScreen(Screen[None]):
     #phase-title { margin-top: 1; text-style: bold; }
     .phase-panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
     #phase-body Markdown { margin: 0; padding: 0; background: transparent; }
+    #phase-tasks { height: auto; max-height: 1000; background: transparent; }
+    #phase-tasks:focus { border: round $accent; }
     """
     AUTO_FOCUS = "#phase"
     BINDINGS = [
@@ -1030,7 +1073,13 @@ class PhaseDetailScreen(Screen[None]):
                 yield Static(id="phase-title")
                 yield Static(id="phase-chips")
                 for name, label in (("body", "Phase"), ("decisions", "Decisions"), ("constraints", "Constraints"), ("tasks", "Tasks")):
-                    panel = Vertical(Markdown(), id="phase-body", classes="phase-panel") if name == "body" else Static(id=f"phase-{name}", classes="phase-panel")
+                    if name == "body":
+                        panel = Vertical(Markdown(), id="phase-body", classes="phase-panel")
+                    elif name == "tasks":
+                        panel = PhaseTaskList(id="phase-tasks")
+                        panel.add_class("phase-panel")
+                    else:
+                        panel = Static(id=f"phase-{name}", classes="phase-panel")
                     panel.border_title = label
                     yield panel
         yield Footer()
@@ -1085,10 +1134,19 @@ class PhaseDetailScreen(Screen[None]):
             panel = self.query_one(f"#phase-{name}", Static)
             panel.display = bool(records)
             panel.update(Text("\n".join(record.text for record in records)))
-        tasks = self.query_one("#phase-tasks", Static)
+        tasks = self.query_one("#phase-tasks", PhaseTaskList)
         tasks.display = bool(detail.tasks)
-        tasks.update(phase_task_lines(detail.tasks, colors))
+        tasks.fill(detail.tasks, colors)
+        if not self.loaded and detail.tasks:
+            tasks.focus(scroll_visible=False)
         self.loaded = True
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        tasks = event.option_list
+        if not isinstance(tasks, PhaseTaskList) or event.option_index >= len(tasks.tasks):
+            return
+        event.stop()
+        self.app.push_screen(TaskDetailScreen(self.target, tasks.tasks[event.option_index].id))
 
 
 class NeedsYouDetailScreen(Screen[None]):
