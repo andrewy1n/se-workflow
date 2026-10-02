@@ -75,6 +75,13 @@ class EffortView:
     needs_you: list[NeedsYouItem] = field(default_factory=list)
     activity: list[ActivityItem] = field(default_factory=list)
 
+    @property
+    def finished(self) -> bool:
+        counted = [task for task in self.tasks if task.status != "withdrawn"]
+        if not self.phases and not counted:
+            return False
+        return all(phase.state == "done" for phase in self.phases) and all(task.status == "done" for task in counted)
+
 
 @dataclass
 class Snapshot:
@@ -321,6 +328,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             ),
             activity=activity.get(effort, []),
         ))
+    efforts.sort(key=lambda view: view.finished)
     return Snapshot(efforts, token, now)
 
 

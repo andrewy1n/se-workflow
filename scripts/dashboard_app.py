@@ -210,6 +210,12 @@ def tasks_title(shown: int, total: int, task_filter: TaskFilter) -> str:
     return " · ".join(parts)
 
 
+def empty_text(view: model.EffortView, task_filter: TaskFilter) -> str:
+    if view.finished and task_filter.tab == "active" and not task_filter.text:
+        return f"All {sum(task.status == 'done' for task in view.tasks)} tasks done"
+    return "No tasks match"
+
+
 def status_cell(task: model.TaskRow, colors: dict[str, str]) -> Text:
     return Text(f"{STATUS_GLYPH[task.status]} {task.status}", style=colors[task.status])
 
@@ -309,7 +315,7 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         console.print(f"\nNo live efforts in {target.store}")
     for view in snapshot.efforts:
         console.print()
-        console.rule(Text(tab_label(view), style="bold"), align="left")
+        console.rule(Text(tab_label(view), style="dim" if view.finished else "bold"), align="left")
         console.print(Text(view.goal, style=colors["muted"]))
         console.print(stepper_text(view, colors, console.width))
         label = progress_label(view)
@@ -610,6 +616,7 @@ class EffortPane(VerticalScroll):
         empty = self.query_one("#tasks-empty", Static)
         empty.display = not tasks
         empty.border_title = title
+        empty.update(empty_text(view, task_filter))
         keep = None
         if table.row_count:
             keep = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
@@ -1069,6 +1076,7 @@ class DashboardApp(App[None]):
     #empty { width: 100%; height: 1fr; content-align: center middle; color: $text-muted; display: none; }
     TabbedContent { height: 1fr; }
     TabPane { padding: 0; }
+    #efforts Tab.finished { text-style: dim; }
     .effort { padding: 0 1; }
     #goal { margin-top: 1; color: $text-muted; }
     #stepper { margin-top: 1; }
@@ -1347,7 +1355,10 @@ class DashboardApp(App[None]):
         self.query_one("#error", Static).display = False
         tabs = self.query_one("#efforts", TabbedContent)
         names = [view.effort for view in snapshot.efforts]
-        for name in [name for name in self.panes if name not in names]:
+        active = tabs.active
+        kept = [name for name in self.panes if name in names]
+        moved = next((i for i, (old, new) in enumerate(zip(kept, names)) if old != new), len(kept))
+        for name in [name for name in self.panes if name not in names] + kept[moved:]:
             await tabs.remove_pane(f"effort-{slug(name)}")
             del self.panes[name]
         for view in snapshot.efforts:
@@ -1355,6 +1366,8 @@ class DashboardApp(App[None]):
                 pane = EffortPane(view.effort)
                 self.panes[view.effort] = pane
                 await tabs.add_pane(TabPane(tab_label(view), pane, id=f"effort-{slug(view.effort)}"))
+        if kept[moved:] and active in [pane.id for pane in tabs.query(TabPane)]:
+            tabs.active = active
         self.query_one("#empty", Static).display = not names
         tabs.display = bool(names)
         self.paint()
@@ -1371,7 +1384,9 @@ class DashboardApp(App[None]):
         tabs = self.query_one("#efforts", TabbedContent)
         self.query_one("#header", Static).update(header_text(self.target, snapshot.generated_at, colors, width))
         for view in snapshot.efforts:
-            tabs.get_tab(f"effort-{slug(view.effort)}").label = Text(tab_label(view))
+            tab = tabs.get_tab(f"effort-{slug(view.effort)}")
+            tab.label = Text(tab_label(view))
+            tab.set_class(view.finished, "finished")
             self.panes[view.effort].show(view, snapshot.generated_at, width, colors)
 
     def on_resize(self, event: events.Resize) -> None:

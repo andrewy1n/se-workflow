@@ -1616,3 +1616,118 @@ def test_p_does_nothing_on_the_fold_row(phased):
         assert not isinstance(app.screen, app_module.PhaseDetailScreen)
 
     _detail_run(phased, (120, 40), scenario)
+
+
+def _seed_finished(cli, defs):
+    for effort in ("alpha", "beta"):
+        h.create_generic_record(
+            cli, defs, "project:active-goal", subject=effort, extra_payload={"goal": f"ship {effort}", "kind": "deliver"},
+        )
+    _phase(cli, defs, "alpha", "a-one", 1, "in_progress", "done")
+    for subject in ("a-first", "a-second"):
+        done = _work_item(cli, defs, "alpha", subject, "a-one")
+        h.transition(cli, "project:work-item", done, "in_progress", "done")
+    withdrawn = _work_item(cli, defs, "alpha", "a-dropped", "a-one")
+    h.transition(cli, "project:work-item", withdrawn, "withdrawn")
+    phase = h.create_generic_record(
+        cli, defs, "project:phase", subject="b-one", extra_payload={"title": "Phase b-one", "ordinal": 1, "effort": "beta"},
+    )
+    phase = h.transition(cli, "project:phase", phase, "in_progress")
+    task = _work_item(cli, defs, "beta", "b-task", "b-one")
+    return {"phase": phase, "task": task}
+
+
+@pytest.fixture()
+def finished(store):
+    records = stamped_store(store, "finished", lambda root, cli, defs: _seed_finished(cli, defs))
+    return store, records
+
+
+def _tab_ids(app):
+    return [pane.id for pane in app.query_one("#efforts").query("TabPane")]
+
+
+def _finished_tab(app, effort):
+    return app.query_one("#efforts").get_tab(f"effort-{effort}").has_class("finished")
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_finished_effort_says_all_tasks_done_under_active(finished, width):
+    store, _ = finished
+
+    async def scenario(app, pilot):
+        app.query_one("#efforts").active = "effort-alpha"
+        await pilot.pause()
+        pane = app.panes["alpha"]
+        assert not pane.query_one("#tasks").display
+        assert pane.query_one("#tasks-empty").display
+        assert str(pane.query_one("#tasks-empty").render()) == "All 2 tasks done"
+
+    _run(store, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_finished_effort_with_a_text_filter_says_no_tasks_match(finished, width):
+    store, _ = finished
+
+    async def scenario(app, pilot):
+        app.query_one("#efforts").active = "effort-alpha"
+        await pilot.pause()
+        await pilot.press("slash", *"zzz")
+        await pilot.pause()
+        assert str(app.panes["alpha"].query_one("#tasks-empty").render()) == "No tasks match"
+
+    _run(store, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_live_effort_beside_a_finished_one_still_says_no_tasks_match(finished, width):
+    store, _ = finished
+
+    async def scenario(app, pilot):
+        assert app.query_one("#efforts").active == "effort-beta"
+        await pilot.press("slash", *"zzz")
+        await pilot.pause()
+        pane = app.panes["beta"]
+        assert pane.query_one("#tasks-empty").display
+        assert str(pane.query_one("#tasks-empty").render()) == "No tasks match"
+
+    _run(store, width, scenario)
+
+
+def test_finished_effort_sorts_after_a_live_effort_with_a_dimmed_label(finished):
+    store, _ = finished
+
+    async def scenario(app, pilot):
+        assert _tab_ids(app) == ["effort-beta", "effort-alpha"]
+        assert _finished_tab(app, "alpha")
+        assert not _finished_tab(app, "beta")
+        await pilot.press("tab")
+        await pilot.pause()
+        assert app.query_one("#efforts").active == "effort-alpha"
+
+    _run(store, 120, scenario)
+
+
+def test_effort_finished_mid_session_moves_last_and_dims(finished, cli):
+    store, records = finished
+
+    async def scenario(app, pilot):
+        app.filters["beta"] = app_module.TaskFilter(tab="done")
+        h.transition(cli, "project:work-item", records["task"], "in_progress", "done")
+        h.transition(cli, "project:phase", records["phase"], "done")
+        await _until(pilot, lambda: _tab_ids(app) == ["effort-alpha", "effort-beta"] and _finished_tab(app, "beta"))
+        await _until(pilot, lambda: app.panes["beta"].query_one("#tasks").row_count == 1)
+        assert app.filters["beta"].tab == "done"
+        assert app.query_one("#efforts").active == "effort-beta"
+
+    _run(store, 120, scenario, interval=0.3)
+
+
+def test_once_lists_finished_efforts_last(finished):
+    store, _ = finished
+    result = subprocess.run(
+        ["uv", "run", "--script", str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(store),
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.index("ship beta") < result.stdout.index("ship alpha")

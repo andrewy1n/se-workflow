@@ -455,3 +455,44 @@ def test_phase_detail_for_an_unknown_phase_raises(store, cli, defs):
     _goal(cli, defs, "alpha")
     with pytest.raises(model.ModelError):
         model.load_phase_detail(_target(store), "alpha", "nope")
+
+
+def _phase_row(state: str) -> model.PhaseRow:
+    return model.PhaseRow(subject=f"p-{state}", title="", ordinal=1, state=state, done=0, total=0)
+
+
+def _task_row(status: str) -> model.TaskRow:
+    return model.TaskRow(id=status, subject=f"t-{status}", title="", phase="", assignee="", wave=None, status=status)
+
+
+@pytest.mark.parametrize(("phases", "tasks", "finished"), [
+    (["done"], ["done", "withdrawn"], True),
+    ([], ["done"], True),
+    (["done", "done"], [], True),
+    ([], [], False),
+    ([], ["withdrawn"], False),
+    (["done", "in_progress"], ["done"], False),
+    (["planned"], [], False),
+    (["done"], ["done", "ready"], False),
+    (["done"], ["running"], False),
+    (["done"], ["waiting"], False),
+])
+def test_effort_is_finished_only_when_every_phase_and_counted_task_is_done(phases, tasks, finished):
+    view = model.EffortView(
+        effort="e", goal="", phases=[_phase_row(s) for s in phases], tasks=[_task_row(s) for s in tasks],
+    )
+    assert view.finished is finished
+
+
+def test_finished_efforts_sort_after_live_ones(store, cli, defs):
+    for effort in ("alpha", "beta", "gamma"):
+        _goal(cli, defs, effort)
+    _phase(cli, defs, "alpha", "a-one", 1, "in_progress", "done")
+    done = _work_item(cli, defs, "alpha", "a-done", "a-one")
+    h.transition(cli, "project:work-item", done, "in_progress", "done")
+    _phase(cli, defs, "beta", "b-one", 1, "in_progress")
+    _work_item(cli, defs, "beta", "b-ready", "b-one")
+    snapshot = model.load_snapshot(_target(store))
+    assert [(view.effort, view.finished) for view in snapshot.efforts] == [
+        ("beta", False), ("gamma", False), ("alpha", True),
+    ]
