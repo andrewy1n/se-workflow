@@ -158,7 +158,7 @@ def check_invocation(inv: dict, defs: dict[str, dict], bundles_by_id: dict[str, 
     if sub == "create" and inv["payload"] and rtype and rtype in defs:
         # only `create` needs a complete payload up front -- `update`/`supersede`
         # merge onto an already-valid record, so a partial payload there is fine.
-        required = set(defs[rtype].get("payload", [])) - {"subject"}
+        required = set(defs[rtype].get("payload", [])) - {"subject"} - set(defs[rtype].get("optional_payload", []))
         missing = required - set(inv["payload"].keys())
         if missing:
             violations.append(

@@ -230,6 +230,21 @@ def test_store_with_no_goals_has_no_efforts(store):
     assert model.load_snapshot(_target(store)).efforts == []
 
 
+def test_skips_an_effort_whose_goal_is_closed(store, cli, defs):
+    _goal(cli, defs, "open-one")
+    closed = h.create_generic_record(
+        cli, defs, "project:active-goal", subject="closed-one",
+        extra_payload={"goal": "ship closed-one", "kind": "deliver"},
+    )
+    result = cli(
+        "supersede", "--type", "project:active-goal", "--id", closed["id"],
+        "--expected-revision", closed["revision"], "--payload", json.dumps({**closed["payload"], "status": "closed"}),
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    assert [view.effort for view in model.load_snapshot(_target(store)).efforts] == ["open-one"]
+
+
 def _record(cli, defs, record_type: str, subject: str, payload: dict, body: str | None = None, *rels: str) -> dict:
     args = ["create", "--type", record_type, "--subject", subject, "--payload", json.dumps(payload)]
     for rel in rels:

@@ -20,7 +20,7 @@ Do not plan, implement, or verify in this skill.
 
 1. If views were not injected and `.artifacts/` exists:
    `adaptive-artifacts hook-start`. Read handoff. List live goal
-   subjects so you do not reuse one by accident.
+   subjects with their goal text and phases.
 2. Classify the ask (first match):
 
    | The text is about… | kind |
@@ -33,10 +33,21 @@ Do not plan, implement, or verify in this skill.
    | A specified feature, phase, or known change | `deliver` |
 
    If two rows fit, ask the user to pick.
-3. Name **focus** (effort slug). Reuse a live goal subject only when
-   this ask is that effort. Otherwise pick a new slug (`login-500`,
-   `readme-typo`, `p95-compare`). Do not rename another effort’s subject
-   to steal its goal.
+3. Name **focus** (effort slug). An effort is a product area or
+   objective; one ask is usually one phase inside it. Compare the ask
+   with each live goal's text:
+
+   - A live goal covers the same area → reuse its subject, even when
+     the kind differs (`kind` lives on each work-item). If no phase
+     covers the ask, it becomes a **new phase** of that effort.
+   - Several goals fit, or the fit is unclear → list the candidates
+     and ask the user.
+   - No live goal covers the area → pick a new slug (`login-500`,
+     `p95-compare`).
+   - `incidental` with records → always a new slug (see
+     kinds-and-focus).
+
+   Do not rename another effort’s subject to steal its goal.
 4. Records?
 
    - `incidental` + fits this chat + not interrupting another live
@@ -45,16 +56,24 @@ Do not plan, implement, or verify in this skill.
    - `incidental` + may span chats or interrupts a live phase → records
      on the **new** focus subject. Next: `plan-phase`.
    - `deliver` / `repair` / `evaluate` and no store or no goal for
-     this focus → `init` (new subject) then `plan-phase`.
+     this focus → `init` (new subject), then `discuss`, then
+     `plan-phase`.
+   - Existing effort and no phase covers the ask → `discuss` with
+     `phase: new`, then `plan-phase`.
    - Tasks for this focus already exist → `execute-phase` or
      `verify-work` if they only need a done-check.
-   - Otherwise → `plan-phase`.
+   - Otherwise → `discuss` if the phase has no decisions yet, else
+     `plan-phase`.
+
+   Skip `discuss` (go straight to `plan-phase`) when the user already
+   fixed the approach in this ask, or for `incidental`.
 5. Show the routing line, then follow that skill with focus and kind
    in context:
 
    ```
    kind: <kind>
-   focus: <effort-slug>
+   focus: <effort-slug> (existing | new)
+   phase: <phase-slug> | new | none
    records: yes | no
    next: <skill or "this chat">
    ```
