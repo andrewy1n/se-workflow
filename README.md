@@ -144,6 +144,14 @@ older ones fold into one `N earlier phases done` row. A phase awaits
 sign-off when every open task waits only on an unsigned manual check.
 The progress bar covers the whole effort.
 
+The task table columns are status, task, wave, and assignee. The
+grouped table has no phase column; `--once` still prints one. A running
+task's status shows its running time, counted from its latest
+assignment (for example `running 2h`). A waiting task's title ends with
+a muted `waits on <subjects>` note that lists its unfinished
+dependencies. In recent activity, a failed check-run or execution
+report shows `✗` and is red.
+
 It needs `uv`. The first run downloads `textual`.
 
 | Key | Action |

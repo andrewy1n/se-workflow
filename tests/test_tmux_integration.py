@@ -85,12 +85,30 @@ def test_prefix_a_binding_is_a_popup_of_the_launcher_in_the_pane_directory(tmux)
     assert scripts == f"SE_WORKFLOW_SCRIPTS={REPO_ROOT / 'scripts'}"
 
 
-def test_prefix_a_popup_renders_the_pane_repo_dashboard_on_the_client(tmux):
+def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_time_and_failed_activity(
+    tmux, seeded, cli, resolved_contract,
+):
+    defs = h.record_defs_by_id(resolved_contract)
+    listed = cli("list", "--type", "project:work-item", "--subject", "fx-running")
+    assert listed.returncode == 0, listed.stdout + listed.stderr
+    running = json.loads(listed.stdout)["records"][0]
+    _work_item(cli, defs, EFFORT, "fx-waiting", f"depends_on:{running['id']}")
+    h.run_cli_48h_ago(
+        seeded, "create", "--type", "project:assignment", "--subject", "fx-running",
+        "--payload", json.dumps({"work_item": running["id"], "executor": "sub-fx", "effort": EFFORT}),
+        "--body", h.generic_body(defs["project:assignment"]),
+    )
+    h.create_generic_record(
+        cli, defs, "project:check-run", subject="fx-broken",
+        extra_payload={"method": "check", "result": "fail", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
+    )
     tmux.press("A")
-    needles = _markers()
+    needles = [*_markers(), "running 48h", "title of fx-waiting waits on fx-running", "✗ fx-broken check failed", "status task wave"]
     text = tmux.screen_text(needles)
     missing = [needle for needle in needles if needle not in text]
     assert not missing, f"missing {missing} in client output: {text[-2000:]}"
+    assert "status task wave assignee" in text and "wave phase" not in text, text[-2000:]
+    assert "running 48h title of fx-running" in text, text[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
