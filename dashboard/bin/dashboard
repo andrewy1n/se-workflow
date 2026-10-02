@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Textual dashboard (dashboard_app.py, through uv) for the current directory's repo.
+"""Run the Textual dashboard (dashboard/__main__.py, through uv) for the current directory's repo.
 
 Extra arguments go to the app, e.g. `dashboard --once` or `dashboard --interval 5`.
 """
@@ -11,10 +11,10 @@ import shutil
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from artifact_store import resolve  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from dashboard.artifact_store import resolve  # noqa: E402
 
-APP = Path(__file__).resolve().parent / "dashboard_app.py"
+APP = Path(__file__).resolve().parent.parent / "__main__.py"
 
 
 def wait_for_key() -> None:

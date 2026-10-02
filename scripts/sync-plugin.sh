@@ -13,6 +13,7 @@ mkdir -p \
   "$DEST/skills" \
   "$DEST/contract" \
   "$DEST/scripts" \
+  "$DEST/dashboard" \
   "$DEST/.claude-plugin" \
   "$DEST/.cursor-plugin"
 
@@ -23,6 +24,8 @@ cp -a "$ROOT/contract/." "$DEST/contract/"
 # close_batch.py came to be missing from every install in the first place.
 cp -a "$ROOT/scripts/." "$DEST/scripts/"
 rm -f "$DEST/scripts/sync-plugin.sh"
+cp -a "$ROOT/dashboard/." "$DEST/dashboard/"
+cp -a "$ROOT/se-workflow.tmux" "$DEST/"
 find "$DEST" -name '__pycache__' -type d -prune -exec rm -rf {} +
 cp -a "$ROOT/.claude-plugin/." "$DEST/.claude-plugin/"
 cp -a "$ROOT/.cursor-plugin/." "$DEST/.cursor-plugin/"

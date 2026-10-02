@@ -1,4 +1,4 @@
-"""Tests for scripts/dashboard: store and binary resolution, and the messages it prints instead of exec'ing."""
+"""Tests for dashboard/bin/dashboard: store and binary resolution, and the messages it prints instead of exec'ing."""
 
 from __future__ import annotations
 
@@ -14,13 +14,13 @@ import helpers as h
 from conftest import AA_ROOT, REPO_ROOT, make_git_repo
 from test_dashboard_status import _goal, _work_item
 
-SCRIPT = REPO_ROOT / "scripts" / "dashboard"
+SCRIPT = REPO_ROOT / "dashboard" / "bin" / "dashboard"
 
 FAKE_UV = """#!/usr/bin/env python3
 import json, os, sys
 print(json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd(), "aa_bin": os.environ.get("ADAPTIVE_ARTIFACTS_BIN")}))
 """
-APP = REPO_ROOT / "scripts" / "dashboard_app.py"
+APP = REPO_ROOT / "dashboard" / "__main__.py"
 
 
 def _write_store(store: Path, contract_ref: str | None = None) -> Path:
@@ -168,12 +168,3 @@ def _run_real(cwd: Path, home: Path, cache: str) -> subprocess.CompletedProcess:
         [str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(cwd), env=env,
         stdin=subprocess.DEVNULL, timeout=120,
     )
-
-
-def test_tmux_conf_binds_popup_and_side_pane_in_the_pane_directory():
-    lines = (REPO_ROOT / "scripts" / "tmux-dashboard.conf").read_text().splitlines()
-    popup = next(line for line in lines if line.startswith("bind-key A "))
-    side = next(line for line in lines if line.startswith("bind-key S "))
-    assert "display-popup" in popup and "-d '#{pane_current_path}'" in popup
-    assert "split-window" in side and "-c '#{pane_current_path}'" in side
-    assert all("/dashboard" in line for line in (popup, side))

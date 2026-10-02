@@ -1,4 +1,4 @@
-"""Tests for scripts/dashboard-status: the one-line status summary per live effort."""
+"""Tests for dashboard/bin/dashboard-status: the one-line status summary per live effort."""
 
 from __future__ import annotations
 
@@ -14,11 +14,11 @@ import pytest
 import helpers as h
 from conftest import AA_ROOT, REPO_ROOT, make_git_repo
 
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-import artifact_store  # noqa: E402
-import dashboard_model  # noqa: E402
+sys.path.insert(0, str(REPO_ROOT))
+from dashboard import artifact_store  # noqa: E402
+from dashboard import model as dashboard_model  # noqa: E402
 
-SCRIPT = REPO_ROOT / "scripts" / "dashboard-status"
+SCRIPT = REPO_ROOT / "dashboard" / "bin" / "dashboard-status"
 
 
 def _run(home: Path, *args: str, stdin: str | None = None, cwd: Path | None = None) -> subprocess.CompletedProcess:

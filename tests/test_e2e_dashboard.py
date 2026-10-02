@@ -17,7 +17,7 @@ from test_dashboard_status import _goal, _work_item
 
 pytestmark = pytest.mark.skipif(shutil.which("tmux") is None, reason="tmux is not installed")
 
-STATUS = REPO_ROOT / "scripts" / "dashboard-status"
+STATUS = REPO_ROOT / "dashboard" / "bin" / "dashboard-status"
 EFFORT = "e2e"
 PHASE = f"{EFFORT}-phase"
 REDRAW = 5.0

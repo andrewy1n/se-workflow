@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from artifact_store import Target, binary
+from dashboard.artifact_store import Target, binary
 
 RECENT = timedelta(hours=24)
 TASK_ORDER = ("running", "ready", "waiting", "done", "withdrawn")
@@ -379,7 +379,6 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         ))
     efforts.sort(key=lambda view: view.finished)
     return Snapshot(efforts, token, now)
-
 
 
 @dataclass(frozen=True)

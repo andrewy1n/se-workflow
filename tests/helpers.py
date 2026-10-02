@@ -14,6 +14,7 @@ import os
 import pty
 import re
 import select
+import shlex
 import signal
 import struct
 import subprocess
@@ -223,7 +224,7 @@ def _apply_transition(cli, record_def: dict, record_type: str, record: dict, des
     return json.loads(result.stdout)["record"]
 
 
-TMUX_CONF = REPO_ROOT / "scripts" / "tmux-dashboard.conf"
+TMUX_ENTRY = REPO_ROOT / "se-workflow.tmux"
 DEADLINE = 10.0
 ANSI = re.compile(r"\x1b(\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(\x07|\x1b\\)|[()][0-9A-Za-z]|[=>78DEHMc])")
 _DASHBOARD_ITEM = re.compile(r"^- (?:\*\*(.+?)\*\*|([^*:][^:]*):)")
@@ -259,7 +260,7 @@ def wait_for(probe, what: str, show=lambda: "", deadline: float = DEADLINE):
 
 
 class Tmux:
-    """An isolated tmux server on its own socket, loaded with the dashboard conf, with a pty client."""
+    """An isolated tmux server on its own socket, loaded with se-workflow.tmux, with a pty client."""
 
     def __init__(self, home: Path, cwd: Path, cols: int = 120, rows: int = 40):
         self.socket = f"se-wf-test-{os.getpid()}-{uuid.uuid4().hex[:8]}"
@@ -278,7 +279,7 @@ class Tmux:
 
     def __call__(self, *args: str, check: bool = True) -> str:
         result = subprocess.run(
-            ["tmux", "-L", self.socket, "-f", str(TMUX_CONF), *args],
+            ["tmux", "-L", self.socket, "-f", "/dev/null", *args],
             capture_output=True, text=True, env=self.env, cwd=str(self.cwd), timeout=10,
         )
         if check:
@@ -287,6 +288,7 @@ class Tmux:
 
     def start(self, session: str, directory: Path) -> None:
         self("new-session", "-d", "-s", session, "-x", str(self.cols), "-y", str(self.rows), "-c", str(directory))
+        self("run-shell", shlex.quote(str(TMUX_ENTRY)))
         self.socket_path = self("display", "-p", "#{socket_path}").strip()
 
     def attach(self, session: str) -> None:

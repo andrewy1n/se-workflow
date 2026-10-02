@@ -44,7 +44,7 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(items):
     for item in items:
-        if item.path.name in ("test_tmux_integration.py", "test_e2e_dashboard.py"):
+        if item.path.name in ("test_tmux_integration.py", "test_e2e_dashboard.py", "test_tmux_entry.py"):
             item.add_marker(pytest.mark.tmux)
 
 

@@ -13,6 +13,29 @@ The plan is a derived view over records. Only the **focused effort**
 is written; for delivery-shaped work, only the **current phase** is
 materialized as `work-item` + `acceptance`.
 
+## Quick start
+
+1. Install the **adaptive-artifacts** and **se-workflow** plugins (see Install).
+2. Install [uv](https://docs.astral.sh/uv/getting-started/installation/). It runs the dashboard and fetches Textual.
+3. Add the dashboard keys to tmux. Pick one:
+   - With [TPM](https://github.com/tmux-plugins/tpm), add this to `~/.tmux.conf`, then press prefix + `I`:
+
+     ```tmux
+     set -g @plugin 'andrewy1n/se-workflow'
+     ```
+
+   - Without TPM, clone the repo and add this to `~/.tmux.conf`:
+
+     ```tmux
+     run-shell ~/se-workflow/se-workflow.tmux
+     ```
+
+4. In your project, run the `init` skill once. It creates the store the dashboard reads.
+5. Press prefix + `A` for a popup or prefix + `S` for a side pane.
+
+A Claude Code plugin install alone does not give you the tmux keys. Use TPM or a clone for step 3.
+Without tmux, run `dashboard/bin/dashboard` from inside your repo.
+
 ## Kinds
 
 `kind` is data on the goal and each work-item, not a new skill:
@@ -129,7 +152,7 @@ Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).
 
 ## Dashboard in tmux
 
-`scripts/dashboard` runs the Textual app `scripts/dashboard_app.py`
+`dashboard/bin/dashboard` runs the Textual app `dashboard/__main__.py`
 through `uv` for the repo of the current directory. The app shows one
 tab per live effort: the goal, the phase stepper, progress, status
 tabs with counts (Active, Running, Ready, Waiting, Done, All), the task
@@ -181,8 +204,8 @@ It needs `uv`. The first run downloads `textual`.
 | `r` | Refresh now |
 | `q` | Quit |
 
-`scripts/dashboard --once` prints one plain-text frame and exits.
-`scripts/dashboard --interval S` sets the seconds between change checks
+`dashboard/bin/dashboard --once` prints one plain-text frame and exits.
+`dashboard/bin/dashboard --interval S` sets the seconds between change checks
 (default 2).
 
 The launcher finds the store from the git toplevel of the directory:
@@ -207,28 +230,26 @@ tmux popups run a non-interactive shell, so shell functions and aliases
 do not apply there. If the launcher finds no store or no `uv`, it prints
 the reason and waits for a key.
 
-To install the key bindings, add this line to `~/.tmux.conf`:
-
-```tmux
-source-file ~/se-workflow/scripts/tmux-dashboard.conf
-```
-
-Then reload tmux with `tmux source-file ~/.tmux.conf`. The snippet adds:
+The keys come from `se-workflow.tmux` at the repo root. TPM runs it
+by itself, and `run-shell` runs it without TPM (see Quick start). It adds:
 
 | Keys | Opens |
 |---|---|
 | prefix + `A` | The dashboard in a popup (80% of the window) |
 | prefix + `S` | The dashboard in a side pane (40% of the width) |
 
-Both open in the directory of the current pane. The snippet sets the
-tmux global environment variable `SE_WORKFLOW_SCRIPTS` to its own
-directory. If `SE_WORKFLOW_SCRIPTS` is empty, the bindings use
-`~/se-workflow/scripts`. Change the keys in your copy if `A` or `S` is
-already bound.
+Both open in the directory of the current pane. The script finds the
+launcher from its own directory. Set these options in `~/.tmux.conf`
+before the plugin loads to change the keys:
+
+```tmux
+set -g @dashboard-popup-key 'D'
+set -g @dashboard-pane-key 'P'
+```
 
 ### Status line segment
 
-`scripts/dashboard-status` prints one line per effort the dashboard
+`dashboard/bin/dashboard-status` prints one line per effort the dashboard
 shows, for example:
 
 ```text
@@ -239,7 +260,7 @@ watch-dashboard · 1 running · 2 ready · 1 needs you
 need a human, and unsigned manual checks. The segment omits zero counts.
 It builds the same snapshot as the dashboard, so an effort without an
 active goal gets no line. It finds the store and the binary like
-`scripts/dashboard`. It prints nothing when there is no store, the CLI
+`dashboard/bin/dashboard`. It prints nothing when there is no store, the CLI
 fails, or the snapshot takes more than 2 seconds.
 
 It reads Claude Code status JSON on stdin (`workspace.current_dir`, else
@@ -247,7 +268,7 @@ It reads Claude Code status JSON on stdin (`workspace.current_dir`, else
 line script that has the status JSON in `$input`, append:
 
 ```bash
-echo "$input" | ~/se-workflow/scripts/dashboard-status
+echo "$input" | ~/se-workflow/dashboard/bin/dashboard-status
 ```
 
 ## Testing

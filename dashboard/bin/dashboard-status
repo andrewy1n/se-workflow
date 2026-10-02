@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print one status line per effort the dashboard app shows, from dashboard_model.load_snapshot.
+"""Print one status line per effort the dashboard app shows, from dashboard.model.load_snapshot.
 
 Takes a directory argument, or Claude Code status JSON on stdin
 (workspace.current_dir, else cwd). Prints nothing when the directory has
@@ -14,9 +14,9 @@ import signal
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from artifact_store import resolve  # noqa: E402
-from dashboard_model import ModelError, Snapshot, load_snapshot  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from dashboard.artifact_store import resolve  # noqa: E402
+from dashboard.model import ModelError, Snapshot, load_snapshot  # noqa: E402
 
 TIMEOUT = 2
 

@@ -1,4 +1,4 @@
-"""Tests for scripts/dashboard_app: the Textual dashboard and its --once frame."""
+"""Tests for dashboard.app: the Textual dashboard and its --once frame."""
 
 from __future__ import annotations
 
@@ -23,12 +23,15 @@ from textual.widgets._markdown import MarkdownHeader  # noqa: E402
 import helpers as h  # noqa: E402
 from conftest import REPO_ROOT, git, stamped_store  # noqa: E402
 
-sys.path.insert(0, str(REPO_ROOT / "scripts"))
-import artifact_store  # noqa: E402
-import dashboard_model as model_module  # noqa: E402
-import dashboard_app as app_module  # noqa: E402
+sys.path.insert(0, str(REPO_ROOT))
+from dashboard import artifact_store  # noqa: E402
+from dashboard import model as model_module  # noqa: E402
+from dashboard import app as app_module  # noqa: E402
+from dashboard import commit as commit_module  # noqa: E402
+from dashboard import task_detail as detail_module  # noqa: E402
+from dashboard import tasks as tasks_module  # noqa: E402
 
-SCRIPT = REPO_ROOT / "scripts" / "dashboard_app.py"
+SCRIPT = REPO_ROOT / "dashboard" / "__main__.py"
 WIDTHS = (60, 120)
 
 
@@ -353,7 +356,7 @@ def test_detail_chips_show_running_time_from_the_running_since_stamp():
     since = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
     detail = app_module.model.TaskDetail(
         "i", "s", "e", "t", "running", "", None, "", "", [], [], [], [], [], running_since=since)
-    chips = app_module.detail_chips(detail, app_module.ANSI_PALETTE, 100, since + timedelta(minutes=14))
+    chips = detail_module.detail_chips(detail, app_module.ANSI_PALETTE, 100, since + timedelta(minutes=14))
     assert chips.plain == "▶ running 14m"
 
 
@@ -664,7 +667,7 @@ def test_tab_row_wraps_inside_the_pane_at_60_columns(seeded):
         assert len(_tab_rows(app)) == 2
         assert all(tab.region.right <= 60 for tab in app.query(app_module.StatusTab))
         order = sorted(app.query(app_module.StatusTab), key=lambda tab: (tab.region.y, tab.region.x))
-        assert [tab.tab_name for tab in order] == [name for name, _, _ in app_module.STATUS_TABS]
+        assert [tab.tab_name for tab in order] == [name for name, _, _ in tasks_module.STATUS_TABS]
 
     _run(seeded, 60, scenario)
 
@@ -682,7 +685,7 @@ def test_tab_row_unwraps_when_the_pane_grows(seeded):
 def test_tab_row_labels_start_with_their_number_key(seeded, width):
     async def scenario(app, pilot):
         labels = _tab_labels(app)
-        assert all(labels[name] == f"{key} {label} {labels[name].split()[-1]}" for name, label, key in app_module.STATUS_TABS)
+        assert all(labels[name] == f"{key} {label} {labels[name].split()[-1]}" for name, label, key in tasks_module.STATUS_TABS)
         assert labels["active"] == "1 Active 3"
         assert all(tab.region.width == len(labels[tab.tab_name]) for tab in app.query(app_module.StatusTab))
 
@@ -699,7 +702,7 @@ def test_tab_row_once_tally_shows_number_keys(seeded):
 
 
 def test_status_tabs_are_six_on_keys_one_to_six_without_a_needs_you_tab():
-    assert [(name, key) for name, _, key in app_module.STATUS_TABS] == [
+    assert [(name, key) for name, _, key in tasks_module.STATUS_TABS] == [
         ("active", "1"), ("running", "2"), ("ready", "3"), ("waiting", "4"), ("done", "5"), ("all", "6"),
     ]
     keys = {binding.key: binding for binding in app_module.DashboardApp.BINDINGS
@@ -789,7 +792,7 @@ def test_table_regains_focus_when_a_tab_shows_it_after_an_empty_tab(unwaited, wi
         key = _cursor_key(table).value
         assert not _is_section(key)
         await pilot.press("enter")
-        await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen))
+        await _until(pilot, lambda: isinstance(app.screen, detail_module.TaskDetailScreen))
         assert app.screen.task_id == key
 
     _run(unwaited, width, scenario)
@@ -982,7 +985,7 @@ async def _open_by_click(app, pilot, key):
     table = app.query_one("#tasks")
     assert table.get_row_index(key) > 0
     deadline = time.monotonic() + 20.0
-    while not isinstance(app.screen, app_module.TaskDetailScreen):
+    while not isinstance(app.screen, detail_module.TaskDetailScreen):
         assert time.monotonic() < deadline, "click never opened the task"
         await pilot.click("#tasks", offset=_row_offset(table, key))
         await pilot.pause(0.05)
@@ -997,7 +1000,7 @@ async def _settled(app, pilot):
 
 
 async def _shown(app, pilot):
-    await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen) and app.screen.loaded)
+    await _until(pilot, lambda: isinstance(app.screen, detail_module.TaskDetailScreen) and app.screen.loaded)
     await _settled(app, pilot)
     return app.screen
 
@@ -1112,10 +1115,10 @@ def test_report_body_renders_fenced_fields_as_a_key_value_list_and_the_rest_as_m
 
 
 def test_split_fields_joins_continuation_lines_and_ignores_plain_markdown():
-    assert app_module.split_fields("```\na: 1\nb: two\n  more\n```") == ([("a", "1"), ("b", "two more")], "")
-    assert app_module.split_fields("```\na: 1\n```\n\nafter") == ([("a", "1")], "after")
-    assert app_module.split_fields("plain **text**") is None
-    assert app_module.split_fields("```python\nprint(1)\n```") is None
+    assert detail_module.split_fields("```\na: 1\nb: two\n  more\n```") == ([("a", "1"), ("b", "two more")], "")
+    assert detail_module.split_fields("```\na: 1\n```\n\nafter") == ([("a", "1")], "after")
+    assert detail_module.split_fields("plain **text**") is None
+    assert detail_module.split_fields("```python\nprint(1)\n```") is None
 
 
 @pytest.mark.parametrize("size", DETAIL_SIZES)
@@ -1134,9 +1137,9 @@ def test_chips_never_split_a_label_from_its_value_when_narrow():
     detail = app_module.model.TaskDetail(
         "i", "s", "e", "t", "done", "task-details", 1, "sub-task-detail-model", "", [], [], [], [], [])
     colors = app_module.ANSI_PALETTE
-    lines = app_module.detail_chips(detail, colors, 40).plain.splitlines()
+    lines = detail_module.detail_chips(detail, colors, 40).plain.splitlines()
     assert lines == ["✓ done · phase task-details · w1", "assignee sub-task-detail-model"]
-    assert app_module.detail_chips(detail, colors, 100).plain == "✓ done · phase task-details · w1 · assignee sub-task-detail-model"
+    assert detail_module.detail_chips(detail, colors, 100).plain == "✓ done · phase task-details · w1 · assignee sub-task-detail-model"
 
 
 @OPENERS
@@ -1266,7 +1269,7 @@ async def _open_link(app, pilot, screen, *moves):
     await _focus_links(app, pilot, screen)
     await pilot.press(*moves, "enter")
     await _until(pilot, lambda: app.screen is not screen)
-    if isinstance(app.screen, app_module.TaskDetailScreen):
+    if isinstance(app.screen, detail_module.TaskDetailScreen):
         return await _shown(app, pilot)
     return await _phase_shown(app, pilot)
 
@@ -1279,7 +1282,7 @@ def test_enter_on_a_dependency_link_opens_that_task(detailed, size):
         screen = await _open_task(app, pilot, task)
         dep = screen.detail.depends_on[0]
         opened = await _open_link(app, pilot, screen)
-        assert isinstance(opened, app_module.TaskDetailScreen)
+        assert isinstance(opened, detail_module.TaskDetailScreen)
         assert opened.task_id == dep.id and opened.detail.subject == "det-dep"
         assert len(app.screen_stack) == 3
 
@@ -1293,7 +1296,7 @@ def test_enter_on_a_blocked_task_link_opens_it(detailed, size):
     async def scenario(app, pilot):
         screen = await _open_task(app, pilot, task)
         opened = await _open_link(app, pilot, screen, "down")
-        assert isinstance(opened, app_module.TaskDetailScreen)
+        assert isinstance(opened, detail_module.TaskDetailScreen)
         assert opened.detail.subject == "det-blocked"
 
     _detail_run(store, size, scenario)
@@ -1400,7 +1403,7 @@ async def _open_task(app, pilot, task):
 
 
 async def _commit_shown(app, pilot):
-    await _until(pilot, lambda: isinstance(app.screen, app_module.CommitScreen) and app.screen.loaded)
+    await _until(pilot, lambda: isinstance(app.screen, commit_module.CommitScreen) and app.screen.loaded)
     await _settled(app, pilot)
     return app.screen
 
@@ -1466,7 +1469,7 @@ def test_commit_stat_lines_with_a_long_path_fit_on_one_line_at_the_pane_width(co
     wide = git(store, "rev-parse", "HEAD").stdout.strip()
 
     async def scenario(app, pilot):
-        app.push_screen(app_module.CommitScreen(app_module.load_commit(store, wide, app_module.stat_width(app)), store, wide))
+        app.push_screen(commit_module.CommitScreen(commit_module.load_commit(store, wide, commit_module.stat_width(app)), store, wide))
         screen = await _commit_shown(app, pilot)
         stat = screen.query_one("#commit-stat")
         lines = str(stat.render()).splitlines()
@@ -1486,7 +1489,7 @@ def test_commit_stat_reloads_at_the_new_width_after_a_resize(committed):
     rev = git(store, "rev-parse", "HEAD").stdout.strip()
 
     async def scenario(app, pilot):
-        app.push_screen(app_module.CommitScreen(app_module.load_commit(store, rev, 76), store, rev))
+        app.push_screen(commit_module.CommitScreen(commit_module.load_commit(store, rev, 76), store, rev))
         screen = await _commit_shown(app, pilot)
         await pilot.resize_terminal(60, 40)
         await _until(pilot, lambda: all(len(l) <= 56 for l in str(screen.query_one("#commit-stat").render()).splitlines()))
@@ -1565,7 +1568,7 @@ def test_enter_opens_the_task_below_the_first_row_using_only_keys(seeded):
         key = _cursor_key(table).value
         assert table.cursor_row == 2
         await pilot.press("enter")
-        await _until(pilot, lambda: isinstance(app.screen, app_module.TaskDetailScreen))
+        await _until(pilot, lambda: isinstance(app.screen, detail_module.TaskDetailScreen))
         assert app.screen.task_id == key
 
     _run(seeded, 120, scenario)
@@ -1837,7 +1840,7 @@ def test_enter_on_the_fold_row_expands_and_collapses_the_older_phases(phased, wi
         await pilot.press("enter")
         await pilot.pause()
         assert _keys(app)[:5] == ["fold", "phase:d1", "phase:d2", "phase:d3", "phase:d4"]
-        assert not isinstance(app.screen, app_module.TaskDetailScreen)
+        assert not isinstance(app.screen, detail_module.TaskDetailScreen)
         await pilot.press("enter")
         await pilot.pause()
         assert _keys(app)[:3] == ["fold", "phase:d3", "phase:d4"]
@@ -1876,7 +1879,7 @@ def test_enter_on_a_header_toggles_its_tasks_and_keeps_the_cursor_on_it(phased, 
         await pilot.press("enter")
         await pilot.pause()
         assert len(_keys(app)) == 6
-        assert not isinstance(app.screen, app_module.TaskDetailScreen)
+        assert not isinstance(app.screen, detail_module.TaskDetailScreen)
 
     _run(phased, width, scenario)
 
@@ -1903,7 +1906,7 @@ def test_clicking_a_header_toggles_it_once(phased, width):
         await pilot.pause()
         keys = _keys(app)
         assert keys[keys.index("phase:sign") + 1] == "phase:later"
-        assert not isinstance(app.screen, app_module.TaskDetailScreen)
+        assert not isinstance(app.screen, detail_module.TaskDetailScreen)
         await pilot.click("#tasks", offset=_row_offset(table, "phase:sign"))
         await pilot.pause()
         assert len(_keys(app)) == 6
@@ -2190,7 +2193,7 @@ def test_tab_and_shift_tab_switch_to_a_finished_effort_beside_live_needs_you_ite
             await pilot.press(key)
             await pilot.pause(0.3)
             assert tabs.active == "effort-beta"
-            assert isinstance(app.focused, app_module.TaskTable)
+            assert isinstance(app.focused, tasks_module.TaskTable)
 
     _run(store, 120, scenario)
 
@@ -2199,7 +2202,7 @@ def test_effort_finished_mid_session_moves_last_and_dims(finished, cli):
     store, records = finished
 
     async def scenario(app, pilot):
-        app.filters["beta"] = app_module.TaskFilter(tab="done")
+        app.filters["beta"] = tasks_module.TaskFilter(tab="done")
         h.transition(cli, "project:work-item", records["task"], "in_progress", "done")
         h.transition(cli, "project:phase", records["phase"], "done")
         await _until(pilot, lambda: _tab_ids(app) == ["effort-alpha", "effort-beta"] and _finished_tab(app, "beta"))

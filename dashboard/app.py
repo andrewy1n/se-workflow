@@ -1,48 +1,41 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = ["textual>=0.80"]
-# ///
 """Textual dashboard for the project's artifact store. `--once` prints one plain-text frame."""
 
 from __future__ import annotations
 
 import argparse
-import asyncio
-import re
-import subprocess
 import sys
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import artifact_store  # noqa: E402
-import dashboard_model as model  # noqa: E402
-from rich.console import Console, Group  # noqa: E402
-from rich.table import Table  # noqa: E402
-from rich.text import Text  # noqa: E402
-from textual import events, work  # noqa: E402
-from textual.binding import Binding  # noqa: E402
-from textual.app import App, ComposeResult  # noqa: E402
-from textual.containers import Container, Horizontal, Vertical, VerticalScroll  # noqa: E402
-from textual.coordinate import Coordinate  # noqa: E402
-from textual.geometry import Region  # noqa: E402
-from textual.screen import Screen  # noqa: E402
-from textual.widget import Widget  # noqa: E402
-from textual.widgets._tabbed_content import ContentTabs  # noqa: E402
-from textual.widgets import (  # noqa: E402
-    Collapsible, DataTable, Footer, Input, Markdown, OptionList, ProgressBar, Static, TabbedContent, TabPane,
+from dashboard import artifact_store
+from dashboard import model
+from dashboard.commit import CommitScreen
+from dashboard.display import (
+    ACTIVITY_GLYPH, ANSI_PALETTE, PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, WIDE, clip, palette_from, relative_time,
+    slug,
 )
-from textual.widgets.option_list import Option  # noqa: E402
+from dashboard.task_detail import TaskDetailScreen
+from dashboard.tasks import (
+    FOLD_KEY, PHASE_PREFIX, STATUS_TABS, SectionRow, TaskFilter, TaskTable, counts, empty_text, section_cells,
+    section_rows, task_cells, task_columns, tasks_title, tab_tasks, title_width, visible_tasks,
+)
+from rich.console import Console, Group
+from rich.table import Table
+from rich.text import Text
+from textual import events, work
+from textual.binding import Binding
+from textual.app import App, ComposeResult
+from textual.containers import Container, Vertical, VerticalScroll
+from textual.geometry import Region
+from textual.screen import Screen
+from textual.widgets._tabbed_content import ContentTabs
+from textual.widgets import (
+    DataTable, Footer, Input, Markdown, OptionList, ProgressBar, Static, TabbedContent, TabPane,
+)
+from textual.widgets.option_list import Option
 
-WIDE = 90
 ACTIVITY_LINES = 10
-REDRAW_SECONDS = 30
-STATUS_GLYPH = {"running": "▶", "ready": "●", "waiting": "◌", "done": "✓", "withdrawn": "✕"}
-PHASE_GLYPH = {"done": "✓", "in_progress": "●", "planned": "○"}
-ACTIVITY_GLYPH = {"assignment": "→", "execution-report": "≡", "check-run": "◇"}
 RESULT_GLYPH = {"pass": "✓", "fail": "✗"}
 NEEDS_LABEL = {
     "blocking-question": "blocking", "needs-human": "needs you",
@@ -51,35 +44,6 @@ NEEDS_LABEL = {
 NEEDS_TEXT_TITLE = {
     "blocking-question": "Question", "open-question": "Question", "needs-human": "Claim", "unsigned-check": "Check",
 }
-ANSI_PALETTE = {
-    "primary": "cyan", "success": "green", "warning": "yellow", "error": "red", "muted": "dim",
-    "running": "cyan", "ready": "green", "waiting": "dim", "done": "dim", "withdrawn": "red",
-}
-
-
-def palette_from(variables: dict[str, str]) -> dict[str, str]:
-    colors = {
-        name: variables.get(name, ANSI_PALETTE[name]) for name in ("primary", "success", "warning", "error")
-    }
-    colors["muted"] = "dim"
-    return {
-        **colors, "running": colors["primary"], "ready": colors["success"],
-        "waiting": colors["muted"], "done": colors["muted"], "withdrawn": colors["error"],
-    }
-
-
-def elapsed(then: datetime, now: datetime) -> str:
-    seconds = max(0, int((now - then).total_seconds()))
-    if seconds < 60:
-        return "now"
-    if seconds < 3600:
-        return f"{seconds // 60}m"
-    return f"{seconds // 3600}h"
-
-
-def relative_time(then: datetime, now: datetime) -> str:
-    age = elapsed(then, now)
-    return age if age == "now" else f"{age} ago"
 
 
 def current_phase(view: model.EffortView) -> tuple[int, model.PhaseRow] | None:
@@ -124,178 +88,6 @@ def progress_label(view: model.EffortView) -> str:
         return ""
     done, total = effort_progress(view)
     return f"phase {found[0]}/{len(view.phases)} · {done} of {total} tasks"
-
-
-STATUS_TABS = (
-    ("active", "Active", "1"), ("running", "Running", "2"), ("ready", "Ready", "3"),
-    ("waiting", "Waiting", "4"), ("done", "Done", "5"), ("all", "All", "6"),
-)
-TAB_STATUSES = {
-    "active": ("running", "ready", "waiting"), "running": ("running",), "ready": ("ready",),
-    "waiting": ("waiting",), "done": ("done", "withdrawn"),
-}
-
-
-def tab_tasks(view: model.EffortView, tab: str) -> list[model.TaskRow]:
-    if tab == "all":
-        return list(view.tasks)
-    return [task for task in view.tasks if task.status in TAB_STATUSES[tab]]
-
-
-def counts(view: model.EffortView) -> dict[str, int]:
-    return {name: len(tab_tasks(view, name)) for name, _, _ in STATUS_TABS}
-
-
-@dataclass
-class TaskFilter:
-    text: str = ""
-    tab: str = "active"
-    sections: dict[str, bool] = field(default_factory=dict)
-
-    @property
-    def active(self) -> bool:
-        return bool(self.text)
-
-
-def visible_tasks(tasks: list[model.TaskRow], task_filter: TaskFilter) -> list[model.TaskRow]:
-    needle = task_filter.text.lower()
-    return [
-        task for task in tasks
-        if not needle or needle in task.title.lower() or needle in task.subject.lower()
-    ]
-
-
-FOLD_KEY = "fold"
-PHASE_PREFIX = "phase:"
-FOLD_AFTER = 2
-
-
-@dataclass(frozen=True)
-class SectionRow:
-    key: str
-    kind: str
-    expanded: bool = False
-    phase: model.PhaseRow | None = None
-    task: model.TaskRow | None = None
-    hidden: int = 0
-
-
-def phase_key(phase: model.PhaseRow) -> str:
-    return PHASE_PREFIX + phase.subject
-
-
-def opens_by_default(phase: model.PhaseRow) -> bool:
-    return phase.state == "in_progress" or phase.awaiting_signoff
-
-
-def section_rows(
-    view: model.EffortView, tasks: list[model.TaskRow], sections: dict[str, bool], show_empty: bool,
-) -> list[SectionRow]:
-    by_phase: dict[str, list[model.TaskRow]] = {}
-    for task in tasks:
-        by_phase.setdefault(task.phase, []).append(task)
-    shown = [phase for phase in view.phases if by_phase.get(phase.subject) or show_empty]
-    done = [phase for phase in shown if phase.state == "done"]
-    folded = {phase.subject for phase in done[:-FOLD_AFTER]} if len(done) > FOLD_AFTER else set()
-    fold_open = sections.get(FOLD_KEY, False)
-    rows: list[SectionRow] = []
-    for phase in shown:
-        if phase.subject in folded:
-            if not any(row.key == FOLD_KEY for row in rows):
-                rows.append(SectionRow(FOLD_KEY, "fold", fold_open, hidden=len(folded)))
-            if not fold_open:
-                continue
-        expanded = sections.get(phase_key(phase), opens_by_default(phase))
-        rows.append(SectionRow(phase_key(phase), "phase", expanded, phase=phase))
-        if expanded:
-            rows.extend(SectionRow(task.id, "task", task=task) for task in by_phase.get(phase.subject, []))
-    known = {phase.subject for phase in view.phases}
-    rows.extend(SectionRow(task.id, "task", task=task) for task in tasks if task.phase not in known)
-    return rows
-
-
-def tasks_title(shown: int, total: int, task_filter: TaskFilter) -> str:
-    parts = ["Tasks"]
-    if task_filter.active:
-        parts.append(f"{shown} of {total}")
-        parts.append(f"/{task_filter.text}")
-    return " · ".join(parts)
-
-
-def empty_text(view: model.EffortView, task_filter: TaskFilter) -> str:
-    if view.finished and task_filter.tab == "active" and not task_filter.text:
-        return f"All {sum(task.status == 'done' for task in view.tasks)} tasks done"
-    return "No tasks match"
-
-
-def status_label(status: str, running_since: datetime | None, now: datetime) -> str:
-    label = f"{STATUS_GLYPH.get(status, '·')} {status}"
-    return f"{label} {elapsed(running_since, now)}" if running_since is not None else label
-
-
-def status_cell(task: model.TaskRow, colors: dict[str, str], now: datetime) -> Text:
-    return Text(status_label(task.status, task.running_since, now), style=colors[task.status])
-
-
-def wave_cell(task: model.TaskRow) -> str:
-    return "" if task.wave is None else f"w{task.wave}"
-
-
-def clip(text: str, width: int) -> str:
-    return text if len(text) <= width else text[: max(width - 1, 1)] + "…"
-
-
-def task_columns(width: int) -> list[str]:
-    columns = ["status", "task", "wave"]
-    return columns + ["assignee"] if width >= WIDE else columns
-
-
-def title_cell(task: model.TaskRow, width: int, colors: dict[str, str], indent: str = "") -> Text:
-    title = task.title or task.subject
-    note = f"  waits on {', '.join(sorted(task.waits_on))}" if task.status == "waiting" and task.waits_on else ""
-    text = Text(indent + clip(title + note, width - len(indent)))
-    text.stylize(colors["muted"], len(indent) + len(title))
-    return text
-
-
-def task_cells(
-    task: model.TaskRow, columns: list[str], title_width: int, colors: dict[str, str], now: datetime, indent: str = "",
-) -> list[Text | str]:
-    values: dict[str, Text | str] = {
-        "status": status_cell(task, colors, now), "task": title_cell(task, title_width, colors, indent),
-        "wave": wave_cell(task), "phase": task.phase, "assignee": task.assignee,
-    }
-    return [values[name] for name in columns]
-
-
-def section_cells(row: SectionRow, columns: list[str], title_width: int, colors: dict[str, str]) -> list[Text | str]:
-    marker = "▾" if row.expanded else "▸"
-    if row.phase is None:
-        noun = "phase" if row.hidden == 1 else "phases"
-        values: dict[str, Text | str] = {
-            "status": Text(marker, style=colors["muted"]),
-            "task": Text(clip(f"{row.hidden} earlier {noun} done", title_width), style=colors["muted"]),
-        }
-    else:
-        phase = row.phase
-        style = colors["warning"] if phase.awaiting_signoff else colors["muted"] if phase.state != "in_progress" else colors["primary"]
-        label = f"{phase.title or phase.subject} {phase.done}/{phase.total}"
-        if phase.awaiting_signoff:
-            label += " · awaiting sign-off"
-        values = {
-            "status": Text(f"{marker} {PHASE_GLYPH[phase.state]}", style=style),
-            "task": Text(clip(label, title_width), style=style),
-        }
-    return [values.get(name, "") for name in columns]
-
-
-def title_width(columns: list[str], width: int, tasks: list[model.TaskRow], now: datetime) -> int:
-    fixed = {
-        "status": max([len(status_label(t.status, t.running_since, now)) for t in tasks] + [9]), "wave": 4,
-        "assignee": max([len(t.assignee) for t in tasks] + [8]),
-    }
-    used = sum(fixed[name] for name in columns if name != "task") + 2 * len(columns)
-    return max(width - used, 12)
 
 
 def needs_lines(view: model.EffortView, colors: dict[str, str], width: int = 100) -> list[Text]:
@@ -371,30 +163,6 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
                 console.print(line)
 
 
-def detail_chips(detail: model.TaskDetail, colors: dict[str, str], width: int = 100, now: datetime | None = None) -> Text:
-    label = status_label(detail.status, detail.running_since, now or datetime.now(timezone.utc))
-    chips = [(label, colors.get(detail.status, colors["muted"]))]
-    if detail.phase:
-        chips.append((f"phase {detail.phase}", colors["muted"]))
-    if detail.wave is not None:
-        chips.append((f"w{detail.wave}", colors["muted"]))
-    if detail.assignee:
-        chips.append((f"assignee {detail.assignee}", colors["muted"]))
-    text = Text()
-    used = 0
-    for index, (chip, chip_style) in enumerate(chips):
-        if index:
-            if used + 3 + len(chip) > width:
-                text.append("\n")
-                used = 0
-            else:
-                text.append(" · ", style=colors["muted"])
-                used += 3
-        text.append(chip, style=chip_style)
-        used += len(chip)
-    return text
-
-
 def phase_chips(detail: model.PhaseDetail, colors: dict[str, str]) -> Text:
     done = sum(task.status == "done" for task in detail.tasks)
     total = sum(task.status != "withdrawn" for task in detail.tasks)
@@ -411,151 +179,6 @@ def phase_task_line(task: model.TaskRow, colors: dict[str, str]) -> Text:
     text = Text(no_wrap=True, overflow="ellipsis")
     text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
     text.append(task.title or task.subject)
-    return text
-
-
-def link_options(detail: model.TaskDetail, colors: dict[str, str]) -> list[Option]:
-    options = []
-    for label, tasks in (("Depends on:", detail.depends_on), ("Blocks:", detail.blocks)):
-        for task in tasks:
-            text = Text(f"{label} ", no_wrap=True, overflow="ellipsis")
-            text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
-            text.append(task.subject, style=colors["muted"])
-            options.append(Option(text, id=f"task:{task.id}"))
-    if detail.phase:
-        text = Text("Phase: ", no_wrap=True, overflow="ellipsis")
-        text.append(detail.phase, style=colors["muted"])
-        options.append(Option(text, id=f"{PHASE_PREFIX}{detail.phase}"))
-    return options
-
-
-def description_source(body: str) -> str:
-    return re.sub(r"\A\s*##\s+Description[ \t]*\n+", "", body).strip()
-
-
-def acceptance_mark(row: model.AcceptanceRow, colors: dict[str, str]) -> Text:
-    if row.check is None:
-        return Text("–", style=colors["muted"])
-    if row.check.result == "pass":
-        return Text("✓", style=colors["success"])
-    return Text("✗", style=colors["error"])
-
-
-def acceptance_body(row: model.AcceptanceRow, colors: dict[str, str]) -> Text:
-    text = Text(row.criterion)
-    how = " · ".join(part for part in (row.method, row.verify_command) if part)
-    if how:
-        text.append(f"\n{how}", style=colors["muted"])
-    if row.check is not None:
-        text.append(f"\nrev {row.check.revision}", style=colors["muted"])
-        if row.check.signed_by:
-            text.append(f" · signed by {row.check.signed_by}", style=colors["muted"])
-        elif row.check.method == "manual":
-            text.append(" · ", style=colors["muted"])
-            text.append("unsigned", style=colors["warning"])
-    return text
-
-
-FIELD_BLOCK = re.compile(r"\A\s*```[^\n]*\n(.*?)\n?```[ \t]*(?:\n(.*))?\Z", re.DOTALL)
-FIELD_LINE = re.compile(r"([A-Za-z_][\w-]*):[ \t]*(.*)")
-
-
-def split_fields(body: str) -> tuple[list[tuple[str, str]], str] | None:
-    found = FIELD_BLOCK.match(body)
-    if found is None:
-        return None
-    fields: list[list[str]] = []
-    for line in found.group(1).splitlines():
-        match = FIELD_LINE.fullmatch(line)
-        if match:
-            fields.append([match.group(1), match.group(2)])
-        elif fields and line.strip():
-            fields[-1][1] += " " + line.strip()
-        elif not fields and line.strip():
-            return None
-    if not fields:
-        return None
-    return [(key, value) for key, value in fields], (found.group(2) or "").strip()
-
-
-def field_value(key: str, value: str, colors: dict[str, str]) -> Text:
-    style = {"pass": colors["success"], "fail": colors["error"]}.get(value) if key in ("result", "verdict") else None
-    return Text(value, style=style or "")
-
-
-def event_label(event: model.TimelineEvent, now: datetime) -> str:
-    stamp = event.recorded_at.astimezone().strftime("%H:%M")
-    return f"{stamp} {relative_time(event.recorded_at, now)}"
-
-
-def related_text(related: list[model.RelatedRecord], colors: dict[str, str]) -> Text:
-    text = Text()
-    for index, record in enumerate(related):
-        text.append("\n" if index else "")
-        text.append(f"{record.kind}: ", style=colors["muted"])
-        text.append(record.text)
-    return text
-
-
-def slug(name: str) -> str:
-    return re.sub(r"[^A-Za-z0-9_-]", "_", name)
-
-
-@dataclass(frozen=True)
-class Commit:
-    sha: str
-    author: str
-    date: str
-    subject: str
-    message: str
-    stat: list[str]
-
-
-def latest_revision(events: list[model.TimelineEvent]) -> str | None:
-    usable = [e for e in events if e.kind in ("execution-report", "check-run") and e.revision and e.revision != "dirty"]
-    return max(usable, key=lambda e: e.recorded_at).revision if usable else None
-
-
-def load_commit(root: Path, revision: str, width: int = 80) -> Commit | None:
-    if revision.startswith("-"):
-        return None
-    command = ["git", "-C", str(root), "show", f"--stat={max(width, 20)}", "--format=%H%x1f%an%x1f%aI%x1f%s%x1f%b%x1e", revision, "--"]
-    try:
-        done = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=5)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if done.returncode != 0:
-        return None
-    head, _, stat = done.stdout.partition("\x1e")
-    fields = head.split("\x1f")
-    if len(fields) != 5:
-        return None
-    return Commit(*fields[:4], fields[4].strip(), [line for line in stat.splitlines() if line.strip()])
-
-
-def stat_width(app: App) -> int:
-    return app.size.width - 4
-
-
-def stat_line(line: str, colors: dict[str, str]) -> Text:
-    text = Text(no_wrap=True, overflow="ellipsis")
-    name, bar, graph = line.partition("|")
-    text.append(name + bar)
-    for match in re.finditer(r"\++|-+|[^+-]+", graph):
-        piece = match.group()
-        style = colors["success"] if piece[0] == "+" else colors["error"] if piece[0] == "-" else ""
-        text.append(piece, style=style)
-    return text
-
-
-def commit_header(commit: Commit, colors: dict[str, str]) -> Text:
-    text = Text()
-    for index, (label, value) in enumerate((
-        ("commit", commit.sha), ("author", commit.author), ("date", commit.date), ("subject", commit.subject),
-    )):
-        text.append("\n" if index else "")
-        text.append(f"{label:<8}", style=colors["muted"])
-        text.append(value)
     return text
 
 
@@ -708,27 +331,6 @@ class FilterInput(Input):
         self.app.clear_filter()
 
 
-class TaskTable(DataTable):
-    BINDINGS = [
-        Binding("enter", "select_cursor", "open", show=False),
-        Binding("left", "app.step_status_tab(-1)", "previous tab", show=False),
-        Binding("right", "app.step_status_tab(1)", "next tab", show=False),
-        Binding("j", "cursor_down", "down", show=False),
-        Binding("k", "cursor_up", "up", show=False),
-        Binding("pageup", "app.scroll_pane('page_up')", "page up", show=False),
-        Binding("pagedown", "app.scroll_pane('page_down')", "page down", show=False),
-        Binding("home", "app.scroll_pane('home')", "top", show=False),
-        Binding("end", "app.scroll_pane('end')", "bottom", show=False),
-    ]
-
-    def on_click(self, event) -> None:
-        row = event.style.meta.get("row", -1)
-        if row >= 0 and row < self.row_count:
-            event.prevent_default()
-            self.move_cursor(row=row)
-            self.app.activate(self.coordinate_to_cell_key(Coordinate(row, 0)).row_key.value)
-
-
 class NeedsList(OptionList):
     BINDINGS = [
         Binding("escape", "app.leave_needs", "back", show=False),
@@ -760,23 +362,6 @@ class NeedsList(OptionList):
         if self.highlighted is None or self.highlighted >= len(self.items):
             return None
         return self.items[self.highlighted]
-
-
-class LinkList(OptionList):
-    BINDINGS = [
-        Binding("j", "cursor_down", "down", show=False),
-        Binding("k", "cursor_up", "up", show=False),
-    ]
-
-    def fill(self, options: list[Option]) -> None:
-        index = self.highlighted
-        self.display = bool(options)
-        self.clear_options()
-        self.add_options(options)
-        if index is not None and options:
-            self.highlighted = min(index, len(options) - 1)
-        if not options and self.has_focus:
-            self.screen.set_focus(self.screen.query_one("#detail"))
 
 
 class PhaseTaskList(OptionList):
@@ -819,244 +404,6 @@ class PhaseTaskList(OptionList):
         scroll = self.screen.query_one("#phase", VerticalScroll)
         top = self.content_region.y - scroll.content_region.y + int(scroll.scroll_y) + self.highlighted
         scroll.scroll_to_region(Region(0, top, 1, 1), animate=False, immediate=True)
-
-
-class TaskDetailScreen(Screen[None]):
-    CSS = """
-    #detail-bar { height: 1; padding: 0 1; background: $panel; }
-    #detail-error { height: auto; padding: 0 1; background: $error 20%; color: $error; display: none; }
-    #detail { padding: 0 1; scrollbar-gutter: stable; }
-    #detail-loading { margin-top: 1; color: $text-muted; }
-    #detail-content { height: auto; display: none; }
-    #detail-title { margin-top: 1; text-style: bold; }
-    #detail-links { height: auto; margin-top: 1; border: none; padding: 0; background: transparent; }
-    #detail-links:focus { border: none; background-tint: $foreground 0%; }
-    #detail-links > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
-    #detail-links:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
-    .panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
-    .acceptance { height: auto; margin-bottom: 1; }
-    .acceptance:last-child { margin-bottom: 0; }
-    .mark { width: 2; }
-    .body { width: 1fr; }
-    .event { height: auto; }
-    .fields { height: auto; }
-    .field { height: auto; }
-    .value { width: 1fr; }
-    Static.event { padding-left: 2; }
-    Collapsible { padding: 0; border-top: none; background: transparent; }
-    CollapsibleTitle { padding: 0; background: transparent; }
-    Collapsible > Contents { padding: 0 0 0 2; }
-    Markdown { margin: 0; padding: 0; background: transparent; }
-    Markdown > MarkdownBlock { margin: 1 0 0 0; }
-    Markdown > MarkdownHeader { margin: 0; }
-    Markdown > MarkdownBlock:first-child { margin-top: 0; }
-    """
-    AUTO_FOCUS = "#detail"
-    BINDINGS = [
-        Binding("escape", "back", "back"),
-        Binding("l", "focus_links", "links"),
-        Binding("c", "app.copy_slug", "copy"),
-        Binding("g", "commit", "commit"),
-        Binding("r", "app.refresh", "refresh"),
-    ]
-
-    def __init__(self, target: artifact_store.Target, task_id: str) -> None:
-        super().__init__()
-        self.target = target
-        self.task_id = task_id
-        self.detail: model.TaskDetail | None = None
-        self.loaded = False
-        self.expanded: dict[str, bool] = {}
-        self.painting = asyncio.Lock()
-        self.token: str | None = None
-        self.loaded_at = 0.0
-
-    def compose(self) -> ComposeResult:
-        yield Static(id="detail-bar")
-        yield Static(id="detail-error")
-        with VerticalScroll(id="detail"):
-            yield Static("Loading…", id="detail-loading")
-            with Vertical(id="detail-content"):
-                yield Static(id="detail-title")
-                yield Static(id="detail-chips")
-                yield LinkList(id="detail-links")
-                description = Vertical(Markdown(), id="description", classes="panel")
-                description.border_title = "Description"
-                yield description
-                acceptances = Vertical(id="acceptances", classes="panel")
-                acceptances.border_title = "Acceptance"
-                yield acceptances
-                timeline = Vertical(id="timeline", classes="panel")
-                timeline.border_title = "Timeline"
-                yield timeline
-                related = Static(id="related", classes="panel")
-                related.border_title = "Related"
-                yield related
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.load()
-
-    def action_back(self) -> None:
-        self.app.pop_screen()
-        self.app.call_after_refresh(self.app.focus_tasks)
-
-    def action_focus_links(self) -> None:
-        links = self.query_one("#detail-links", LinkList)
-        if not links.option_count:
-            return
-        if links.highlighted is None:
-            links.highlighted = 0
-        links.focus()
-
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        if not isinstance(event.option_list, LinkList) or self.detail is None:
-            return
-        event.stop()
-        key = event.option.id or ""
-        if key.startswith(PHASE_PREFIX):
-            self.app.push_screen(PhaseDetailScreen(self.target, self.detail.effort, key[len(PHASE_PREFIX):]))
-        elif key.startswith("task:"):
-            self.app.push_screen(TaskDetailScreen(self.target, key[len("task:"):]))
-
-    def action_commit(self) -> None:
-        if self.detail is None:
-            return
-        revision = latest_revision(self.detail.timeline)
-        if revision is not None:
-            self.open_commit(revision)
-        elif any(e.revision for e in self.detail.timeline):
-            self.app.notify("Only uncommitted (dirty) revisions recorded", timeout=4)
-        else:
-            self.app.notify(f"No revision recorded for {self.detail.subject}", timeout=4)
-
-    @work(thread=True, exclusive=True, group="commit")
-    def open_commit(self, revision: str) -> None:
-        commit = load_commit(self.target.root, revision, stat_width(self.app))
-        if commit is None:
-            self.app.call_from_thread(
-                self.app.notify, f"Commit {revision} not found in {self.target.root}", timeout=4,
-            )
-            return
-        self.app.call_from_thread(self.app.push_screen, CommitScreen(commit, self.target.root, revision))
-
-    @work(thread=True, exclusive=True, group="detail")
-    def load(self) -> None:
-        self.loaded_at = time.monotonic()
-        try:
-            self.token = model.change_token(self.target)
-            detail = model.load_task_detail(self.target, self.task_id)
-        except (OSError, model.ModelError) as exc:
-            self.app.call_from_thread(self.show_error, str(exc))
-            return
-        self.app.call_from_thread(self.apply, detail)
-
-    def poll(self, token: str) -> None:
-        if token != self.token or time.monotonic() - self.loaded_at > REDRAW_SECONDS:
-            self.load()
-
-    def show_error(self, message: str) -> None:
-        if not self.is_attached:
-            return
-        banner = self.query_one("#detail-error", Static)
-        banner.update(Text(message.splitlines()[0] if message else "error", no_wrap=True, overflow="ellipsis"))
-        banner.display = True
-
-    async def apply(self, detail: model.TaskDetail) -> None:
-        async with self.painting:
-            if self.is_attached:
-                await self.paint(detail)
-
-    async def paint(self, detail: model.TaskDetail) -> None:
-        colors = palette_from(self.app.get_css_variables())
-        now = datetime.now(timezone.utc)
-        scroll = self.query_one("#detail", VerticalScroll)
-        offset = scroll.scroll_y
-        self.detail = detail
-        self.query_one("#detail-error", Static).display = False
-        self.query_one("#detail-loading", Static).display = False
-        self.query_one("#detail-content").display = True
-        bar = Text(no_wrap=True, overflow="ellipsis")
-        bar.append(detail.subject, style="bold")
-        bar.append(f"  {detail.effort}", style=colors["muted"])
-        self.query_one("#detail-bar", Static).update(bar)
-        self.query_one("#detail-title", Static).update(Text(detail.title or detail.subject, style="bold"))
-        self.paint_chips()
-        self.query_one("#detail-links", LinkList).fill(link_options(detail, colors))
-        await self.query_one("#description Markdown", Markdown).update(description_source(detail.body))
-        await self.fill_acceptances(detail, colors)
-        await self.fill_timeline(detail, now, colors)
-        if not self.is_attached or not self.query("#related"):
-            return
-        related = self.query_one("#related", Static)
-        related.display = bool(detail.related)
-        related.update(related_text(detail.related, colors))
-        self.loaded = True
-        self.call_after_refresh(scroll.scroll_to, y=offset, animate=False)
-
-    def paint_chips(self) -> None:
-        if self.detail is None:
-            return
-        chips = self.query_one("#detail-chips", Static)
-        colors = palette_from(self.app.get_css_variables())
-        chips.update(detail_chips(self.detail, colors, chips.size.width or self.size.width - 4))
-
-    def on_resize(self) -> None:
-        self.paint_chips()
-
-    async def fill_acceptances(self, detail: model.TaskDetail, colors: dict[str, str]) -> None:
-        panel = self.query_one("#acceptances", Vertical)
-        panel.display = bool(detail.acceptances)
-        await panel.remove_children()
-        await panel.mount_all(
-            Horizontal(
-                Static(acceptance_mark(row, colors), classes="mark"),
-                Static(acceptance_body(row, colors), classes="body"), classes="acceptance",
-            )
-            for row in detail.acceptances
-        )
-
-    def body_widgets(self, body: str, colors: dict[str, str]) -> list[Widget]:
-        split = split_fields(body)
-        if split is None:
-            return [Markdown(body)]
-        fields, rest = split
-        room = min(max(len(key) for key, _ in fields), 14) + 2
-        rows = []
-        for key, value in fields:
-            label = Static(Text(key, style=colors["muted"]), classes="key")
-            label.styles.width = room
-            rows.append(Horizontal(label, Static(field_value(key, value, colors), classes="value"), classes="field"))
-        block = Vertical(*rows, classes="fields")
-        block.styles.margin = (0, 0, 1 if rest else 0, 0)
-        widgets: list[Widget] = [block]
-        if rest:
-            widgets.append(Markdown(rest))
-        return widgets
-
-    async def fill_timeline(self, detail: model.TaskDetail, now: datetime, colors: dict[str, str]) -> None:
-        panel = self.query_one("#timeline", Vertical)
-        panel.display = bool(detail.timeline)
-        for box in panel.query(Collapsible):
-            self.expanded[box.id or ""] = not box.collapsed
-        newest = next((e.id for e in reversed(detail.timeline) if e.kind == "execution-report"), None)
-        widgets = []
-        for event in detail.timeline:
-            label = event_label(event, now)
-            glyph = ACTIVITY_GLYPH.get(event.kind, "·")
-            if event.body.strip():
-                open_now = self.expanded.get(f"event-{slug(event.id)}", event.id == newest)
-                widgets.append(Collapsible(
-                    *self.body_widgets(event.body.strip(), colors), title=f"{label} {glyph} {event.summary}",
-                    collapsed=not open_now, id=f"event-{slug(event.id)}", classes="event",
-                ))
-            else:
-                line = Text()
-                line.append(f"{label} ", style=colors["muted"])
-                line.append(f"{glyph} {event.summary}")
-                widgets.append(Static(line, classes="event"))
-        await panel.remove_children()
-        await panel.mount_all(widgets)
 
 
 class PhaseDetailScreen(Screen[None]):
@@ -1250,76 +597,6 @@ class NeedsYouDetailScreen(Screen[None]):
         self.query_one("#needs-body").display = bool(item.body.strip())
         await self.query_one("#needs-body Markdown", Markdown).update(item.body.strip())
         self.loaded = True
-
-
-class CommitScreen(Screen[None]):
-    CSS = """
-    #commit-bar { height: 1; padding: 0 1; background: $panel; }
-    #commit { padding: 0 1; }
-    #commit-header { margin-top: 1; }
-    #commit-message { margin-top: 1; }
-    #commit-stat { margin-top: 1; height: auto; }
-    """
-    AUTO_FOCUS = "#commit"
-    BINDINGS = [Binding("escape", "back", "back")]
-
-    def __init__(self, commit: Commit, root: Path, revision: str) -> None:
-        super().__init__()
-        self.commit = commit
-        self.root = root
-        self.revision = revision
-        self.stat_cols = 0
-        self.loaded = False
-
-    def compose(self) -> ComposeResult:
-        yield Static(id="commit-bar")
-        with VerticalScroll(id="commit"):
-            yield Static(id="commit-header")
-            yield Static(id="commit-message")
-            yield Static(id="commit-stat")
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.stat_cols = stat_width(self.app)
-        self.render_commit()
-
-    def on_resize(self) -> None:
-        if self.loaded and stat_width(self.app) != self.stat_cols:
-            self.stat_cols = stat_width(self.app)
-            self.reload_commit(self.stat_cols)
-
-    @work(thread=True, exclusive=True, group="commit-stat")
-    def reload_commit(self, width: int) -> None:
-        commit = load_commit(self.root, self.revision, width)
-        if commit is not None:
-            self.app.call_from_thread(self.show_commit, commit)
-
-    def show_commit(self, commit: Commit) -> None:
-        self.commit = commit
-        self.render_commit()
-
-    def render_commit(self) -> None:
-        colors = palette_from(self.app.get_css_variables())
-        commit = self.commit
-        bar = Text(no_wrap=True, overflow="ellipsis")
-        bar.append(commit.sha[:7], style="bold")
-        bar.append(f"  {commit.subject}")
-        self.query_one("#commit-bar", Static).update(bar)
-        self.query_one("#commit-header", Static).update(commit_header(commit, colors))
-        message = self.query_one("#commit-message", Static)
-        message.display = bool(commit.message)
-        message.update(Text(commit.message))
-        stat = self.query_one("#commit-stat", Static)
-        stat.display = bool(commit.stat)
-        joined = Text(no_wrap=True, overflow="ellipsis")
-        for index, line in enumerate(commit.stat):
-            joined.append("\n" if index else "")
-            joined.append_text(stat_line(line, colors))
-        stat.update(joined)
-        self.loaded = True
-
-    def action_back(self) -> None:
-        self.app.pop_screen()
 
 
 class DashboardApp(App[None]):
@@ -1694,7 +971,7 @@ DETAIL_SCREENS = (TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen, Com
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="dashboard_app")
+    parser = argparse.ArgumentParser(prog="dashboard")
     parser.add_argument("--once", action="store_true", help="print one plain-text frame and exit")
     parser.add_argument("--interval", type=float, default=2.0, metavar="S", help="seconds between change checks")
     return parser.parse_args(argv)
@@ -1720,7 +997,3 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     DashboardApp(target, interval=args.interval).run()
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

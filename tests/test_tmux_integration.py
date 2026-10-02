@@ -1,4 +1,4 @@
-"""Drive scripts/tmux-dashboard.conf in an isolated tmux server with a client attached in a pty."""
+"""Drive se-workflow.tmux in an isolated tmux server with a client attached in a pty."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from test_dashboard_status import _goal, _work_item
 
 pytestmark = pytest.mark.skipif(shutil.which("tmux") is None, reason="tmux is not installed")
 
-STATUS = REPO_ROOT / "scripts" / "dashboard-status"
+STATUS = REPO_ROOT / "dashboard" / "bin" / "dashboard-status"
 EFFORT = "tmuxfx"
 
 
@@ -99,8 +99,6 @@ def test_prefix_a_binding_is_a_popup_of_the_launcher_in_the_pane_directory(tmux)
     assert "display-popup" in binding
     assert '-d "#{pane_current_path}"' in binding
     assert "/dashboard" in binding
-    scripts = tmux("show-environment", "-g", "SE_WORKFLOW_SCRIPTS").strip()
-    assert scripts == f"SE_WORKFLOW_SCRIPTS={REPO_ROOT / 'scripts'}"
 
 
 def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_time_and_failed_activity(
