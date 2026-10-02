@@ -605,8 +605,8 @@ def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, wid
     async def scenario(app, pilot):
         labels = _tab_labels(app)
         assert {k: v.split() for k, v in labels.items()} == {
-            "active": ["Active", "3"], "running": ["Running", "1"], "ready": ["Ready", "1"],
-            "waiting": ["Waiting", "1"], "done": ["Done", "1"], "all": ["All", "4"],
+            "active": ["1", "Active", "3"], "running": ["2", "Running", "1"], "ready": ["3", "Ready", "1"],
+            "waiting": ["4", "Waiting", "1"], "done": ["5", "Done", "1"], "all": ["6", "All", "4"],
         }
         assert all(tab.region.right <= width for tab in app.query(app_module.StatusTab))
         assert _selected(app) == ["active"]
@@ -614,6 +614,57 @@ def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, wid
         assert not list(app.query("#tiles"))
 
     _run(seeded, width, scenario)
+
+
+def _tab_rows(app):
+    return sorted({tab.region.y for tab in app.query(app_module.StatusTab)})
+
+
+def test_tab_row_holds_all_six_tabs_on_one_row_at_120_columns(seeded):
+    async def scenario(app, pilot):
+        assert len(list(app.query(app_module.StatusTab))) == 6
+        assert len(_tab_rows(app)) == 1
+
+    _run(seeded, 120, scenario)
+
+
+def test_tab_row_wraps_inside_the_pane_at_60_columns(seeded):
+    async def scenario(app, pilot):
+        assert len(_tab_rows(app)) == 2
+        assert all(tab.region.right <= 60 for tab in app.query(app_module.StatusTab))
+        order = sorted(app.query(app_module.StatusTab), key=lambda tab: (tab.region.y, tab.region.x))
+        assert [tab.tab_name for tab in order] == [name for name, _, _ in app_module.STATUS_TABS]
+
+    _run(seeded, 60, scenario)
+
+
+def test_tab_row_unwraps_when_the_pane_grows(seeded):
+    async def scenario(app, pilot):
+        assert len(_tab_rows(app)) == 2
+        await pilot.resize_terminal(120, 40)
+        await _until(pilot, lambda: len(_tab_rows(app)) == 1)
+
+    _run(seeded, 60, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_tab_row_labels_start_with_their_number_key(seeded, width):
+    async def scenario(app, pilot):
+        labels = _tab_labels(app)
+        assert all(labels[name] == f"{key} {label} {labels[name].split()[-1]}" for name, label, key in app_module.STATUS_TABS)
+        assert labels["active"] == "1 Active 3"
+        assert all(tab.region.width == len(labels[tab.tab_name]) for tab in app.query(app_module.StatusTab))
+
+    _run(seeded, width, scenario)
+
+
+def test_tab_row_once_tally_shows_number_keys(seeded):
+    result = subprocess.run(
+        ["uv", "run", "--script", str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(seeded),
+        env={**os.environ, "COLUMNS": "120"},
+    )
+    assert result.returncode == 0, result.stderr
+    assert "1 Active 3   2 Running 1   3 Ready 1   4 Waiting 1   5 Done 1   6 All 4" in result.stdout
 
 
 def test_status_tabs_are_six_on_keys_one_to_six_without_a_needs_you_tab():

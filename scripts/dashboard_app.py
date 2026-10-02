@@ -26,7 +26,7 @@ from rich.text import Text  # noqa: E402
 from textual import events, work  # noqa: E402
 from textual.binding import Binding  # noqa: E402
 from textual.app import App, ComposeResult  # noqa: E402
-from textual.containers import Horizontal, Vertical, VerticalScroll  # noqa: E402
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll  # noqa: E402
 from textual.coordinate import Coordinate  # noqa: E402
 from textual.geometry import Region  # noqa: E402
 from textual.screen import Screen  # noqa: E402
@@ -351,7 +351,7 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         if label:
             console.print(Text(label, style=colors["muted"]))
         tally = counts(view)
-        console.print("   ".join(f"{label} {tally[name]}" for name, label, _ in STATUS_TABS))
+        console.print("   ".join(f"{key} {label} {tally[name]}" for name, label, key in STATUS_TABS))
         if view.tasks:
             columns = ["status", "task", "wave", "phase", "assignee"] if console.width >= WIDE else task_columns(console.width)
             table = Table(box=None, pad_edge=False, header_style=colors["muted"])
@@ -570,11 +570,9 @@ class EffortPane(VerticalScroll):
         yield Static(id="stepper")
         yield Static(id="progress-label")
         yield ProgressBar(id="progress", show_eta=False, show_percentage=False)
-        with Vertical(id="status-tabs"):
-            for row in (STATUS_TABS[:4], STATUS_TABS[4:]):
-                with Horizontal(classes="status-row"):
-                    for name, label, _ in row:
-                        yield StatusTab(name, label)
+        with Container(id="status-tabs"):
+            for name, label, key in STATUS_TABS:
+                yield StatusTab(name, label, key)
         filter_input = FilterInput(placeholder="filter tasks", id="filter")
         filter_input.display = False
         yield filter_input
@@ -608,8 +606,11 @@ class EffortPane(VerticalScroll):
             bar.update(total=max(total, 1), progress=done)
         tally = counts(view)
         selected = self.app.filters.get(self.effort, TaskFilter()).tab
-        for tab in self.query(StatusTab):
+        tabs = list(self.query(StatusTab))
+        for tab in tabs:
             tab.show(tally[tab.tab_name], tab.tab_name == selected)
+        widths = [tab.label_width() for tab in tabs]
+        self.query_one("#status-tabs").styles.grid_size_columns = tab_columns(widths, inner)
         self.fill_tasks(view, now, width, inner, colors)
         self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
         self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
@@ -666,15 +667,29 @@ class EffortPane(VerticalScroll):
             table.move_cursor(row=table.get_row_index(keep))
 
 
+def tab_columns(widths: list[int], room: int) -> int:
+    for columns in (6, 3, 2):
+        rows = [widths[start:start + columns] for start in range(0, len(widths), columns)]
+        if sum(max(column) for column in zip(*rows)) + columns - 1 <= room:
+            return columns
+    return 1
+
+
 class StatusTab(Static):
-    def __init__(self, name: str, label: str) -> None:
+    def __init__(self, name: str, label: str, key: str) -> None:
         super().__init__(id=f"status-{name}", classes="status-tab")
         self.tab_name = name
         self.tab_label = label
+        self.tab_key = key
+        self.text = Text()
 
     def show(self, number: int, selected: bool) -> None:
-        self.update(Text.assemble((self.tab_label, ""), " ", (str(number), "bold")))
+        self.text = Text.assemble((self.tab_key, ""), " ", (self.tab_label, ""), " ", (str(number), "bold"))
+        self.update(self.text)
         self.set_class(selected, "selected")
+
+    def label_width(self) -> int:
+        return self.text.cell_len
 
     def on_click(self) -> None:
         self.app.select_status_tab(self.tab_name)
@@ -1315,9 +1330,8 @@ class DashboardApp(App[None]):
     #progress-label { margin-top: 1; color: $text-muted; }
     #progress { height: 1; }
     #progress Bar { width: 1fr; }
-    #status-tabs { height: auto; margin-top: 1; }
-    .status-row { height: 1; }
-    .status-tab { width: auto; height: 1; margin-right: 1; color: $text-muted; }
+    #status-tabs { layout: grid; grid-size: 6; grid-columns: auto; grid-rows: 1; grid-gutter: 0 1; height: auto; margin-top: 1; }
+    .status-tab { width: auto; height: 1; color: $text-muted; }
     .status-tab.selected { color: $text; text-style: bold reverse; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
     #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }

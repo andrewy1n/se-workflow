@@ -126,8 +126,8 @@ def test_prefix_a_popup_redraws_as_a_task_moves_from_ready_to_running_to_done(tm
 
     h.transition(cli, "project:work-item", task, "done")
     tmux.output = b""
-    done = tmux.screen_text(["Done 1"])
-    assert "Done 1" in done, done[-2000:]
+    done = tmux.screen_text(["5 Done 1"])
+    assert "5 Done 1" in done, done[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
@@ -368,7 +368,7 @@ def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_re
     tmux.press("A")
     assert "assignee" in tmux.screen_text(["title of fx-ready", "assignee"])
 
-    tabs = ("Active 2", "Running 1", "Ready 1", "Waiting 0", "Done 0", "All 2")
+    tabs = ("1 Active 2", "2 Running 1", "3 Ready 1", "4 Waiting 0", "5 Done 0", "6 All 2")
     opening = press(b"", *tabs, "Needs you 2", "unsigned pages render on mobile pass fx-ready")
     assert opening.count("Needs you") == 1, opening[-2000:]
     assert "rec-" not in opening, opening[-2000:]
