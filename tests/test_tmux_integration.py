@@ -62,7 +62,16 @@ def _markers() -> list[str]:
     return [EFFORT, f"ship {EFFORT}", "title of fx-running", "title of fx-ready", "Running", "Ready", "Needs you", "Done"]
 
 
-def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard(tmux, seeded):
+def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard_and_a_stepper_that_never_splits_a_glyph_from_its_label(
+    tmux, seeded, cli, resolved_contract,
+):
+    defs = h.record_defs_by_id(resolved_contract)
+    titles = ("Gather the inputs", "Shape the store", "Draw the dashboard", "Wire every tmux binding into the popup and the side pane")
+    for ordinal, title in enumerate(titles, 1):
+        phase = h.create_generic_record(
+            cli, defs, "project:phase", subject=f"sx-{ordinal}", extra_payload={"title": title, "ordinal": ordinal, "effort": EFFORT},
+        )
+        h.transition(cli, "project:phase", phase, *{1: ("in_progress", "done"), 2: ("in_progress",)}.get(ordinal, ()))
     side = tmux.open_side_pane("main")
 
     def capture() -> str:
@@ -74,6 +83,15 @@ def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard(tmux, seeded):
 
     h.wait_for(screen, "side pane dashboard", capture)
     assert tmux("display", "-p", "-t", side, "#{pane_current_path}").strip() == str(seeded)
+    assert 40 <= int(tmux("display", "-p", "-t", side, "#{pane_width}")) <= 60
+    lines = [line.strip() for line in h.wait_for(lambda: screen() if "…" in capture() else None, "clipped stepper", capture).splitlines()]
+    goal = lines.index(f"ship {EFFORT}")
+    progress = next(i for i, line in enumerate(lines) if line.startswith("phase 2/4"))
+    stepper = [line for line in lines[goal + 1:progress] if line]
+    assert len(stepper) > 1, lines
+    assert all(line[0] in "✓●○" for line in stepper), stepper
+    assert not any(line[-1] in "✓●○" for line in stepper), stepper
+    assert any(line.startswith("○ Wire every tmux binding") and line.endswith("…") for line in stepper), stepper
 
 
 def test_prefix_a_binding_is_a_popup_of_the_launcher_in_the_pane_directory(tmux):
@@ -370,6 +388,7 @@ def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_re
 
     tabs = ("1 Active 2", "2 Running 1", "3 Ready 1", "4 Waiting 0", "5 Done 0", "6 All 2")
     opening = press(b"", *tabs, "Needs you 2", "unsigned pages render on mobile pass fx-ready")
+    assert " ".join(tabs) in opening, opening[-2000:]
     assert opening.count("Needs you") == 1, opening[-2000:]
     assert "rec-" not in opening, opening[-2000:]
 

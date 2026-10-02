@@ -132,6 +132,12 @@ tabs with counts (Active, Running, Ready, Waiting, Done, All), the task
 table, a Needs you panel titled with its item count, and recent activity. Active is the
 default and holds running, ready, and waiting tasks. It reloads when the store changes.
 
+The status tabs sit in one row, and each label starts with its number
+key, for example `1 Active 2   2 Running 1 ... 6 All 2`. In a narrow
+pane the tabs wrap to three, two, or one per row. The phase stepper wraps
+by pane width, keeps each glyph with its label, and clips a label that
+does not fit with `…`.
+
 An effort is finished when every phase and every task that is not
 withdrawn is done. Finished efforts sort after live ones, and their tabs
 are dimmed. On the Active tab with no filter, a finished effort shows
