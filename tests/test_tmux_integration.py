@@ -352,3 +352,63 @@ def test_status_segment_counts_match_the_seeded_store(home, seeded):
         input=json.dumps({"workspace": {"current_dir": str(seeded)}}), cwd="/",
     )
     assert (by_arg.stdout, by_json.stdout) == (expected, expected), by_arg.stderr + by_json.stderr
+
+
+def test_prefix_a_popup_walks_needs_you_into_task_and_question_details_and_lists_a_finished_effort_last(
+    tmux, cli, resolved_contract,
+):
+    defs = h.record_defs_by_id(resolved_contract)
+    h.create_generic_record(
+        cli, defs, "project:finding", subject="fx-ready",
+        extra_payload={"claim": "pick the fx-ready rollout", "needs": "human", "effort": EFFORT},
+    )
+    h.create_generic_record(
+        cli, defs, "project:continuity-question", subject=EFFORT,
+        extra_payload={"blocking": False, "scope": "which store should the dashboard read when the home store and the repo store disagree about every open task quokka"},
+    )
+    _goal(cli, defs, "donefx")
+    phase = h.create_generic_record(
+        cli, defs, "project:phase", subject="donefx-phase", extra_payload={"title": "Phase donefx", "ordinal": 1, "effort": "donefx"},
+    )
+    h.transition(cli, "project:phase", phase, "in_progress", "done")
+    for name in ("dx-first", "dx-second"):
+        h.transition(cli, "project:work-item", _work_item(cli, defs, "donefx", name), "in_progress", "done")
+
+    def press(keys: bytes, *needles: str, absent: tuple[str, ...] = ()) -> str:
+        os.write(tmux.client_fd, keys)
+        end = time.monotonic() + h.DEADLINE
+        while True:
+            while select.select([tmux.client_fd], [], [], 0.3)[0]:
+                os.read(tmux.client_fd, 65536)
+            tmux.output = b""
+            tmux("refresh-client")
+            text = tmux.screen_text(list(needles))
+            if all(n in text for n in needles) and not any(a in text for a in absent):
+                return text
+            assert time.monotonic() < end, f"{keys!r} needs {needles} without {absent}: {text[-2000:]}"
+
+    tmux.press("A")
+    assert "Needs you 3" in tmux.screen_text(["Needs you 3"])
+
+    opening = press(b"", "Needs you 3", "pick the fx-ready rollout", "which store should", absent=("quokka",))
+    assert opening.index(f"⚠ {EFFORT}") < opening.index("donefx"), opening[-2000:]
+
+    def focus_needs() -> None:
+        press(b"n", "Needs you 3")
+        time.sleep(0.5)
+
+    rows = sorted(("a human must decide", "pick the fx-ready rollout", "which store should"), key=opening.index)
+    linked, question = rows.index("pick the fx-ready rollout"), rows.index("which store should")
+    focus_needs()
+    press(b"j" * linked)
+    press(b"\r", "fx-ready tmuxfx", "Description", absent=("Needs you 3",))
+    press(b"\x1b", "Needs you 3", absent=("Description",))
+    focus_needs()
+    press((b"k" if question < linked else b"j") * abs(question - linked))
+    press(b"\r", "question", "project:continuity-question", "quokka", absent=("Needs you 3",))
+    press(b"\x1b", "Needs you 3", absent=("quokka",))
+    press(b"\x1b", "Needs you 3")
+
+    finished = press(b"\t", "All 2 tasks done", absent=("title of fx-running",))
+    assert finished.index(f"⚠ {EFFORT}") < finished.index("donefx"), finished[-2000:]
+    assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1

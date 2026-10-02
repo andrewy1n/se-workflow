@@ -132,6 +132,11 @@ tabs with counts (Active, Running, Ready, Waiting, Done, All), the task
 table, a Needs you panel titled with its item count, and recent activity. Active is the
 default and holds running, ready, and waiting tasks. It reloads when the store changes.
 
+An effort is finished when every phase and every task that is not
+withdrawn is done. Finished efforts sort after live ones, and their tabs
+are dimmed. On the Active tab with no filter, a finished effort shows
+`All N tasks done` in place of the task table.
+
 The task table groups tasks under phase header rows in ordinal order.
 In-progress phases and phases awaiting sign-off are expanded. Done and
 planned phases are collapsed. When more than two phases are done, the
