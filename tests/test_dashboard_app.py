@@ -153,6 +153,51 @@ def test_shows_goal_stepper_and_progress(seeded, width):
     _run(seeded, width, scenario)
 
 
+LONG_PHASES = (
+    ("invoice", "Invoice schema", ("in_progress", "done")),
+    ("csv", "CSV export", ("in_progress", "done")),
+    ("pdf", "PDF export", ("in_progress",)),
+    ("admin", "Admin console button", ()),
+    ("rollout", "Rollout", ()),
+    ("audit", "Audit trail for every export with retention rules and a long tail", ()),
+)
+
+
+def _seed_long_phases(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="billing",
+        extra_payload={"goal": "ship billing exports", "kind": "deliver"},
+    )
+    for ordinal, (subject, title, states) in enumerate(LONG_PHASES, 1):
+        record = h.create_generic_record(
+            cli, defs, "project:phase", subject=subject,
+            extra_payload={"title": title, "ordinal": ordinal, "effort": "billing"},
+        )
+        h.transition(cli, "project:phase", record, *states)
+    for index in range(4):
+        _work_item(cli, defs, "billing", f"pdf-{index}", "pdf")
+
+
+def test_stepper_wraps_by_pane_width_and_keeps_glyph_with_label(store):
+    stamped_store(store, "long-phases", lambda root, cli, defs: _seed_long_phases(cli, defs))
+    glyphs = tuple(app_module.PHASE_GLYPH.values())
+
+    async def scenario(app, pilot):
+        pane = app.query_one(app_module.EffortPane)
+        stepper = app.query_one("#stepper")
+        lines = [stepper.render_line(y).text.rstrip() for y in range(stepper.size.height)]
+        lines = [line.lstrip() for line in lines if line.strip()]
+        assert len(lines) > 1
+        assert all(line.startswith(glyphs) for line in lines), lines
+        assert not any(line.endswith(glyphs) for line in lines), lines
+        assert all(len(line) <= pane.scrollable_content_region.width for line in lines), lines
+        joined = " ".join(lines)
+        assert "○ Admin console button" in joined and "● PDF export 0/4" in joined
+        assert "○ Audit trail" in joined and "…" in joined
+
+    _run(store, 60, scenario, height=20)
+
+
 @pytest.mark.parametrize("width", WIDTHS)
 def test_task_table_lists_rows_by_status_with_task_id_keys(seeded, width):
     async def scenario(app, pilot):
@@ -356,7 +401,7 @@ def test_long_activity_lines_are_clipped_not_wrapped_at_60_columns(store, cli, d
         assert len(lines) == 1
         assert lines[0].endswith("…") and len(lines[0]) <= 54
 
-    _run(store, 60, scenario)
+    _run(store, 60, scenario, height=20)
 
 
 def test_footer_has_no_palette_and_every_binding_fits_at_60_columns(seeded):
@@ -395,7 +440,7 @@ def test_needs_you_panel_is_hidden_when_nothing_needs_you(store, cli, defs):
     async def scenario(app, pilot):
         assert not app.query_one("#needs-you").display
 
-    _run(store, 60, scenario)
+    _run(store, 60, scenario, height=20)
 
 
 def test_empty_store_shows_the_empty_state(store):

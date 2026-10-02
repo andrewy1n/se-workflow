@@ -97,18 +97,20 @@ def stepper_text(view: model.EffortView, colors: dict[str, str], width: int = 10
     text = Text()
     used = 0
     for index, phase in enumerate(view.phases):
-        label = f"{PHASE_GLYPH[phase.state]} {phase.title or phase.subject}"
+        name = f"{PHASE_GLYPH[phase.state]} {phase.title or phase.subject}"
         if phase.state == "in_progress":
-            label += f" {phase.done}/{phase.total}"
+            name += f" {phase.done}/{phase.total}"
+        label = Text(name, style=style[phase.state])
+        label.truncate(max(width, 3), overflow="ellipsis")
         if index:
-            if used + 3 + len(label) > width:
+            if used + 3 + label.cell_len > width:
                 text.append("\n")
                 used = 0
             else:
                 text.append("   ")
                 used += 3
-        text.append(label, style=style[phase.state])
-        used += len(label)
+        text.append_text(label)
+        used += label.cell_len
     return text
 
 
@@ -595,7 +597,7 @@ class EffortPane(VerticalScroll):
         inner = self.scrollable_content_region.width or width - 2
         self.inner = inner
         self.query_one("#goal", Static).update(Text(view.goal, style=colors["muted"]))
-        self.query_one("#stepper", Static).update(stepper_text(view, colors, width - 4))
+        self.query_one("#stepper", Static).update(stepper_text(view, colors, inner))
         found = current_phase(view)
         self.query_one("#progress-label", Static).update(progress_label(view))
         bar = self.query_one("#progress", ProgressBar)
