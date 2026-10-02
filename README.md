@@ -24,9 +24,11 @@ materialized as `work-item` + `acceptance`.
 | `evaluate` | The work is a campaign or comparison |
 | `incidental` | One-off; no records if it fits this chat |
 
-Focus is a subject string (which effort this chat is on). Other live
-goals stay live. Views group handoff by subject and the plan by
-`effort`. See [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
+Focus is a subject string (which effort this chat is on). An effort
+is a product area; new work in it is a new phase. Other live goals
+stay live; a finished effort closes with `status: closed`. Each
+running phase keeps its own position, so chats on different phases of
+one effort do not collide. Handoff groups by `effort`. See [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 
 ## Install
 

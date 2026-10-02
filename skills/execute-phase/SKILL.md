@@ -62,7 +62,8 @@ adaptive-artifacts list --type project:work-item --state planned \
    --state in_progress --where payload.effort=<focus>`) — never
    `current-position.payload.scope`, which stays fixed per subject and
    does not track the phase. If none exist, stop and point to
-   `plan-phase`.
+   `plan-phase`. Several may be `in_progress` (one chat per phase):
+   use the one named in context, and ask if none is named.
 3. Group the results by `derived.wave` (each result carries it).
    Within a wave, run independent tasks in parallel. Do lower waves
    first; different waves stay serial. A wave number can shift between
@@ -173,7 +174,9 @@ adaptive-artifacts create --type project:execution-report \
    see it.
 8. Next wave. When no `planned`/`in_progress` same-focus work-items
    remain in this phase (or the incidental task is closed), close the
-   phase and update the position narrative. `current-position.scope`
+   phase, close its phase position (`subject` = phase slug) with
+   `status: closed`, and update the effort position narrative
+   (`subject` = focus). `current-position.scope`
    is a stable per-subject value — never change it here, and never put
    the next phase's slug into it; `supersede` rejects a successor whose
    `scope` differs from the predecessor's ("breaks identity
@@ -187,12 +190,17 @@ adaptive-artifacts create --type project:execution-report \
 adaptive-artifacts update --type project:phase --id <phase-id> \
   --transition done --expected-revision <revision>
 
-adaptive-artifacts supersede --type project:current-position --id <id> \
+adaptive-artifacts supersede --type project:current-position --id <phase-position-id> \
+  --expected-revision <revision> --payload '{"status":"closed"}'
+
+adaptive-artifacts supersede --type project:current-position --id <effort-position-id> \
   --expected-revision <revision> \
   --payload '{"position":"<phase-slug> done; next up: <next-phase-slug>","scope":"<unchanged from predecessor>","effort":"<focus>","phase":"<next-phase-slug>"}'
 ```
 
-   Skip both for incidental. Do **not** materialize the next phase's
+   Skip all three for incidental. Another chat may have just closed a
+   different phase; on a revision conflict, re-read the effort position
+   and retry. Do **not** materialize the next phase's
    tasks unless the user asks (`plan-phase` promotes it). Do not touch
    other subjects.
 

@@ -956,7 +956,7 @@
   "backend": "git-filesystem",
   "view_params": {
     "project:handoff": {
-      "group_by": "subject"
+      "group_by": "effort"
     },
     "project:plan": {
       "group_by": "phase",

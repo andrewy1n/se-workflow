@@ -67,8 +67,10 @@ kind/focus are unset).
 2. If this focus has no `active-goal`, create it (`init` step 6) for
    **this subject only**. Resolve the current phase's slug by querying
    `project:phase` for this effort (`--where payload.effort=<focus>`)
-   and taking the one that is `in_progress`, or the lowest-`ordinal`
-   `planned` one if none is `in_progress` yet — never
+   and taking the one named in context (by `engage` or the user), else
+   the one that is `in_progress`, else the lowest-`ordinal` `planned`
+   one. Several phases of one effort may be `in_progress` at once (one
+   chat each); if more than one fits and none is named, ask — never
    `current-position.payload.scope`, which is a stable per-subject
    value, not the phase slug (incidental has no phase). If `engage`
    handed off `phase: new`, the current phase is a new one: create it
@@ -97,6 +99,19 @@ adaptive-artifacts update --type project:phase --id <phase-id> \
    first (`init` step 7 shape), then run the `update` above with the
    revision `create` returned. Skip this step entirely for incidental
    (no phase record).
+
+   Then create this phase's own position, so a chat on another phase
+   of the same effort never overwrites it. `subject` is the phase
+   slug; `scope` is always `phase`:
+
+```bash
+adaptive-artifacts create --type project:current-position \
+  --subject "<phase-slug>" \
+  --payload '{"position":"<what this phase is doing now>","scope":"phase","effort":"<effort-slug>","phase":"<phase-slug>"}'
+```
+
+   Update it during the phase with `supersede`. Leave the effort
+   position (`subject` = focus) alone until the phase closes.
 4. For each durable choice from planning, `create --type
    project:decision` with `choice`, `alternatives`, `phase`, `effort`
    payload and a `--body-file` with `## Rationale` / `##

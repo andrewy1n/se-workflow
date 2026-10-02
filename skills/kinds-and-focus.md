@@ -30,15 +30,19 @@ A **live** goal is an `active-goal` in lifecycle `active` whose
 Focus is a **subject string**, not a record. Name it (from `engage`, the
 user, or the only live `active-goal` subject). Then:
 
-- Read the `## <focus>` section of handoff (grouped by subject) and the
-  `## <focus>` section of `project:plan` (grouped by `effort`).
+- Read the `## <focus>` section of handoff (grouped by `effort`) and
+  the focus's phases in `project:plan` (grouped by phase).
 - Ignore other live goals. Do not supersede `active-goal` or
-  `current-position` whose `subject` is not the focus.
+  `current-position` that belongs to another effort.
 - Task-scoped records (`work-item`, `acceptance`, `check-run`,
   `decision`, `failed-attempt`, `investigation-observation`, `finding`,
   `assignment`, `assignment-amendment`, `execution-report`) use
   `subject` = task slug and `payload.effort` = focus.
-- Goal, position, and continuity-question use `subject` = focus.
+- Goal, the effort position, and continuity-question use `subject` =
+  focus. A running phase also has its own position: `subject` = phase
+  slug, `scope` = `phase`, `payload.effort` = focus. Each chat writes
+  only its own phase's position; the effort position changes when a
+  phase closes.
 - If `payload.effort` is missing (old records) and exactly one active
   goal exists, treat that subject as the effort. If several goals exist
   and `effort` is missing, stop and ask.
