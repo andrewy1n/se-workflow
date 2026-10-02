@@ -42,8 +42,11 @@ Do not plan, implement, or verify in this skill.
      covers the ask, it becomes a **new phase** of that effort.
    - Several goals fit, or the fit is unclear → list the candidates
      and ask the user.
-   - No live goal covers the area → pick a new slug (`login-500`,
-     `p95-compare`).
+   - A **closed** goal covers the area → reopen it (kinds-and-focus,
+     Closing and reopening) and reuse its subject; the ask is a new
+     phase there.
+   - No live or closed goal covers the area → pick a new slug
+     (`login-500`, `p95-compare`).
    - `incidental` with records → always a new slug (see
      kinds-and-focus).
 

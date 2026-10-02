@@ -54,6 +54,24 @@ def test_closed_effort_leaves_handoff_brief_and_dashboard(store, cli, resolved_c
     assert _render(cli, "validate")
 
 
+def test_reopened_effort_returns_to_handoff_brief_and_dashboard(store, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    goal, position = _effort(cli, defs, "back-effort")
+    _close(cli, "project:active-goal", goal)
+    _close(cli, "project:current-position", position)
+    for record_type, subject in (("project:active-goal", "back-effort"), ("project:current-position", "back-effort")):
+        closed = json.loads(_render(cli, "list", "--type", record_type, "--subject", subject, "--state", "active", "--full"))["records"][0]
+        result = cli(
+            "supersede", "--type", record_type, "--id", closed["id"], "--expected-revision", closed["revision"],
+            "--payload", json.dumps({"status": "open"}),
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+
+    for args in (("handoff",), ("view", "--id", "project:dashboard"), ("view", "--id", "project:brief")):
+        assert "back-effort" in _render(cli, *args), args
+    assert _render(cli, "validate")
+
+
 def test_status_rejects_values_other_than_open_or_closed(store, cli, resolved_contract):
     defs = h.record_defs_by_id(resolved_contract)
     goal, _ = _effort(cli, defs, "some-effort")

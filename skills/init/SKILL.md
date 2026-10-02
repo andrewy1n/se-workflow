@@ -54,6 +54,8 @@ If the user already has this focus's tasks, use `plan-phase`.
    them. Keep them unless the user is replacing **that** subject.
    If a live goal covers the same area, the work is a new phase there
    (`plan-phase`), not a new subject. Never rewrite a different goal.
+   If a closed goal has this subject or covers the area, reopen it
+   (kinds-and-focus) instead of creating a new goal.
 4. Read cheap local evidence only: README, recent `git log`, existing
    docs. Treat them as proposals, not authority.
 5. Propose, then confirm (do not invent a product plan):

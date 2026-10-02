@@ -27,6 +27,34 @@ check with no script). Do not stuff a metric delta into
 A **live** goal is an `active-goal` in lifecycle `active` whose
 `payload.status` is not `closed` (missing means open).
 
+### Closing and reopening
+
+`status` (`open` | `closed`) on `active-goal` and `current-position`
+says whether an effort is live. It is a payload field, not the
+lifecycle. Closing and reopening both `supersede` the effort's goal and
+position with the new `status`; `supersede` merges the payload, so the
+other fields carry over.
+
+- **Close** only when the user says no more phases follow.
+  `execute-phase` asks when an effort's last phase is done. An effort
+  whose phases and tasks are all done is "finished" on the dashboard,
+  but it stays open until the user closes it.
+- **Reopen** when work returns to a closed effort: supersede its goal
+  and position with `status: open`, then add the phase. Never create a
+  second goal with a closed effort's subject.
+
+Closed goals do not show in views. Find them with:
+
+```bash
+adaptive-artifacts list --type project:active-goal --state active --where payload.status=closed
+
+adaptive-artifacts supersede --type project:active-goal --id <goal-id> \
+  --expected-revision <revision> --payload '{"status":"open"}'
+
+adaptive-artifacts supersede --type project:current-position --id <position-id> \
+  --expected-revision <revision> --payload '{"status":"open"}'
+```
+
 Focus is a **subject string**, not a record. Name it (from `engage`, the
 user, or the only live `active-goal` subject). Then:
 

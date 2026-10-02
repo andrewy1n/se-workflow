@@ -221,7 +221,8 @@ adaptive-artifacts supersede --type project:current-position --id <position-id> 
   --expected-revision <revision> --payload '{"status":"closed"}'
 ```
 
-   To reopen an effort, supersede the goal with `status: open`.
+   To reopen an effort later, see kinds-and-focus, Closing and
+   reopening.
 9. Regenerate views (including `project:brief`); `adaptive-artifacts validate`.
 
 ## Do not

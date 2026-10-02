@@ -65,7 +65,8 @@ kind/focus are unset).
    `adaptive-artifacts hook-start`
    Resolve **focus** and **kind**. Use the `## <focus>` plan section.
 2. If this focus has no `active-goal`, create it (`init` step 6) for
-   **this subject only**. Resolve the current phase's slug by querying
+   **this subject only**. If its goal is closed, reopen it first
+   (kinds-and-focus, Closing and reopening). Resolve the current phase's slug by querying
    `project:phase` for this effort (`--where payload.effort=<focus>`)
    and taking the one named in context (by `engage` or the user), else
    the one that is `in_progress`, else the lowest-`ordinal` `planned`
