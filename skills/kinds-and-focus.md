@@ -40,8 +40,10 @@ user, or the only live `active-goal` subject). Then:
   goal exists, treat that subject as the effort. If several goals exist
   and `effort` is missing, stop and ask.
 
-A new effort is a new subject. Create its goal/position. Leave the
-others active.
+An effort is a product area or objective, not one ask. New work in
+an area a live goal already covers is a new phase of that effort. A
+new effort is a new subject only when no live goal covers the area.
+Create its goal/position. Leave the others active.
 
 ## Incidental
 

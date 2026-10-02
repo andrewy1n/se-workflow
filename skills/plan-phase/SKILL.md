@@ -70,7 +70,10 @@ kind/focus are unset).
    and taking the one that is `in_progress`, or the lowest-`ordinal`
    `planned` one if none is `in_progress` yet — never
    `current-position.payload.scope`, which is a stable per-subject
-   value, not the phase slug (incidental has no phase).
+   value, not the phase slug (incidental has no phase). If `engage`
+   handed off `phase: new`, the current phase is a new one: create it
+   in step 3 with `ordinal` = highest existing ordinal for this effort
+   plus one.
 3. Promote the current phase to `in_progress` with its real plan.
    `Get` its record to check lifecycle and `revision`:
 

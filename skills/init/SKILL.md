@@ -42,8 +42,9 @@ If the user already has this focus's tasks, use `plan-phase`.
   different trait (staged lifecycle) — it changes via `update
   --transition`, never `supersede`.
 - Parent writes records. Do not spawn subagents here.
-- Several live goals may exist. A new effort is a new `subject`.
-  Never supersede another subject's goal or position.
+- Several live goals may exist. A new effort is a new `subject`, and
+  needs a reason: no live goal covers this area. Never supersede
+  another subject's goal or position.
 
 ## Steps
 
@@ -51,8 +52,8 @@ If the user already has this focus's tasks, use `plan-phase`.
 2. `adaptive-artifacts hook-start` if views were not injected.
 3. Resolve **focus** (effort slug). If live goals already exist, show
    them. Keep them unless the user is replacing **that** subject.
-   Adding work is a new subject or an existing one they named — not a
-   rewrite of a different goal.
+   If a live goal covers the same area, the work is a new phase there
+   (`plan-phase`), not a new subject. Never rewrite a different goal.
 4. Read cheap local evidence only: README, recent `git log`, existing
    docs. Treat them as proposals, not authority.
 5. Propose, then confirm (do not invent a product plan):
