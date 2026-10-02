@@ -369,12 +369,12 @@ def test_detail_ignores_a_task_whose_slug_shares_a_prefix(detail_store):
     assert all(a.criterion != "foreign" for a in detail.acceptances)
 
 
-def test_detail_uses_three_cli_calls(detail_store, monkeypatch):
+def test_detail_uses_four_cli_calls(detail_store, monkeypatch):
     calls = []
     real = model.subprocess.run
     monkeypatch.setattr(model.subprocess, "run", lambda cmd, **kw: calls.append(cmd) or real(cmd, **kw))
     _detail(detail_store)
-    assert len([cmd for cmd in calls if cmd[0] != "git"]) == 3
+    assert len([cmd for cmd in calls if cmd[0] != "git"]) == 4
 
 
 def test_detail_of_an_unknown_id_raises_a_model_error(store):
@@ -453,3 +453,29 @@ def test_phase_detail_for_an_unknown_phase_raises(store, cli, defs):
     _goal(cli, defs, "alpha")
     with pytest.raises(model.ModelError):
         model.load_phase_detail(_target(store), "alpha", "nope")
+
+
+def _merged_store(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="merged",
+        extra_payload={"goal": "ship merged", "kind": "deliver", "merged_from": ["old-a", "old-b"]},
+    )
+    _phase(cli, defs, "merged", "m-one", 1, "in_progress")
+    task = _work_item(cli, defs, "merged", "m-task", "m-one")
+    h.transition(cli, "project:work-item", task, "in_progress")
+    _record(cli, defs, "project:check-run", "m-task",
+            {"criterion_id": "x", "method": "manual", "result": "pass", "signed_by": "", "revision": "r", "effort": "old-a"})
+    return task
+
+
+def test_snapshot_counts_a_check_run_of_a_merged_effort_under_the_new_effort(store, cli, defs):
+    _merged_store(cli, defs)
+    view = _effort(model.load_snapshot(_target(store)), "merged")
+    assert [item.kind for item in view.needs_you] == ["unsigned-check"]
+    assert [item.kind for item in view.activity] == ["check-run"]
+
+
+def test_task_detail_lists_a_check_run_recorded_under_a_merged_effort(store, cli, defs):
+    task = _merged_store(cli, defs)
+    detail = model.load_task_detail(_target(store), task["id"])
+    assert [e.kind for e in detail.timeline] == ["check-run"]

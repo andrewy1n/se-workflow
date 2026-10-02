@@ -141,6 +141,18 @@ def _payload(record: dict[str, Any]) -> dict[str, Any]:
     return record.get("payload") or {}
 
 
+def _merge_aliases(goals: list[dict[str, Any]]) -> dict[str, str]:
+    return {old: goal["subject"] for goal in goals for old in _payload(goal).get("merged_from") or []}
+
+
+def _remapped(records: list[dict[str, Any]], aliases: dict[str, str]) -> list[dict[str, Any]]:
+    return [
+        {**record, "payload": {**_payload(record), "effort": aliases[_payload(record)["effort"]]}}
+        if _payload(record).get("effort") in aliases else record
+        for record in records
+    ]
+
+
 def _derived(record: dict[str, Any]) -> dict[str, Any]:
     return record.get("derived") or {}
 
@@ -281,6 +293,8 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     now = now or datetime.now(timezone.utc)
     token = change_token(target)
     listed = _list_all(target, _SNAPSHOT_TYPES)
+    aliases = _merge_aliases(listed["project:active-goal"])
+    listed = {record_type: _remapped(records, aliases) for record_type, records in listed.items()}
     goals = [
         r for r in listed["project:active-goal"]
         if r["lifecycle_state"] == "active" and _payload(r).get("status") != "closed"
@@ -292,7 +306,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     findings = _by_effort(listed["project:finding"])
     checks_all = listed["project:check-run"]
     checks = _by_effort(checks_all)
-    acceptances = _by_effort(_list(target, "project:acceptance"))
+    acceptances = _by_effort(_remapped(_list(target, "project:acceptance"), aliases))
     efforts_by_work_item = {}
     for task in all_tasks:
         entry = (_payload(task).get("effort"), task["subject"])
@@ -450,17 +464,19 @@ def _timeline(
 
 
 def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
-    """Load one task's records with three CLI calls.
+    """Load one task's records with four CLI calls.
 
     `get` yields the subject, effort, body, and outbound depends_on; one `list --subject --full`
-    yields every record for the slug; one work-item `list` for the effort names linked tasks.
+    yields every record for the slug; one work-item `list` for the effort names linked tasks; one goal `list` maps merged efforts.
     """
     item = _run(target, "get", "--type", "project:work-item", "--id", work_item_id)
     if "subject" not in item:
         raise ModelError(f"get project:work-item {work_item_id} returned unreadable output")
+    aliases = _merge_aliases(_list(target, "project:active-goal"))
+    item = _remapped([item], aliases)[0]
     slug, payload = item["subject"], _payload(item)
     effort = payload.get("effort", "")
-    records = _run(target, "list", "--subject", slug, "--full").get("records", [])
+    records = _remapped(_run(target, "list", "--subject", slug, "--full").get("records", []), aliases)
     efforts = _run(target, "list", "--type", "project:work-item", "--where", f"payload.effort={effort}")
     rows = {row.id: row for row in _task_rows(efforts.get("records", []))}
     mine = next((r for r in records if r["id"] == work_item_id), item)
@@ -513,7 +529,12 @@ class PhaseDetail:
 
 def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseDetail:
     """Load one phase with its body, decisions, constraints, and tasks."""
-    snapshot_phases = _by_effort(_list(target, "project:phase")).get(effort, [])
+    aliases = _merge_aliases(_list(target, "project:active-goal"))
+
+    def by_effort(record_type: str) -> dict[str, list[dict[str, Any]]]:
+        return _by_effort(_remapped(_list(target, record_type), aliases))
+
+    snapshot_phases = by_effort("project:phase").get(effort, [])
     record = next((r for r in snapshot_phases if r["subject"] == phase_subject), None)
     if record is None:
         raise ModelError(f"phase {phase_subject} not found in {effort}")
@@ -521,19 +542,19 @@ def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseD
     tasks = _by_effort(_list(target, "project:work-item")).get(effort, [])
     row = next(
         (p for p in _phase_rows(
-            [record], tasks, _by_effort(_list(target, "project:acceptance")).get(effort, []),
-            _by_effort(_list(target, "project:check-run")).get(effort, []),
+            [record], tasks, by_effort("project:acceptance").get(effort, []),
+            by_effort("project:check-run").get(effort, []),
         )),
         None,
     )
     decisions = [
         RelatedRecord("decision", r["id"], r["subject"], _payload(r).get("choice", ""))
-        for r in _by_effort(_list(target, "project:decision")).get(effort, [])
+        for r in by_effort("project:decision").get(effort, [])
         if _payload(r).get("phase") == phase_subject and r["lifecycle_state"] not in INACTIVE_STATES
     ]
     constraints = [
         RelatedRecord("constraint", r["id"], r["subject"], _payload(r).get("statement", ""))
-        for r in _by_effort(_list(target, "project:constraint")).get(effort, [])
+        for r in by_effort("project:constraint").get(effort, [])
         if _payload(r).get("applies_to") == phase_subject and r["lifecycle_state"] not in INACTIVE_STATES
     ]
     payload = _payload(record)

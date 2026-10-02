@@ -26,7 +26,7 @@ materialized as `work-item` + `acceptance`.
 
 Focus is a subject string (which effort this chat is on). An effort
 is a product area; new work in it is a new phase. Other live goals
-stay live; a finished effort closes with `status: closed`. Each
+stay live; a finished effort closes with `status: closed`. A merged effort lists the old slugs in `merged_from`. Each
 running phase keeps its own position, so chats on different phases of
 one effort do not collide. Handoff groups by `effort`. See [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 

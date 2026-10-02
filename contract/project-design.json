@@ -23,10 +23,12 @@
         "goal",
         "scope",
         "kind",
-        "status"
+        "status",
+        "merged_from"
       ],
       "optional_payload": [
-        "status"
+        "status",
+        "merged_from"
       ],
       "payload_enum": {
         "status": [
