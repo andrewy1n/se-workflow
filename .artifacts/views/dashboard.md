@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:5dc3c452dcb9055da1d3edbc4033799a26cf33db1b24b60a027fb37c73f5c6ff
+> Store state: sha256:33f6fcaf44dbac5d7c9890f880a6844d54fe17b77dda50fc976d43c176689fa3
 
 ## dashboard
 
@@ -98,7 +98,3 @@
 
 ### Goal
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
-
-### Done Recent
-- **discuss-skill**: title: discuss skill settles the approach before planning; phase: discuss-step _(id: [rec-16df788d-cf05-44bf-9f57-490039d76af8](.artifacts/records/project__work-item/rec-16df788d-cf05-44bf-9f57-490039d76af8.md))_
-- **route-through-discuss**: title: Route new phases through discuss and a plan review gate; phase: discuss-step _(id: [rec-2254fa38-4f06-459f-b5a5-cfc81390a67b](.artifacts/records/project__work-item/rec-2254fa38-4f06-459f-b5a5-cfc81390a67b.md))_
