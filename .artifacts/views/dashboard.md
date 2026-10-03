@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:21f4e1ed5cf95480873a799d50b43f042752301c138b6e74bd2e8b5801ba1c2a
+> Store state: sha256:5dc3c452dcb9055da1d3edbc4033799a26cf33db1b24b60a027fb37c73f5c6ff
 
 ## dashboard
 
@@ -101,6 +101,4 @@
 
 ### Done Recent
 - **discuss-skill**: title: discuss skill settles the approach before planning; phase: discuss-step _(id: [rec-16df788d-cf05-44bf-9f57-490039d76af8](.artifacts/records/project__work-item/rec-16df788d-cf05-44bf-9f57-490039d76af8.md))_
-- **handoff-by-effort**: title: Group handoff by effort; phase: phase-position _(id: [rec-2e5c9495-b788-486e-92ce-523f5c0a5104](.artifacts/records/project__work-item/rec-2e5c9495-b788-486e-92ce-523f5c0a5104.md))_
-- **phase-position-skills**: title: Per-phase position in plan-phase and execute-phase; phase: phase-position _(id: [rec-f62a9eef-018c-4eef-959c-0045b09b6a7f](.artifacts/records/project__work-item/rec-f62a9eef-018c-4eef-959c-0045b09b6a7f.md))_
 - **route-through-discuss**: title: Route new phases through discuss and a plan review gate; phase: discuss-step _(id: [rec-2254fa38-4f06-459f-b5a5-cfc81390a67b](.artifacts/records/project__work-item/rec-2254fa38-4f06-459f-b5a5-cfc81390a67b.md))_
