@@ -1,0 +1,31 @@
+---
+{
+  "base_kind": "instruction",
+  "id": "rec-9abb0d56-f23b-4b2b-b39c-4ff57cbb7af6",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "effort": "session-analysis",
+    "executor": "ag-outliers-exec",
+    "work_item": "ag-outliers"
+  },
+  "provenance": {
+    "sources": [
+      "ag-outliers"
+    ]
+  },
+  "record_type": "project:assignment",
+  "recorded_at": "2026-10-02T01:59:09+00:00",
+  "relationships": {},
+  "revision": "sha256:c7dd577c489cd4bacd2d411c24fa569cbc64ed47589761322f5f68b17e59bbc0",
+  "subject": "ag-outliers",
+  "time": {
+    "observed": "2026-10-02T01:59:09+00:00",
+    "recorded": "2026-10-02T01:59:09+00:00"
+  }
+}
+---
+
+## Orientation
+
+Work in /home/ayin/se-workflow. Two parallel executors build the other two rollups. Own only scripts/session_outliers.py and tests/test_session_outliers.py. Input rows are JSON dicts shaped like the output of scripts/session_report.py --records. Scripts import each other as top-level modules, but this module needs no other script. Do not edit .artifacts/, other scripts or other tests.

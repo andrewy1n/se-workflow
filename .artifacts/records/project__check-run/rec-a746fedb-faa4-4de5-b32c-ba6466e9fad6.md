@@ -1,0 +1,36 @@
+---
+{
+  "base_kind": "event",
+  "id": "rec-a746fedb-faa4-4de5-b32c-ba6466e9fad6",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "criterion_id": "rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85",
+    "effort": "watch-dashboard",
+    "method": "check",
+    "result": "fail",
+    "revision": "se:a3b4ee2",
+    "signed_by": ""
+  },
+  "provenance": {
+    "sources": [
+      "verify-end-to-end-phase"
+    ]
+  },
+  "record_type": "project:check-run",
+  "recorded_at": "2026-09-29T23:55:13+00:00",
+  "relationships": {
+    "informed_by": [
+      "rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85"
+    ]
+  },
+  "revision": "sha256:ecc47640436d3b23a2f627faa9ef8ca0090da1922434582dd50c388acdff8fe1",
+  "subject": "verify-end-to-end-phase",
+  "time": {
+    "observed": "2026-09-29T23:55:13+00:00",
+    "recorded": "2026-09-29T23:55:13+00:00"
+  }
+}
+---
+
+dashboard-status: watch-dashboard · 2 running · 3 needs you (open plugin question, e2e-real-execute-run finding, unsigned phase-1 live check)

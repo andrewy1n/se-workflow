@@ -1,0 +1,47 @@
+---
+{
+  "base_kind": "observation",
+  "id": "rec-9f5ce234-ecbc-442e-973f-2cef96facafd",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "assignment": "status-tabs",
+    "result": "pass",
+    "revision": "f6153ce",
+    "verdict": "pass",
+    "work_item": "status-tabs"
+  },
+  "provenance": {
+    "sources": [
+      "status-tabs"
+    ]
+  },
+  "record_type": "project:execution-report",
+  "recorded_at": "2026-10-01T20:38:45+00:00",
+  "relationships": {},
+  "revision": "sha256:d4d1e4801c97a739fe98758de8d92ea3dd83b2f502167bfd15f9afd7659a3ef8",
+  "subject": "status-tabs",
+  "time": {
+    "observed": "2026-10-01T20:38:45+00:00",
+    "recorded": "2026-10-01T20:38:45+00:00"
+  }
+}
+---
+
+subject: status-tabs
+kind: deliver
+result: pass
+revision: f6153ce
+evidence: Acceptance command `uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q` gives 112 passed, 0 failed (240s), run after the last code change. I wrote the new status-tab tests together with the code, not before it, so this is not strict red-then-green tdd. Tmux, launcher and e2e checks: `tests/test_tmux_integration.py tests/test_e2e_dashboard.py tests/test_dashboard_launcher.py` gives 20 passed. Before I adapted them, 4 of those failed (the tmux/e2e side-pane tests), and they passed on the original code. New pilot tests at 60 and 120 columns cover: counts on every tab, default Active, keys 1-5, click on a tab, the Needs you tab, combining with the / filter, and no `d` binding.
+observations:
+- Tabs are Active, Running, Ready, Needs you and Done. Keys 1-5 switch tabs (hidden from the footer) and a click also switches. The choice is stored per effort.
+- Active holds running, ready and waiting tasks. Done holds done and withdrawn tasks.
+- The Needs you tab lists tasks whose subject matches an open needs_you item (blocking or open question, needs-human finding, unsigned manual check). Items whose subject is not a task, such as the effort-level question in the seeded fixture, show in the Needs you panel but add nothing to the tab count. If you want a different mapping, change `tab_tasks` in scripts/dashboard_app.py.
+- I removed the `d` binding and `hide_done`. I also removed the `#tiles` widget, so `--once` now prints "Active N   Running N   Ready N   Needs you N   Done N" in place of the tile line. The table title now shows "Tasks · n of m · /text" only while the text filter is active, with m counted within the selected tab.
+- I adapted other tests to the new default of hiding done tasks: tests/test_tmux_integration.py (press 5 for the Done tab, and look for "Done 1") and tests/test_e2e_dashboard.py (checks "Done N" instead of done rows). Tab margin is 1 so the tab row fits the roughly 48-column side pane.
+- In tests/test_dashboard_app.py I removed the `d`-key tests and changed counts that assumed done tasks show by default. I did not touch the phase-sections code, the fixtures in tests/conftest.py, or the helpers in tests/helpers.py. Not pushed.
+root_cause:
+verdict: pass
+metrics: 112/112 dashboard_app tests; 20/20 tmux, e2e and launcher tests
+claim: The dashboard shows status tabs with counts and filters tasks by tab, and the tmux side pane still shows the Done tab.
+needs_human: false

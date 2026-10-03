@@ -1,0 +1,41 @@
+---
+{
+  "base_kind": "observation",
+  "id": "rec-3f728fbf-270d-40f1-bfcb-9f68d8eccc34",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "assignment": "dashboard-app",
+    "result": "pass",
+    "revision": "f84a229",
+    "verdict": "pass",
+    "work_item": "dashboard-app"
+  },
+  "provenance": {
+    "sources": [
+      "dashboard-app"
+    ]
+  },
+  "record_type": "project:execution-report",
+  "recorded_at": "2026-09-30T19:11:52+00:00",
+  "relationships": {},
+  "revision": "sha256:d4f6401a82521d90938cbb86c55cebb9f36bd735ffd7cf9a84056db52590d362",
+  "subject": "dashboard-app",
+  "time": {
+    "observed": "2026-09-30T19:11:52+00:00",
+    "recorded": "2026-09-30T19:11:52+00:00"
+  }
+}
+---
+
+```
+subject: dashboard-app
+kind: deliver
+result: pass
+revision: f84a229
+evidence: `uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q` -> 18 passed. `python3 -m pytest tests -q` -> 142 passed, 1 skipped. New tests: test_long_activity_lines_are_clipped_not_wrapped_at_60_columns, test_footer_has_no_palette_and_every_binding_fits_at_60_columns, test_task_title_uses_spare_width_at_120_columns; test_needs_you_panel_and_activity_feed_show_their_items asserts exact activity lines. New tests were not run red against the old code. Real-store --once prints the new activity text.
+verdict: pass
+needs_human: false
+```
+
+Fixes: activity summaries are sentences naming the task (ActivityItem.summary in dashboard_model.py); activity and needs-you lines clipped to pane width; command palette disabled, footer shows tab switch / q quit / r refresh; title column takes remaining width (58-char titles still cut at 120). Pane redraws on width change.

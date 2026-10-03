@@ -1,0 +1,996 @@
+{
+  "format": "adaptive-artifacts/project-design@0.3.0",
+  "project": "se-workflow",
+  "kind": "software_engineering",
+  "assessment": {
+    "discontinuity": "high",
+    "external_investigation": "low",
+    "decision_density": "medium",
+    "orientation_cost": "medium",
+    "operational_risk": "low",
+    "concurrency": "high",
+    "verification_cost": "high"
+  },
+  "records": [
+    {
+      "name": "active-goal",
+      "pattern": "current-status",
+      "purpose": "Live outcome of this effort",
+      "canonical_for": "the live goal of this subject",
+      "capture": "at_event",
+      "read": "always",
+      "payload": [
+        "goal",
+        "scope",
+        "kind",
+        "status"
+      ],
+      "optional_payload": [
+        "status"
+      ],
+      "payload_enum": {
+        "status": [
+          "open",
+          "closed"
+        ]
+      }
+    },
+    {
+      "name": "current-position",
+      "pattern": "current-status",
+      "purpose": "Live position: current phase and what is in flight",
+      "canonical_for": "the live position of this subject",
+      "capture": "at_event",
+      "read": "always",
+      "payload": [
+        "position",
+        "scope",
+        "effort",
+        "phase",
+        "status"
+      ],
+      "optional_payload": [
+        "phase",
+        "status"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "payload_enum": {
+        "status": [
+          "open",
+          "closed"
+        ]
+      }
+    },
+    {
+      "name": "phase",
+      "pattern": "phase",
+      "purpose": "The plan for one phase of the project: problem, approach, and exit criteria",
+      "canonical_for": "the plan for this phase",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": [
+        "title",
+        "ordinal",
+        "effort"
+      ],
+      "required_sections": [
+        "Problem",
+        "Approach",
+        "Exit criteria"
+      ]
+    },
+    {
+      "name": "work-item",
+      "pattern": "task",
+      "purpose": "A unit of work with a staged lifecycle and dependencies on other work",
+      "canonical_for": "the work item for this subject",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "title",
+        "phase",
+        "kind",
+        "assignee",
+        "effort"
+      ],
+      "required_sections": [
+        "Description"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      }
+    },
+    {
+      "name": "acceptance",
+      "pattern": "definition",
+      "purpose": "What done means for this change",
+      "canonical_for": "what done means for this change",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": [
+        "criterion",
+        "method",
+        "phase",
+        "effort",
+        "verify_command"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      }
+    },
+    {
+      "name": "constraint",
+      "pattern": "definition",
+      "purpose": "A confirmed constraint that is not a choice and has no alternatives",
+      "canonical_for": "the confirmed constraint for this subject",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "statement",
+        "applies_to",
+        "effort"
+      ],
+      "required_sections": [
+        "Basis"
+      ]
+    },
+    {
+      "name": "check-run",
+      "pattern": "event",
+      "purpose": "That this criterion was tested at a revision",
+      "canonical_for": "that this criterion was tested at this revision",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "criterion_id",
+        "revision",
+        "result",
+        "effort",
+        "method",
+        "signed_by"
+      ]
+    },
+    {
+      "name": "decision",
+      "pattern": "decision",
+      "purpose": "An adopted choice among alternatives",
+      "canonical_for": "the adopted choice for this question",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "choice",
+        "alternatives",
+        "phase",
+        "effort"
+      ],
+      "required_sections": [
+        "Rationale",
+        "Counter-argument"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      }
+    },
+    {
+      "name": "continuity-question",
+      "pattern": "question",
+      "purpose": "A blocker that stops dispatch or resume",
+      "canonical_for": "whether this unknown blocks continuity",
+      "capture": "at_event",
+      "read": "always",
+      "payload": [
+        "owner",
+        "blocking",
+        "scope"
+      ]
+    },
+    {
+      "name": "failed-attempt",
+      "pattern": "event",
+      "purpose": "An approach that should not be retried as-is",
+      "canonical_for": "that this approach was abandoned",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "attempted_action",
+        "retry_when",
+        "effort"
+      ]
+    },
+    {
+      "name": "investigation-observation",
+      "pattern": "observation",
+      "purpose": "What was observed while diagnosing or evaluating",
+      "canonical_for": "what was observed in this investigation",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "source",
+        "observed_time",
+        "environment",
+        "what_was_observed",
+        "effort"
+      ]
+    },
+    {
+      "name": "finding",
+      "pattern": "finding",
+      "purpose": "Root cause or comparative evaluation conclusion",
+      "canonical_for": "the investigation conclusion for this claim",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "claim",
+        "basis",
+        "invalidated_when",
+        "effort",
+        "needs"
+      ],
+      "required_sections": [
+        "Evidence",
+        "Consequence",
+        "Follow-up"
+      ]
+    },
+    {
+      "name": "assignment",
+      "pattern": "instruction",
+      "purpose": "What the orchestrator handed an executor for a work-item",
+      "canonical_for": "the dispatch of this work-item to this executor",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "work_item",
+        "executor",
+        "effort"
+      ],
+      "required_sections": [
+        "Orientation"
+      ],
+      "payload_references": {
+        "work_item": "project:work-item"
+      }
+    },
+    {
+      "name": "assignment-amendment",
+      "pattern": "instruction",
+      "purpose": "A mid-flight correction to an assignment already in progress",
+      "canonical_for": "the correction issued to this assignment",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "assignment",
+        "effort"
+      ],
+      "required_sections": [
+        "Correction"
+      ],
+      "payload_references": {
+        "assignment": "project:assignment"
+      }
+    },
+    {
+      "name": "execution-report",
+      "pattern": "observation",
+      "purpose": "What an executor returned for its assignment, body verbatim",
+      "canonical_for": "what this executor returned for this assignment",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "work_item",
+        "assignment",
+        "result",
+        "verdict",
+        "revision"
+      ],
+      "payload_references": {
+        "work_item": "project:work-item",
+        "assignment": "project:assignment"
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "handoff",
+      "owns_facts": false,
+      "freshness": "on_demand_or_handoff",
+      "parameters": [
+        "group_by"
+      ],
+      "roles": [
+        {
+          "name": "goal",
+          "occupant": "active-goal",
+          "requires_payload": [
+            "goal",
+            "scope",
+            "kind"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "occupant": "current-position",
+          "requires_payload": [
+            "position",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "in-progress",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase",
+            "kind",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "in_progress"
+              }
+            ]
+          }
+        },
+        {
+          "name": "blocking-question",
+          "occupant": "continuity-question",
+          "requires_payload": [
+            "blocking",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "open"
+              },
+              {
+                "field": "payload.blocking",
+                "equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "needs-human",
+          "occupant": "finding",
+          "requires_payload": [
+            "claim",
+            "needs"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "payload.needs",
+                "equals": "human"
+              },
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "asserted",
+                  "supported",
+                  "disputed"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "unsigned-manual-check",
+          "occupant": "check-run",
+          "requires_payload": [
+            "criterion_id",
+            "result",
+            "method",
+            "signed_by"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "payload.method",
+                "equals": "manual"
+              },
+              {
+                "field": "payload.signed_by",
+                "equals": ""
+              },
+              {
+                "field": "derived.corrected",
+                "not_equals": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "plan",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by",
+        "order_by"
+      ],
+      "roles": [
+        {
+          "name": "phase",
+          "occupant": "phase",
+          "requires_payload": [
+            "title",
+            "ordinal",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "planned",
+                  "in_progress"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "work",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase",
+            "kind",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "planned",
+                  "in_progress"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "acceptance",
+          "occupant": "acceptance",
+          "requires_payload": [
+            "criterion",
+            "method",
+            "effort",
+            "verify_command"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "verification",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by"
+      ],
+      "roles": [
+        {
+          "name": "acceptance",
+          "occupant": "acceptance",
+          "requires_payload": [
+            "criterion",
+            "method",
+            "effort",
+            "verify_command"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "check",
+          "occupant": "check-run",
+          "requires_payload": [
+            "criterion_id",
+            "revision",
+            "result",
+            "method",
+            "signed_by"
+          ],
+          "selection": {
+            "all": []
+          }
+        },
+        {
+          "name": "observation",
+          "occupant": "investigation-observation",
+          "requires_payload": [
+            "what_was_observed",
+            "effort"
+          ],
+          "selection": {
+            "all": []
+          }
+        },
+        {
+          "name": "finding",
+          "occupant": "finding",
+          "requires_payload": [
+            "claim",
+            "basis",
+            "invalidated_when",
+            "needs"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "asserted"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "status",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by",
+        "order_by",
+        "show_lifecycle_state",
+        "show_derived",
+        "tally_source_type",
+        "tally_result_field"
+      ],
+      "roles": [
+        {
+          "name": "work",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase",
+            "kind",
+            "effort"
+          ],
+          "selection": {
+            "all": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "brief",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by"
+      ],
+      "roles": [
+        {
+          "name": "work",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase",
+            "kind",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "planned",
+                  "in_progress"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "acceptance",
+          "occupant": "acceptance",
+          "requires_payload": [
+            "criterion",
+            "method",
+            "effort",
+            "verify_command"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "finding",
+          "occupant": "finding",
+          "requires_payload": [
+            "claim",
+            "basis",
+            "invalidated_when",
+            "needs"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "asserted"
+              }
+            ]
+          }
+        },
+        {
+          "name": "constraint",
+          "occupant": "constraint",
+          "requires_payload": [
+            "statement",
+            "applies_to",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "occupant": "current-position",
+          "requires_payload": [
+            "position",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "amendment",
+          "occupant": "assignment-amendment",
+          "requires_payload": [
+            "assignment",
+            "effort"
+          ],
+          "selection": {
+            "all": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "dashboard",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by",
+        "label_fields"
+      ],
+      "roles": [
+        {
+          "name": "goal",
+          "occupant": "active-goal",
+          "requires_payload": [
+            "goal",
+            "scope",
+            "kind"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "not_equals": "closed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phase",
+          "occupant": "phase",
+          "requires_payload": [
+            "title",
+            "ordinal"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "in_progress"
+              }
+            ]
+          }
+        },
+        {
+          "name": "blocking-question",
+          "occupant": "continuity-question",
+          "requires_payload": [
+            "blocking",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "open"
+              },
+              {
+                "field": "payload.blocking",
+                "equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "open-question",
+          "occupant": "continuity-question",
+          "requires_payload": [
+            "blocking",
+            "scope"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "open"
+              },
+              {
+                "field": "payload.blocking",
+                "equals": false
+              }
+            ]
+          }
+        },
+        {
+          "name": "needs-human",
+          "occupant": "finding",
+          "requires_payload": [
+            "claim",
+            "needs"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "payload.needs",
+                "equals": "human"
+              },
+              {
+                "field": "lifecycle_state",
+                "any_of": [
+                  "asserted",
+                  "supported",
+                  "disputed"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "unsigned-manual-check",
+          "occupant": "check-run",
+          "requires_payload": [
+            "criterion_id",
+            "result",
+            "method",
+            "signed_by"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "payload.method",
+                "equals": "manual"
+              },
+              {
+                "field": "payload.signed_by",
+                "equals": ""
+              },
+              {
+                "field": "derived.corrected",
+                "not_equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "running",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase",
+            "assignee"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "in_progress"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ready",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "planned"
+              },
+              {
+                "field": "derived.ready",
+                "equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "waiting",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "planned"
+              },
+              {
+                "field": "derived.ready",
+                "equals": false
+              }
+            ]
+          }
+        },
+        {
+          "name": "done-recent",
+          "occupant": "work-item",
+          "requires_payload": [
+            "title",
+            "phase"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "done"
+              },
+              {
+                "field": "recorded_at",
+                "within": "24h"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "bundles": [
+    {
+      "name": "specified-work",
+      "optional": true,
+      "records": [
+        "work-item",
+        "acceptance"
+      ],
+      "capture": {
+        "trigger": [
+          "explicit_request"
+        ]
+      }
+    }
+  ],
+  "overrides": [],
+  "source_lock": {
+    "catalog_version": "0.7.0",
+    "catalog": "sha256:d7f0f1d05f8c67f638c0ff1b4ad738161f43c1ec970729709f8f2afc1d8c1eb1",
+    "traits": "sha256:031651d57b0385097ad45aa5f52e62989432797ddf19e26701728359970a332d",
+    "backends": "sha256:717457f0078f89913f64d0e832b0d4a57643a5474f503b11c443d7fa97e2ea37"
+  },
+  "backend": "git-filesystem",
+  "view_params": {
+    "project:handoff": {
+      "group_by": "effort"
+    },
+    "project:plan": {
+      "group_by": "phase",
+      "order_by": "ordinal"
+    },
+    "project:verification": {
+      "group_by": "subject"
+    },
+    "project:status": {
+      "group_by": "phase",
+      "order_by": "ordinal",
+      "show_lifecycle_state": true,
+      "show_derived": [
+        "ready",
+        "wave"
+      ],
+      "tally_source_type": "project:check-run",
+      "tally_result_field": "result"
+    },
+    "project:brief": {
+      "group_by": "subject"
+    },
+    "project:dashboard": {
+      "group_by": "effort",
+      "label_fields": true
+    }
+  },
+  "source_revisions": {
+    "code": "git_commit"
+  },
+  "occupancy": {},
+  "gaps": [
+    {
+      "need": "session-focus record; encoded as a skill-named subject, views grouped by subject/effort, and a refuse-to-supersede-other-subjects rule"
+    }
+  ]
+}

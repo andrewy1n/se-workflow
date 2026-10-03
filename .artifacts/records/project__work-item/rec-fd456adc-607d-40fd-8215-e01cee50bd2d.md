@@ -1,0 +1,31 @@
+---
+{
+  "base_kind": "task",
+  "id": "rec-fd456adc-607d-40fd-8215-e01cee50bd2d",
+  "identity": "unknown",
+  "lifecycle_state": "done",
+  "payload": {
+    "assignee": "parent",
+    "effort": "dashboard",
+    "kind": "deliver",
+    "phase": "dashboard-package",
+    "title": "Update the plugin install, tmux conf and README"
+  },
+  "record_type": "project:work-item",
+  "recorded_at": "2026-10-02T19:07:30+00:00",
+  "relationships": {
+    "depends_on": [
+      "rec-11458acf-aa6f-4f59-9e01-9bfdf7775c84"
+    ]
+  },
+  "revision": "sha256:124e8ebf34411587e42765ac486b0c9bc1b96736c0dae9b08f8162b744ccaa2e",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "package-install"
+}
+---
+
+## Description
+
+Make sync-plugin.sh copy `dashboard/` into the install. Point `dashboard/tmux.conf` at the new launcher path. Update the README paths and the status-line example. The install copy must run `bin/dashboard --once`.

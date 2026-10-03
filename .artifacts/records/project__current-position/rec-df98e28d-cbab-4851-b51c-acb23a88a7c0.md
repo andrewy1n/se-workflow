@@ -1,0 +1,31 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-df98e28d-cbab-4851-b51c-acb23a88a7c0",
+  "identity": "unknown",
+  "lifecycle_state": "superseded",
+  "payload": {
+    "effort": "dashboard-features",
+    "phase": "features-layout",
+    "position": "Three phases done at b892587; features-layout (last) in progress. Work happens in the worktree .claude/worktrees/dashboard-features (branch feat/dashboard-features); the main tree stays on main for another focus.",
+    "scope": "effort"
+  },
+  "record_type": "project:current-position",
+  "recorded_at": "2026-10-02T03:14:48+00:00",
+  "relationships": {
+    "supersedes": [
+      "rec-e7eb393a-750a-459e-906a-415186a5f814"
+    ]
+  },
+  "revision": "sha256:c3fb88aa053a189359b0d2ace7d7f24eced98202e416b7c43201b44fba25ed45",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "dashboard-features",
+  "time": {
+    "as_of": "2026-10-02T02:00:03+00:00"
+  }
+}
+---
+
