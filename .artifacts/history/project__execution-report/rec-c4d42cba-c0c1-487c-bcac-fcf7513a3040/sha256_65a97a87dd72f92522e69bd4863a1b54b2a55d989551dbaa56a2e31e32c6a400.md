@@ -1,0 +1,40 @@
+---
+{
+  "base_kind": "observation",
+  "id": "rec-c4d42cba-c0c1-487c-bcac-fcf7513a3040",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "assignment": "unsigned-check-label",
+    "result": "pass",
+    "revision": "78da8ec19dcd8f6b08babab551f832516753507b",
+    "verdict": "pass",
+    "work_item": "unsigned-check-label"
+  },
+  "provenance": {
+    "sources": [
+      "unsigned-check-label"
+    ]
+  },
+  "record_type": "project:execution-report",
+  "recorded_at": "2026-10-01T23:36:49+00:00",
+  "relationships": {},
+  "revision": "sha256:65a97a87dd72f92522e69bd4863a1b54b2a55d989551dbaa56a2e31e32c6a400",
+  "subject": "unsigned-check-label",
+  "time": {
+    "observed": "2026-10-01T23:36:49+00:00",
+    "recorded": "2026-10-01T23:36:49+00:00"
+  }
+}
+---
+
+subject: unsigned-check-label
+kind: repair
+result: pass
+revision: 78da8ec19dcd8f6b08babab551f832516753507b
+evidence: Before the fix, `uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k unsigned` gave 1 failed, 1 passed. The new test failed and showed the item ('u-check', 'rec-446410ee-... pass'). After the fix, the same -k unsigned command gave 2 passed. The full tests/test_dashboard_model.py gave 25 passed. tests/test_dashboard_app.py gave 145 passed. It is not edited here; I ran it only to confirm the model change does not break the app.
+observations: The new test is test_unsigned_check_reads_as_its_criterion_and_task_not_a_record_id in tests/test_dashboard_model.py. It creates an acceptance "u-task-perf" with criterion "pages render". It creates an unsigned manual check that points to this acceptance, and an orphan check with criterion_id "rec-missing". It asserts ("u-task-perf", "pages render pass") for the first check and ("u-orphan", "pass") for the orphan. It also asserts that no subject or text contains "rec-". In scripts/dashboard_model.py, load_snapshot now builds an id-to-record map over all project:acceptance records and passes it to _needs_you. _needs_you sets the unsigned-check item's subject to the acceptance subject (the task slug) and its text to "<criterion> <result>". When the acceptance is missing, subject falls back to the check-run record subject and text is the result only. The NeedsYouItem fields do not change. The existing test test_collects_needs_you_items_and_drops_resolved_or_corrected_ones still passes; its checks have no criterion_id, so they use the fallback. The result ("pass") stays at the end of the text because the old label showed it.
+root_cause: _needs_you built the unsigned-check text as f"{criterion_id} {result}". It did not look up the acceptance, so the raw rec- id showed in the panel and the check-run subject showed in place of the task slug.
+verdict: pass
+claim: none
+needs_human: false

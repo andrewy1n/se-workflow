@@ -1,0 +1,34 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-8adbe3ab-0d4b-4997-ba23-3b1bb0f909ae",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "alternatives": "tab counts every item with rows for unlinked items, tab counts linked tasks only",
+    "choice": "Remove the Needs you status tab; the panel title carries the count",
+    "effort": "dashboard",
+    "phase": "bugfix-needs-you-data"
+  },
+  "record_type": "project:decision",
+  "recorded_at": "2026-10-02T03:16:31+00:00",
+  "relationships": {},
+  "revision": "sha256:eed286e38f62c724b3f28d0b9d732f16938cbc4789d233fdade54680b16c7684",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "remove-needs-you-tab",
+  "time": {
+    "as_of": "2026-10-01T23:01:14+00:00"
+  }
+}
+---
+
+## Rationale
+
+The tab filters tasks, but effort-level questions and other unlinked items have no task, so its count can never match the panel. The user chose one source: the panel, with its count in the title. features-needs-you makes the panel selectable, which replaces the tab's purpose.
+
+## Counter-argument
+
+The tab let you see the needs-you tasks inside the phase-grouped table with their status and wave; that view is gone, and 1-7 muscle memory shifts to 1-6.

@@ -1,0 +1,36 @@
+---
+{
+  "base_kind": "event",
+  "id": "rec-fb47b275-bf18-4ae2-8c81-21e6ebe99fce",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "criterion_id": "rec-e3cb339f-2f12-42bd-9dab-4439494334aa",
+    "effort": "dashboard-features",
+    "method": "tdd",
+    "result": "pass",
+    "revision": "d6f518bc2b5c2f8f4ae54c678c9ffaf5c8949b6c",
+    "signed_by": ""
+  },
+  "provenance": {
+    "sources": [
+      "heading-spacing"
+    ]
+  },
+  "record_type": "project:check-run",
+  "recorded_at": "2026-10-02T02:06:19+00:00",
+  "relationships": {
+    "informed_by": [
+      "rec-e3cb339f-2f12-42bd-9dab-4439494334aa",
+      "rec-dc180ec9-c873-4c4e-b770-9437a82526ec"
+    ]
+  },
+  "revision": "sha256:db638dad9a386c8dfb110cc30bd2e964da46ba43677198af09ecc2d4562588f3",
+  "subject": "heading-spacing",
+  "time": {
+    "observed": "2026-10-02T02:06:19+00:00",
+    "recorded": "2026-10-02T02:06:19+00:00"
+  }
+}
+---
+

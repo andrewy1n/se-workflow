@@ -1,0 +1,28 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-1dceda28-8bfd-43df-b3ca-53d3a7740286",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "criterion": "Against a seeded store with one record per section, view --id project:dashboard renders every section in order with labeled fields, and a done item older than 24h is absent",
+    "effort": "dashboard",
+    "method": "tdd",
+    "phase": "dashboard-view",
+    "verify_command": "cd ~/se-workflow && python3 -m pytest tests -q -k dashboard"
+  },
+  "record_type": "project:acceptance",
+  "recorded_at": "2026-10-02T03:16:24+00:00",
+  "relationships": {},
+  "revision": "sha256:bbc069d91e3af382ac9a77e8cb81472af8834e656d45899b7f510b3899707468",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "add-dashboard-view-render",
+  "time": {
+    "as_of": "2026-09-29T22:32:14+00:00"
+  }
+}
+---
+

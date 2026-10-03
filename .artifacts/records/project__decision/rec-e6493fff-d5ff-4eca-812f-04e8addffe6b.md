@@ -1,0 +1,34 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-e6493fff-d5ff-4eca-812f-04e8addffe6b",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "alternatives": "pip install --user textual, pyproject.toml",
+    "choice": "PEP 723 inline-dependency script run with uv run --script",
+    "effort": "dashboard",
+    "phase": "readable-layout"
+  },
+  "record_type": "project:decision",
+  "recorded_at": "2026-10-02T03:16:31+00:00",
+  "relationships": {},
+  "revision": "sha256:445993f66a373ff10b3dbdfc1f5af2f659f04a3715ddd0580685f6a20ed3f3b2",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "dashboard-deps",
+  "time": {
+    "as_of": "2026-09-30T18:49:40+00:00"
+  }
+}
+---
+
+## Rationale
+
+`uv` is already installed. An inline-dependency script pulls in Textual on first run with no global install and no project packaging.
+
+## Counter-argument
+
+The launcher then requires `uv`. The other scripts run on plain `python3`.

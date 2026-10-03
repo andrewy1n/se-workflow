@@ -1,0 +1,31 @@
+---
+{
+  "base_kind": "instruction",
+  "id": "rec-cafdacca-b4cd-4614-b3d9-d2647204b687",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "effort": "dashboard-ui",
+    "executor": "sub-task-list-filters",
+    "work_item": "task-list-filters"
+  },
+  "provenance": {
+    "sources": [
+      "task-list-filters"
+    ]
+  },
+  "record_type": "project:assignment",
+  "recorded_at": "2026-09-30T21:09:52+00:00",
+  "relationships": {},
+  "revision": "sha256:98d8cbf243436ea3e0d206157793448c0b3a92799a3829d9ebf7e38efd7592b3",
+  "subject": "task-list-filters",
+  "time": {
+    "observed": "2026-09-30T21:09:52+00:00",
+    "recorded": "2026-09-30T21:09:52+00:00"
+  }
+}
+---
+
+## Orientation
+
+Work only in ~/se-workflow on branch feat/dashboard-ui (HEAD 70b0501). All changes go in `scripts/dashboard_app.py`, `tests/test_dashboard_app.py`, and the README key list. The `dashboard-read-only` constraint applies: the dashboard never writes to the store. The next task (copy and commit actions) adds more bindings, so keep the footer to the most useful keys and fit it at 60 columns.
