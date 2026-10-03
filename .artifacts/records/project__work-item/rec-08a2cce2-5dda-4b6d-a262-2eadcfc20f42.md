@@ -1,0 +1,59 @@
+---
+{
+  "base_kind": "task",
+  "id": "rec-08a2cce2-5dda-4b6d-a262-2eadcfc20f42",
+  "identity": "unknown",
+  "lifecycle_state": "done",
+  "payload": {
+    "assignee": "sub-header-chrome",
+    "effort": "dashboard",
+    "executor": "subagent",
+    "kind": "deliver",
+    "phase": "quiet-header",
+    "title": "Quiet status tabs and a collapsed phase stepper"
+  },
+  "record_type": "project:work-item",
+  "recorded_at": "2026-10-03T10:02:26+00:00",
+  "relationships": {},
+  "revision": "sha256:0ca6532c3c0b5884913f169f15c4acb9a2a8eb9a8e04ec77660a975bdb4aa9b5",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "header-chrome"
+}
+---
+
+## Description
+
+Replace the numbered status tabs and the green per-phase stepper with a word-and-tally tab row and a collapsed phase history. Done phase headers in the task table lose the check glyph.
+
+## Approach
+
+Write the failing tests first, then make them pass. Work in the phase worktree. Do not edit `.artifacts/`.
+
+Status tabs, in `dashboard/app.py` `StatusTab.show` and `render_once`:
+
+- The visible label is `Active (3)`: the word, then a dim ` (N)` tally. No leading shortcut digit.
+- The selected tab's word is `bold reverse`. The tally stays `dim` on every tab, including the selected one. Put those styles on the Rich spans. Drop `text-style: bold reverse` from `.status-tab.selected` so the CSS does not reverse the tally.
+- `STATUS_TABS` keeps its key field. Bindings `1`-`6`, left/right, click, and the footer `1-6` stay.
+- `render_once` prints `Active (3)   Running (1)   Ready (1)   Waiting (1)   Done (1)   All (4)` with the live counts.
+- Update `tests/test_dashboard_app.py` tab-row and `--once` tally tests, and the README sentences that say each label starts with its number key. At 60 columns, tabs must stay inside the pane; do not require two rows if the shorter labels fit on one.
+- `tests/test_tmux_integration.py` strings that expect `1 Active` change to `Active (`.
+
+Stepper, in `dashboard/app.py` `stepper_text` and the `#stepper` widget:
+
+- Add `expanded: bool = False`. `EffortPane` stores `stepper_open`, default false, and passes it through.
+- Collapsed, when any phase is done: one muted segment `N done` with no check glyph. Then the current phase, the first `in_progress` phase, as `● {title} {done}/{total}` in the primary color. Then one next phase, the first `planned` phase, as `○ {title}` muted. Omit a segment that has nothing to show, including `0 done`.
+- A finished effort with no in-progress and no planned phase shows only `N done` until expanded.
+- Expanded: each done phase's title, muted, with no check glyph, then the same current and next segments. Later planned phases stay hidden.
+- Keep the existing wrap: segments separate by three spaces, a segment moves intact to the next line, and a segment wider than the pane clips with `…` with its glyph still on that line.
+- The stepper widget toggles `stepper_open` on click and on enter while focused, then re-renders. Tests click `#stepper` to expand.
+- Replace stepper assertions that expect `✓ Phase one` and a glyph on every line. The long-phases fixture collapses to `2 done`, `● PDF export`, and `○ Admin console button`. The tmux side-pane fixture collapses to `1 done`, `● Shape the store`, and `○ Draw the dashboard`, and no longer shows the later long planned title or a `✓`. Keep one test where a visible segment wider than the pane clips with `…` and does not leave its glyph on the previous line.
+
+Done phase headers, in `dashboard/tasks.py` `section_cells`:
+
+- A done phase's status cell is only the disclosure marker (`▸` or `▾`), muted. No `✓`.
+- In-progress keeps `●`. Planned keeps `○`. The fold row `N earlier phases done` stays.
+- Assert this from `test_done_phases_collapse_and_older_ones_fold_into_one_row`: the done header row has no `✓`.
+
+Run the header-chrome verify commands and leave them passing.

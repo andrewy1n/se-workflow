@@ -4,7 +4,7 @@
   "epistemic_status": "asserted",
   "id": "rec-8a18f2fb-dc19-4f88-bfe5-bfdf387b9b75",
   "identity": "unknown",
-  "lifecycle_state": "active",
+  "lifecycle_state": "superseded",
   "payload": {
     "effort": "dashboard",
     "phase": "tmux-plugin-entry",
@@ -13,13 +13,13 @@
     "status": "open"
   },
   "record_type": "project:current-position",
-  "recorded_at": "2026-10-02T19:49:30+00:00",
+  "recorded_at": "2026-10-03T09:50:02+00:00",
   "relationships": {
     "supersedes": [
       "rec-bf0a0098-e36a-4afa-b288-d9cef664edcd"
     ]
   },
-  "revision": "sha256:b38e260bb7f462f19e0195ae02f74c6646400148cc061f3b0eb0c65b53c101b0",
+  "revision": "sha256:5906bbbf8f28416110bb4f29b6f31b160b24a1d5aec6b4b376acc15990c6b6a3",
   "stewardship": {
     "steward": "agent"
   },

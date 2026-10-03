@@ -1,0 +1,31 @@
+---
+{
+  "base_kind": "instruction",
+  "id": "rec-4f37f77b-d54f-462b-adcc-ff954ba2bbb7",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "effort": "dashboard",
+    "executor": "sub-header-chrome",
+    "work_item": "header-chrome"
+  },
+  "provenance": {
+    "sources": [
+      "header-chrome"
+    ]
+  },
+  "record_type": "project:assignment",
+  "recorded_at": "2026-10-03T09:54:08+00:00",
+  "relationships": {},
+  "revision": "sha256:1c166ce38411478f5cfc5d6b6de789446305cee6bc96cb9e0b5ef714173cbbc4",
+  "subject": "header-chrome",
+  "time": {
+    "observed": "2026-10-03T09:54:08+00:00",
+    "recorded": "2026-10-03T09:54:08+00:00"
+  }
+}
+---
+
+## Orientation
+
+Code writes go only in /home/andrewyin/se-workflow--quiet-header, branch phase/quiet-header. The primary checkout /home/andrewyin/se-workflow stays on main and owns .artifacts. Do not edit .artifacts, do not commit, and do not call adaptive-artifacts. No other executor is writing dashboard/ or tests/ during this wave.
