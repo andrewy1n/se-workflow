@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:19083f257d02a61b0ae71712e660b5bb6639087426eceb5e78c97aefb6afaf7a
+> Store state: sha256:d24b330def34f76e863458e90113598ae89d470ffc86aa1dd19e78661b8d929f
 
 ## activity-failures
 
@@ -203,6 +203,11 @@
 ### Acceptance
 - **effort-switch-focus**: Pilot test: with an effort-level question on a live effort, tab and shift+tab reach a finished effort and stay there; the test fails before the fix; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k switch _(id: [rec-768f3192-cdcf-45d9-9421-2282f78e8bef](.artifacts/records/project__acceptance/rec-768f3192-cdcf-45d9-9421-2282f78e8bef.md))_
 
+## execute-landing
+
+### Acceptance
+- **execute-landing**: execute-phase creates the worktree, confines code writes to it, keeps store writes on the primary checkout, commits the branch, merges to main, commits the store, and does not push unless Landing names push as a stop; a phase with no Landing stays in the current checkout; tdd; workflow-loop; python3 -m pytest tests/test_execute_landing.py -q _(id: [rec-b89f9c9f-d9f4-4db9-8375-3f877388c961](.artifacts/records/project__acceptance/rec-b89f9c9f-d9f4-4db9-8375-3f877388c961.md))_
+
 ## execute-wave-dispatch
 
 ### Acceptance
@@ -300,6 +305,11 @@
 
 ### Acceptance
 - **phase-sections**: Model and pilot tests group tasks by phase, collapse done and planned phases, fold older done phases, toggle headers by key and click, open a phase detail with body and decisions, show awaiting sign-off, and show effort-wide progress; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_model.py -q _(id: [rec-611e26b5-b891-4e71-8951-3ebf07ecc715](.artifacts/records/project__acceptance/rec-611e26b5-b891-4e71-8951-3ebf07ecc715.md))_
+
+## plan-landing-rules
+
+### Acceptance
+- **plan-landing-rules**: plan-phase requires a Landing section with branch, worktree, base, close, and push only as a named stop before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e](.artifacts/records/project__acceptance/rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e.md))_
 
 ## plan-wave-rules
 
@@ -587,6 +597,21 @@
 ### Amendment
 - **verify-needs-you-phase**: verify-needs-you-phase; dashboard-features _(id: [rec-3192a53d-1a55-41cb-8f06-71bdbabdcbd2](.artifacts/records/project__assignment-amendment/rec-3192a53d-1a55-41cb-8f06-71bdbabdcbd2.md))_
 
+## verify-phase-landing
+
+### Acceptance
+- **verify-phase-landing**: plan-phase and execute-phase name the same landing: branch phase/<phase-slug>, the sibling worktree, base main, merge into main, store commit on the primary checkout, and push only as a human stop; tdd; workflow-loop; python3 -m pytest tests/test_phase_landing.py tests/test_plan_landing.py tests/test_execute_landing.py -q _(id: [rec-5f277ff6-f5de-48ae-a3fa-43825f135561](.artifacts/records/project__acceptance/rec-5f277ff6-f5de-48ae-a3fa-43825f135561.md))_
+
+## verify-phase-landing-execute
+
+### Acceptance
+- **verify-phase-landing-execute**: execute-phase creates the worktree, keeps the store on the primary checkout, merges the phase branch into main, and does not push unless Landing names push as a stop; tdd; workflow-loop; python3 -m pytest tests/test_execute_landing.py -q _(id: [rec-c376fad0-9993-4448-9e97-21adc7a1ec8d](.artifacts/records/project__acceptance/rec-c376fad0-9993-4448-9e97-21adc7a1ec8d.md))_
+
+## verify-phase-landing-plan
+
+### Acceptance
+- **verify-phase-landing-plan**: plan-phase requires a Landing section before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54](.artifacts/records/project__acceptance/rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54.md))_
+
 ## verify-readable-layout-phase
 
 ### Acceptance
@@ -700,4 +725,4 @@
 ## workflow-loop
 
 ### Position
-- **workflow-loop**: wave-executor done. No further phase is named.; effort _(id: [rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc](.artifacts/records/project__current-position/rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc.md))_
+- **workflow-loop**: phase-landing done. No further phase is named.; effort _(id: [rec-07d1c402-b9eb-4ebe-becb-614a635518cc](.artifacts/records/project__current-position/rec-07d1c402-b9eb-4ebe-becb-614a635518cc.md))_

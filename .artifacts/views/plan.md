@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:a4c259cdd3866e320beb1cc6396cbf34b2191872111d2663b1fc4b8ecdd47719
+> Store state: sha256:496256764fb1e1f4251c37c25e7e3045d843745d4c937e09e8d69784dd9f95f1
 
 ## dashboard-view
 
@@ -124,6 +124,15 @@
 - **verify-wave-executor**: plan-phase and execute-phase name the same executors, inline and subagent, and a missing executor means subagent; tdd; workflow-loop; python3 -m pytest tests/test_wave_executor_phase.py -q _(id: [rec-5fe7bba7-cd21-447d-a698-ed9bb1379f58](.artifacts/records/project__acceptance/rec-5fe7bba7-cd21-447d-a698-ed9bb1379f58.md))_
 - **verify-wave-executor-execute**: execute-phase runs an inline wave in this session and a subagent wave as one worker per task, and does not ask for a recipe when Approach is present; tdd; workflow-loop; python3 -m pytest tests/test_execute_wave_dispatch.py -q _(id: [rec-d8b61721-30cb-41fd-885d-85e673c7d6d7](.artifacts/records/project__acceptance/rec-d8b61721-30cb-41fd-885d-85e673c7d6d7.md))_
 - **verify-wave-executor-plan**: plan-phase requires a recipe, one shared executor per wave, and phase size, stops, and collision notes before plan review; tdd; workflow-loop; python3 -m pytest tests/test_plan_wave_rules.py -q _(id: [rec-61bdf854-1a06-491f-8af6-aeda309ec357](.artifacts/records/project__acceptance/rec-61bdf854-1a06-491f-8af6-aeda309ec357.md))_
+
+## phase-landing
+
+### Acceptance
+- **execute-landing**: execute-phase creates the worktree, confines code writes to it, keeps store writes on the primary checkout, commits the branch, merges to main, commits the store, and does not push unless Landing names push as a stop; a phase with no Landing stays in the current checkout; tdd; workflow-loop; python3 -m pytest tests/test_execute_landing.py -q _(id: [rec-b89f9c9f-d9f4-4db9-8375-3f877388c961](.artifacts/records/project__acceptance/rec-b89f9c9f-d9f4-4db9-8375-3f877388c961.md))_
+- **plan-landing-rules**: plan-phase requires a Landing section with branch, worktree, base, close, and push only as a named stop before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e](.artifacts/records/project__acceptance/rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e.md))_
+- **verify-phase-landing**: plan-phase and execute-phase name the same landing: branch phase/<phase-slug>, the sibling worktree, base main, merge into main, store commit on the primary checkout, and push only as a human stop; tdd; workflow-loop; python3 -m pytest tests/test_phase_landing.py tests/test_plan_landing.py tests/test_execute_landing.py -q _(id: [rec-5f277ff6-f5de-48ae-a3fa-43825f135561](.artifacts/records/project__acceptance/rec-5f277ff6-f5de-48ae-a3fa-43825f135561.md))_
+- **verify-phase-landing-execute**: execute-phase creates the worktree, keeps the store on the primary checkout, merges the phase branch into main, and does not push unless Landing names push as a stop; tdd; workflow-loop; python3 -m pytest tests/test_execute_landing.py -q _(id: [rec-c376fad0-9993-4448-9e97-21adc7a1ec8d](.artifacts/records/project__acceptance/rec-c376fad0-9993-4448-9e97-21adc7a1ec8d.md))_
+- **verify-phase-landing-plan**: plan-phase requires a Landing section before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54](.artifacts/records/project__acceptance/rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54.md))_
 
 ## task-navigation
 

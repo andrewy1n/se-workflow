@@ -1,0 +1,32 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-1c0d13c9-3f5c-4eed-bd82-f4358e17bad3",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "effort": "workflow-loop",
+    "phase": "phase-landing",
+    "position": "phase-landing done.",
+    "scope": "phase",
+    "status": "closed"
+  },
+  "record_type": "project:current-position",
+  "recorded_at": "2026-10-03T09:23:29+00:00",
+  "relationships": {
+    "supersedes": [
+      "rec-57519ebd-e695-41b0-8dd3-8f5c0bef454f"
+    ]
+  },
+  "revision": "sha256:fcabc7ff21813fc70cf6905cea34f57017b4017e53081aaa98ba43e88fff7175",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "phase-landing",
+  "time": {
+    "as_of": "2026-10-03T09:23:29+00:00"
+  }
+}
+---
+

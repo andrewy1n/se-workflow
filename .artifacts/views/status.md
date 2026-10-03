@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:188329829fd38f753d1f0aef2f94452af197c07787cd95b6a1d171d8037ff3a0
+> Store state: sha256:edf77267121157d3b9498078b734173af43f11163d1390920e35eb2cd25c95c4
 
 ## dashboard-view
 
@@ -113,6 +113,13 @@
 - **execute-wave-dispatch**: Dispatch each wave inline or as subagents; wave-executor; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-b9536deb-8dcc-45d3-93d4-910f32be06e3](.artifacts/records/project__work-item/rec-b9536deb-8dcc-45d3-93d4-910f32be06e3.md))_
 - **plan-wave-rules**: Record recipe, executor, and phase run facts in plan-phase; wave-executor; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-00ad8c6d-818c-4832-abcd-44337b36efdf](.artifacts/records/project__work-item/rec-00ad8c6d-818c-4832-abcd-44337b36efdf.md))_
 - **verify-wave-executor**: Verify inline and subagent waves agree; wave-executor; deliver; workflow-loop; state: done; ready: True; wave: 2; criteria: 3 pass / 0 fail _(id: [rec-303a813d-f447-4633-acc4-c803a58792af](.artifacts/records/project__work-item/rec-303a813d-f447-4633-acc4-c803a58792af.md))_
+
+## phase-landing
+
+### Work
+- **execute-landing**: Land the phase branch when the gate holds; phase-landing; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-94264b82-7ed0-434c-80ce-71f1a7d85821](.artifacts/records/project__work-item/rec-94264b82-7ed0-434c-80ce-71f1a7d85821.md))_
+- **plan-landing-rules**: Record phase landing before plan review; phase-landing; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-51225c8f-9709-4f03-a5f5-05d88b70b55e](.artifacts/records/project__work-item/rec-51225c8f-9709-4f03-a5f5-05d88b70b55e.md))_
+- **verify-phase-landing**: Verify phase landing; phase-landing; deliver; workflow-loop; state: done; ready: True; wave: 2; criteria: 3 pass / 0 fail _(id: [rec-ee75a24d-3394-4d24-bd8b-122822cea232](.artifacts/records/project__work-item/rec-ee75a24d-3394-4d24-bd8b-122822cea232.md))_
 
 ## task-navigation
 

@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:5b41093d2143b19ade75d83a12840d0057b2750a6ca6fcc54aa0981c516e8e7a
+> Store state: sha256:62f239769112ad601d887403899d36560c188b5ee85f35a33cd64edaf00d7f16
 
 ## dashboard
 
@@ -38,4 +38,4 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **workflow-loop**: wave-executor done. No further phase is named.; effort _(id: [rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc](.artifacts/records/project__current-position/rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc.md))_
+- **workflow-loop**: phase-landing done. No further phase is named.; effort _(id: [rec-07d1c402-b9eb-4ebe-becb-614a635518cc](.artifacts/records/project__current-position/rec-07d1c402-b9eb-4ebe-becb-614a635518cc.md))_

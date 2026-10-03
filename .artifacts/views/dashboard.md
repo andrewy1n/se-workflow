@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:fe1489bb7ceffe2377493b12f6dab5d5b1a2771ad7190fa973ea6c48698076b3
+> Store state: sha256:5ef95f38ae6e9ca7b544c0f8e00a1ac92e233d9091ec0687528d94f6133997b1
 
 ## dashboard
 
@@ -46,6 +46,9 @@
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Done Recent
+- **execute-landing**: title: Land the phase branch when the gate holds; phase: phase-landing _(id: [rec-94264b82-7ed0-434c-80ce-71f1a7d85821](.artifacts/records/project__work-item/rec-94264b82-7ed0-434c-80ce-71f1a7d85821.md))_
 - **execute-wave-dispatch**: title: Dispatch each wave inline or as subagents; phase: wave-executor _(id: [rec-b9536deb-8dcc-45d3-93d4-910f32be06e3](.artifacts/records/project__work-item/rec-b9536deb-8dcc-45d3-93d4-910f32be06e3.md))_
+- **plan-landing-rules**: title: Record phase landing before plan review; phase: phase-landing _(id: [rec-51225c8f-9709-4f03-a5f5-05d88b70b55e](.artifacts/records/project__work-item/rec-51225c8f-9709-4f03-a5f5-05d88b70b55e.md))_
 - **plan-wave-rules**: title: Record recipe, executor, and phase run facts in plan-phase; phase: wave-executor _(id: [rec-00ad8c6d-818c-4832-abcd-44337b36efdf](.artifacts/records/project__work-item/rec-00ad8c6d-818c-4832-abcd-44337b36efdf.md))_
+- **verify-phase-landing**: title: Verify phase landing; phase: phase-landing _(id: [rec-ee75a24d-3394-4d24-bd8b-122822cea232](.artifacts/records/project__work-item/rec-ee75a24d-3394-4d24-bd8b-122822cea232.md))_
 - **verify-wave-executor**: title: Verify inline and subagent waves agree; phase: wave-executor _(id: [rec-303a813d-f447-4633-acc4-c803a58792af](.artifacts/records/project__work-item/rec-303a813d-f447-4633-acc4-c803a58792af.md))_

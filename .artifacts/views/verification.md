@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:79b1591e8ed227f1331b1f8b739e66b298346c8e733083dac21fc47dedba2d34
+> Store state: sha256:e7781ed49dc70dd94323d1b61caf7068a75c192faa960adc201bc9b1e9edfa94
 
 ## activity-failures
 
@@ -241,6 +241,14 @@
 ### Check
 - **effort-switch-focus**: rec-768f3192-cdcf-45d9-9421-2282f78e8bef; 9da847f3ed9909af06213792ab542bdd582422a3; pass; tdd _(id: [rec-f46731c5-7318-4e68-8d68-c07a955c4d00](.artifacts/records/project__check-run/rec-f46731c5-7318-4e68-8d68-c07a955c4d00.md))_
 
+## execute-landing
+
+### Acceptance
+- **execute-landing**: execute-phase creates the worktree, confines code writes to it, keeps store writes on the primary checkout, commits the branch, merges to main, commits the store, and does not push unless Landing names push as a stop; a phase with no Landing stays in the current checkout; tdd; workflow-loop; python3 -m pytest tests/test_execute_landing.py -q _(id: [rec-b89f9c9f-d9f4-4db9-8375-3f877388c961](.artifacts/records/project__acceptance/rec-b89f9c9f-d9f4-4db9-8375-3f877388c961.md))_
+
+### Check
+- **execute-landing**: rec-b89f9c9f-d9f4-4db9-8375-3f877388c961; dirty; pass; tdd _(id: [rec-db1a2d05-c946-4377-9044-a73c9a9dfb5b](.artifacts/records/project__check-run/rec-db1a2d05-c946-4377-9044-a73c9a9dfb5b.md))_
+
 ## execute-wave-dispatch
 
 ### Acceptance
@@ -401,6 +409,14 @@
 
 ### Check
 - **phase-sections**: rec-611e26b5-b891-4e71-8951-3ebf07ecc715; 78548daa0ea66a4347d31d675b3f6fbd8c3b86f1; pass; tdd _(id: [rec-d0d98c8c-7d91-4cde-ac81-547b807803e4](.artifacts/records/project__check-run/rec-d0d98c8c-7d91-4cde-ac81-547b807803e4.md))_
+
+## plan-landing-rules
+
+### Acceptance
+- **plan-landing-rules**: plan-phase requires a Landing section with branch, worktree, base, close, and push only as a named stop before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e](.artifacts/records/project__acceptance/rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e.md))_
+
+### Check
+- **plan-landing-rules**: rec-9f4b54cc-334e-4b5c-92fa-df0b713d662e; dirty; pass; tdd _(id: [rec-6388f2a2-d1b0-4ff8-bdd6-202699546b5e](.artifacts/records/project__check-run/rec-6388f2a2-d1b0-4ff8-bdd6-202699546b5e.md))_
 
 ## plan-wave-rules
 
@@ -801,6 +817,26 @@
 
 ### Observation
 - **verify-needs-you-phase**: tab from a live effort with Needs you items to a pane whose task table is hidden bounces back: Screen._reset_focus moves focus from the hidden TaskTable to the sibling NeedsList, and TabbedContent re-activates the pane holding focus. Reproduces every run; absent without Needs you items.; dashboard-features _(id: [rec-63c67821-d6d9-4012-8437-37c5beda8310](.artifacts/records/project__investigation-observation/rec-63c67821-d6d9-4012-8437-37c5beda8310.md))_
+
+## verify-phase-landing
+
+### Acceptance
+- **verify-phase-landing**: plan-phase and execute-phase name the same landing: branch phase/<phase-slug>, the sibling worktree, base main, merge into main, store commit on the primary checkout, and push only as a human stop; tdd; workflow-loop; python3 -m pytest tests/test_phase_landing.py tests/test_plan_landing.py tests/test_execute_landing.py -q _(id: [rec-5f277ff6-f5de-48ae-a3fa-43825f135561](.artifacts/records/project__acceptance/rec-5f277ff6-f5de-48ae-a3fa-43825f135561.md))_
+
+### Check
+- **verify-phase-landing**: rec-c376fad0-9993-4448-9e97-21adc7a1ec8d; dirty; pass; tdd _(id: [rec-1795aff9-df1b-49c3-97ae-46cc6beb5a7b](.artifacts/records/project__check-run/rec-1795aff9-df1b-49c3-97ae-46cc6beb5a7b.md))_
+- **verify-phase-landing**: rec-5f277ff6-f5de-48ae-a3fa-43825f135561; dirty; pass; tdd _(id: [rec-55600d6d-b7b7-4816-8df3-1680e8abfb98](.artifacts/records/project__check-run/rec-55600d6d-b7b7-4816-8df3-1680e8abfb98.md))_
+- **verify-phase-landing**: rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54; dirty; pass; tdd _(id: [rec-99acf357-0cc7-4cce-8a8b-d102945d8956](.artifacts/records/project__check-run/rec-99acf357-0cc7-4cce-8a8b-d102945d8956.md))_
+
+## verify-phase-landing-execute
+
+### Acceptance
+- **verify-phase-landing-execute**: execute-phase creates the worktree, keeps the store on the primary checkout, merges the phase branch into main, and does not push unless Landing names push as a stop; tdd; workflow-loop; python3 -m pytest tests/test_execute_landing.py -q _(id: [rec-c376fad0-9993-4448-9e97-21adc7a1ec8d](.artifacts/records/project__acceptance/rec-c376fad0-9993-4448-9e97-21adc7a1ec8d.md))_
+
+## verify-phase-landing-plan
+
+### Acceptance
+- **verify-phase-landing-plan**: plan-phase requires a Landing section before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54](.artifacts/records/project__acceptance/rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54.md))_
 
 ## verify-readable-layout-phase
 

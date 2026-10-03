@@ -2,29 +2,29 @@
 {
   "base_kind": "claim",
   "epistemic_status": "asserted",
-  "id": "rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc",
+  "id": "rec-07d1c402-b9eb-4ebe-becb-614a635518cc",
   "identity": "unknown",
-  "lifecycle_state": "superseded",
+  "lifecycle_state": "active",
   "payload": {
     "effort": "workflow-loop",
-    "phase": "wave-executor",
-    "position": "wave-executor done. No further phase is named.",
+    "phase": "phase-landing",
+    "position": "phase-landing done. No further phase is named.",
     "scope": "effort"
   },
   "record_type": "project:current-position",
   "recorded_at": "2026-10-03T09:23:29+00:00",
   "relationships": {
     "supersedes": [
-      "rec-6f87858e-dddd-48dc-870a-963edfe2709a"
+      "rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc"
     ]
   },
-  "revision": "sha256:54fe9e2c9ddc426d814426b75c19217bd40c06f8305e494412e39e5de7c8c6fe",
+  "revision": "sha256:6d26d5c2e760fa10a56758369258a915572734fa6adaff2769294d26b9f50d57",
   "stewardship": {
     "steward": "agent"
   },
   "subject": "workflow-loop",
   "time": {
-    "as_of": "2026-10-03T08:54:10+00:00"
+    "as_of": "2026-10-03T09:23:29+00:00"
   }
 }
 ---
