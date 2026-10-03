@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:fa5813038bf27157aced30d98bafdf5465b3c9b60350247ad2b1d14588b62e29
+> Store state: sha256:21f4e1ed5cf95480873a799d50b43f042752301c138b6e74bd2e8b5801ba1c2a
 
 ## dashboard
 
@@ -100,10 +100,7 @@
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Done Recent
-- **close-step-skill**: title: Close an effort after its last phase; phase: goal-close _(id: [rec-1b3615c1-eebb-4cba-b43e-3ec6456331a7](.artifacts/records/project__work-item/rec-1b3615c1-eebb-4cba-b43e-3ec6456331a7.md))_
-- **dashboard-closed-goals**: title: Dashboard model drops closed efforts; phase: goal-close _(id: [rec-0aa2b513-5469-44d1-a9f9-db1c1cc31d9c](.artifacts/records/project__work-item/rec-0aa2b513-5469-44d1-a9f9-db1c1cc31d9c.md))_
 - **discuss-skill**: title: discuss skill settles the approach before planning; phase: discuss-step _(id: [rec-16df788d-cf05-44bf-9f57-490039d76af8](.artifacts/records/project__work-item/rec-16df788d-cf05-44bf-9f57-490039d76af8.md))_
-- **goal-status-field**: title: Optional status on goal and position, hidden when closed; phase: goal-close _(id: [rec-e367229c-f98e-4855-bbee-69a8faed4a78](.artifacts/records/project__work-item/rec-e367229c-f98e-4855-bbee-69a8faed4a78.md))_
 - **handoff-by-effort**: title: Group handoff by effort; phase: phase-position _(id: [rec-2e5c9495-b788-486e-92ce-523f5c0a5104](.artifacts/records/project__work-item/rec-2e5c9495-b788-486e-92ce-523f5c0a5104.md))_
 - **phase-position-skills**: title: Per-phase position in plan-phase and execute-phase; phase: phase-position _(id: [rec-f62a9eef-018c-4eef-959c-0045b09b6a7f](.artifacts/records/project__work-item/rec-f62a9eef-018c-4eef-959c-0045b09b6a7f.md))_
 - **route-through-discuss**: title: Route new phases through discuss and a plan review gate; phase: discuss-step _(id: [rec-2254fa38-4f06-459f-b5a5-cfc81390a67b](.artifacts/records/project__work-item/rec-2254fa38-4f06-459f-b5a5-cfc81390a67b.md))_
