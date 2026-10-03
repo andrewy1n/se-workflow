@@ -70,6 +70,14 @@ kind/focus are unset).
   the human stops, and the areas parallel tasks share (collision
   notes). Do not open the plan-review question until the recipe, the
   shared executor, and these phase run facts are present.
+- The phase body includes a `## Landing` section with branch
+  `phase/<phase-slug>`, worktree
+  `<repo-parent>/<repo-name>--<phase-slug>`, base `main`, and these
+  close actions: commit code on the phase branch, merge that branch
+  into `main`, then commit the store on the primary checkout. Push
+  appears only when it is one of the human stops. Incidental work has
+  no Landing section. A phase body that omits Landing is not ready
+  for plan review.
 - Current-claims (`decision`) change via `supersede` (new id), never
   `update` to `superseded`, never payload-only `update`.
 - Parent writes records. Do not spawn subagents here.
@@ -120,9 +128,15 @@ adaptive-artifacts update --type project:phase --id <phase-id> \
 ```
 
    `<phase-plan.md>` has real `## Problem`, `## Approach`, `## Exit
-   criteria` sections now — this body is the phase's plan of record.
-   In that body, record size as `one sitting` or `more than one`, the
-   human stops, and the areas parallel tasks share (collision notes).
+   criteria`, and `## Landing` sections now — this body is the phase's
+   plan of record. In that body, record size as `one sitting` or
+   `more than one`, the human stops, and the areas parallel tasks
+   share (collision notes). The `## Landing` section names branch
+   `phase/<phase-slug>`, worktree
+   `<repo-parent>/<repo-name>--<phase-slug>`, base `main`, and these
+   close actions: commit code on the phase branch, merge that branch
+   into `main`, then commit the store on the primary checkout. Push
+   appears only when it is one of the human stops.
    If the phase record doesn't exist yet, `create --type project:phase`
    first (`init` step 7 shape), then run the `update` above with the
    revision `create` returned. Skip this step entirely for incidental
@@ -290,7 +304,8 @@ adaptive-artifacts list --type project:work-item \
     `## Approach` (the implementation recipe), every task in a wave
     uses the same executor (`inline` or `subagent`), and the phase
     body records size as `one sitting` or `more than one`, the human
-    stops, and the areas parallel tasks share.
+    stops, the areas parallel tasks share, and a `## Landing` section.
+    Skip the Landing check for incidental work.
 
 ```bash
 adaptive-artifacts create --type project:continuity-question \

@@ -25,6 +25,15 @@ check with no script). Do not stuff a metric delta into
 `executor` on a work-item is `inline` or `subagent`. Every task in a
 wave uses the same executor. Missing `executor` means `subagent`.
 
+The phase body includes a `## Landing` section with branch
+`phase/<phase-slug>`, worktree
+`<repo-parent>/<repo-name>--<phase-slug>`, base `main`, and these
+close actions: commit code on the phase branch, merge that branch
+into `main`, then commit the store on the primary checkout. Push
+appears only when it is one of the human stops. Incidental work has
+no Landing section. A phase body that omits Landing is not ready
+for plan review.
+
 ## Focus
 
 A **live** goal is an `active-goal` in lifecycle `active` whose

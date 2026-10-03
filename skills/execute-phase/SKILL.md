@@ -67,6 +67,35 @@ adaptive-artifacts list --type project:work-item --state planned \
    does not track the phase. If none exist, stop and point to
    `plan-phase`. Several may be `in_progress` (one chat per phase):
    use the one named in context, and ask if none is named.
+
+   After plan review is answered and before the first wave, read
+   `## Landing` from the phase body:
+
+```bash
+adaptive-artifacts get --type project:phase --id <phase-id>
+```
+
+   When `## Landing` is present, create branch `phase/<phase-slug>`
+   from base `main` if that branch is missing, and add the worktree
+   `<repo-parent>/<repo-name>--<phase-slug>` if that path is missing.
+   The primary checkout is the checkout that stays on `main` and
+   receives store writes; it is not the phase worktree.
+
+```bash
+git branch phase/<phase-slug> main
+git worktree add <repo-parent>/<repo-name>--<phase-slug> phase/<phase-slug>
+```
+
+   Inline work runs in that directory. Each subagent is given the
+   worktree absolute path and code writes only under the worktree.
+   The parent keeps store writes on the primary checkout and writes
+   `.artifacts` only on the primary checkout. The phase branch commit
+   excludes `.artifacts`.
+
+   When the phase body has no Landing section, keep the current
+   checkout and do not create a branch: a missing Landing section
+   stays in the current checkout. Incidental work stays in the
+   current checkout too.
 3. Group the results by `derived.wave` (each result carries it).
    Do lower waves first; different waves stay serial. A wave number
    can shift between waves as earlier tasks finish — re-run the
@@ -125,7 +154,10 @@ adaptive-artifacts create --type project:assignment \
    subagent per task, in parallel within the wave (`Task` /
    `generalPurpose`). Give each only:
 
-   - repo path, task `subject` / title, `kind`, focus `effort`
+   - repo path — the worktree absolute path
+     `<repo-parent>/<repo-name>--<phase-slug>` when `## Landing` is
+     present, otherwise the current checkout — task `subject` /
+     title, `kind`, focus `effort`
    - the `## <task-slug>` section of `views/brief.md` (work-item body,
      acceptance, findings, constraints, position, and any prior
      amendments) — verbatim, not retyped
@@ -144,7 +176,9 @@ adaptive-artifacts create --type project:assignment \
 
    `inline` does not spawn a subagent. This session implements the
    task, then still writes the execution-report and runs
-   `verify-work` in step 7 — not twice. Use the same brief section,
+   `verify-work` in step 7 — not twice. When `## Landing` is
+   present, that implementation runs in the worktree. Use the same
+   brief section,
    orientation, and kind-specific instruction a subagent would have
    been given. Follow `## Approach`. Fill the evidence block below
    in this session.
@@ -237,7 +271,22 @@ adaptive-artifacts list --type project:check-run \
    phases always need the verification task. Skip the gate for
    incidental work.
 
-   When the gate holds, close the phase, close its phase position
+   When the gate holds and `## Landing` is present, commit the phase
+   branch from the worktree. That commit excludes `.artifacts`. From
+   the primary checkout, merge into `main`, then commit the store on
+   `main`. The store commit on the primary checkout follows the phase
+   close below. When Landing names push as a human stop, stop before
+   pushing and ask. Push only as a human stop: push only when it is a
+   human stop. Otherwise do not push. When `## Landing` is absent,
+   skip the branch commit, the merge, and the store commit.
+
+```bash
+git -C <repo-parent>/<repo-name>--<phase-slug> add -A -- . ':!.artifacts'
+git -C <repo-parent>/<repo-name>--<phase-slug> commit -m "<phase-slug>"
+git -C <primary-checkout> merge phase/<phase-slug>
+```
+
+   Then close the phase, close its phase position
    (`subject` = phase slug) with `status: closed`, and update the
    effort position narrative (`subject` = focus). `current-position.scope`
    is a stable per-subject value — never change it here, and never put
@@ -261,8 +310,18 @@ adaptive-artifacts supersede --type project:current-position --id <effort-positi
   --payload '{"position":"<phase-slug> done; next up: <next-phase-slug>","scope":"<unchanged from predecessor>","effort":"<focus>","phase":"<next-phase-slug>"}'
 ```
 
-   Skip all three for incidental. Another chat may have just closed a
-   different phase; on a revision conflict, re-read the effort position
+   Then commit the store on `main` from the primary checkout, only
+   when `## Landing` was present:
+
+```bash
+git -C <primary-checkout> add -- .artifacts
+git -C <primary-checkout> commit -m "<phase-slug> store"
+```
+
+   Skip all three for incidental. Also skip the phase-branch commit,
+   the merge, and the store commit for incidental. Another chat may
+   have just closed a different phase; on a revision conflict,
+   re-read the effort position
    and retry. Do **not** materialize the next phase's
    tasks unless the user asks (`plan-phase` promotes it). Do not touch
    other subjects.
@@ -307,3 +366,8 @@ adaptive-artifacts supersede --type project:current-position --id <position-id> 
 - Write or recompute `ready`/`wave` — they are derived; re-query them
 - Load the whole store; route by focus, then phase
 - Close a phase whose gate in step 8 does not hold
+- Create a branch or worktree when the phase body has no Landing section
+- Let code writes leave the worktree when `## Landing` is present
+- Write `.artifacts` anywhere but the primary checkout, or include
+  `.artifacts` in the phase branch commit
+- Push unless Landing names push as a human stop

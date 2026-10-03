@@ -135,6 +135,15 @@ Every task in a wave uses the same executor. Missing `executor` means
 (size as `one sitting` or `more than one`, the human stops, and the areas
 parallel tasks share) before plan review.
 
+The phase body includes a `## Landing` section with branch
+`phase/<phase-slug>`, worktree
+`<repo-parent>/<repo-name>--<phase-slug>`, base `main`, and these
+close actions: commit code on the phase branch, merge that branch
+into `main`, then commit the store on the primary checkout. Push
+appears only when it is one of the human stops. Incidental work has
+no Landing section. A phase body that omits Landing is not ready
+for plan review.
+
 A one-shot that fits in one chat and is not an interrupt gets no
 records. An interrupt or a chore that may span chats gets
 `kind=incidental` on its **own** subject. Subagents must not call
