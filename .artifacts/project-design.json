@@ -23,10 +23,12 @@
         "goal",
         "scope",
         "kind",
-        "status"
+        "status",
+        "merged_from"
       ],
       "optional_payload": [
-        "status"
+        "status",
+        "merged_from"
       ],
       "payload_enum": {
         "status": [
@@ -93,13 +95,23 @@
         "phase",
         "kind",
         "assignee",
-        "effort"
+        "effort",
+        "executor"
+      ],
+      "optional_payload": [
+        "executor"
       ],
       "required_sections": [
         "Description"
       ],
       "payload_references": {
         "phase": "project:phase"
+      },
+      "payload_enum": {
+        "executor": [
+          "inline",
+          "subagent"
+        ]
       }
     },
     {

@@ -129,6 +129,12 @@ are `depends_on` edges between work-items; readiness and wave are
 derived by the engine at read time (`derived.ready`, `derived.wave`) —
 nothing writes them.
 
+`plan-phase` sets each work-item's `executor` to `inline` or `subagent`.
+Every task in a wave uses the same executor. Missing `executor` means
+`subagent`. It records the implementation recipe and the phase run facts
+(size as `one sitting` or `more than one`, the human stops, and the areas
+parallel tasks share) before plan review.
+
 A one-shot that fits in one chat and is not an interrupt gets no
 records. An interrupt or a chore that may span chats gets
 `kind=incidental` on its **own** subject. Subagents must not call

@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:8d23591e0ea47a49f3f69769e501bf92a2ad61b43062698d67d7198e075c5f58
+> Store state: sha256:19083f257d02a61b0ae71712e660b5bb6639087426eceb5e78c97aefb6afaf7a
 
 ## activity-failures
 
@@ -203,6 +203,11 @@
 ### Acceptance
 - **effort-switch-focus**: Pilot test: with an effort-level question on a live effort, tab and shift+tab reach a finished effort and stay there; the test fails before the fix; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k switch _(id: [rec-768f3192-cdcf-45d9-9421-2282f78e8bef](.artifacts/records/project__acceptance/rec-768f3192-cdcf-45d9-9421-2282f78e8bef.md))_
 
+## execute-wave-dispatch
+
+### Acceptance
+- **execute-wave-dispatch**: execute-phase runs an inline wave in this session and a subagent wave as one worker per task, treats a missing executor as subagent, and does not ask for a recipe when Approach is present; tdd; workflow-loop; python3 -m pytest tests/test_execute_wave_dispatch.py -q _(id: [rec-c95855b2-e077-44d7-ab61-b8b70ec6f7df](.artifacts/records/project__acceptance/rec-c95855b2-e077-44d7-ab61-b8b70ec6f7df.md))_
+
 ## finished-effort-view
 
 ### Acceptance
@@ -295,6 +300,11 @@
 
 ### Acceptance
 - **phase-sections**: Model and pilot tests group tasks by phase, collapse done and planned phases, fold older done phases, toggle headers by key and click, open a phase detail with body and decisions, show awaiting sign-off, and show effort-wide progress; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_model.py -q _(id: [rec-611e26b5-b891-4e71-8951-3ebf07ecc715](.artifacts/records/project__acceptance/rec-611e26b5-b891-4e71-8951-3ebf07ecc715.md))_
+
+## plan-wave-rules
+
+### Acceptance
+- **plan-wave-rules**: plan-phase requires a recipe, one shared executor of inline or subagent per wave, and phase size, stops, and collision notes, and it does not open plan review until those are present; tdd; workflow-loop; python3 -m pytest tests/test_plan_wave_rules.py -q _(id: [rec-b1c39c5f-6758-426d-bdcf-0ff6c57bcbc5](.artifacts/records/project__acceptance/rec-b1c39c5f-6758-426d-bdcf-0ff6c57bcbc5.md))_
 
 ## readme-quickstart
 
@@ -667,6 +677,21 @@
 ### Acceptance
 - **verify-watch-renderer-phase-suites**: Full test suites of both repos pass on the phase-2 changes; check; dashboard; cd ~/adaptive-artifacts && python3 -m pytest tools/runtime/tests -q && cd ~/se-workflow && python3 -m pytest tests -q _(id: [rec-02bac654-25f6-4bc0-b6ec-5efa03a4941e](.artifacts/records/project__acceptance/rec-02bac654-25f6-4bc0-b6ec-5efa03a4941e.md))_
 
+## verify-wave-executor
+
+### Acceptance
+- **verify-wave-executor**: plan-phase and execute-phase name the same executors, inline and subagent, and a missing executor means subagent; tdd; workflow-loop; python3 -m pytest tests/test_wave_executor_phase.py -q _(id: [rec-5fe7bba7-cd21-447d-a698-ed9bb1379f58](.artifacts/records/project__acceptance/rec-5fe7bba7-cd21-447d-a698-ed9bb1379f58.md))_
+
+## verify-wave-executor-execute
+
+### Acceptance
+- **verify-wave-executor-execute**: execute-phase runs an inline wave in this session and a subagent wave as one worker per task, and does not ask for a recipe when Approach is present; tdd; workflow-loop; python3 -m pytest tests/test_execute_wave_dispatch.py -q _(id: [rec-d8b61721-30cb-41fd-885d-85e673c7d6d7](.artifacts/records/project__acceptance/rec-d8b61721-30cb-41fd-885d-85e673c7d6d7.md))_
+
+## verify-wave-executor-plan
+
+### Acceptance
+- **verify-wave-executor-plan**: plan-phase requires a recipe, one shared executor per wave, and phase size, stops, and collision notes before plan review; tdd; workflow-loop; python3 -m pytest tests/test_plan_wave_rules.py -q _(id: [rec-61bdf854-1a06-491f-8af6-aeda309ec357](.artifacts/records/project__acceptance/rec-61bdf854-1a06-491f-8af6-aeda309ec357.md))_
+
 ## watch-command
 
 ### Acceptance
@@ -675,4 +700,4 @@
 ## workflow-loop
 
 ### Position
-- **workflow-loop**: All five phases done. feat/effort-phases merged to main (87ff87d, not pushed); live contract re-pinned; four dashboard efforts merged into dashboard (phases 1-15 plus planned dashboard-package). Open: merged_from support in dashboard_model on feat/effort-phases.; effort _(id: [rec-9ca728de-dd4c-49a2-a8c7-c8e5c4cb4ddd](.artifacts/records/project__current-position/rec-9ca728de-dd4c-49a2-a8c7-c8e5c4cb4ddd.md))_
+- **workflow-loop**: wave-executor done. No further phase is named.; effort _(id: [rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc](.artifacts/records/project__current-position/rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc.md))_

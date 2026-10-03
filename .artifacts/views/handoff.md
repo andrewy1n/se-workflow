@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:c82cf7b010afac366a39eaff2cbb9c586f74e6fde85f5cf375886d999b3dabff
+> Store state: sha256:5b41093d2143b19ade75d83a12840d0057b2750a6ca6fcc54aa0981c516e8e7a
 
 ## dashboard
 
@@ -38,4 +38,4 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **workflow-loop**: All five phases done. feat/effort-phases merged to main (87ff87d, not pushed); live contract re-pinned; four dashboard efforts merged into dashboard (phases 1-15 plus planned dashboard-package). Open: merged_from support in dashboard_model on feat/effort-phases.; effort _(id: [rec-9ca728de-dd4c-49a2-a8c7-c8e5c4cb4ddd](.artifacts/records/project__current-position/rec-9ca728de-dd4c-49a2-a8c7-c8e5c4cb4ddd.md))_
+- **workflow-loop**: wave-executor done. No further phase is named.; effort _(id: [rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc](.artifacts/records/project__current-position/rec-bd2f1e6d-71fe-4798-91b1-6ae70fb962fc.md))_

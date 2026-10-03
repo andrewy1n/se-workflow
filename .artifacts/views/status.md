@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:4271d43297741f246b9bbab12131b261c7975ca0274bfe0ea7f6545150360ff9
+> Store state: sha256:188329829fd38f753d1f0aef2f94452af197c07787cd95b6a1d171d8037ff3a0
 
 ## dashboard-view
 
@@ -106,6 +106,13 @@
 - **detail-redraw-race**: Fix the detail screen redraw race; dashboard-actions; repair; dashboard; state: done; ready: True; wave: 2; criteria: 1 pass / 0 fail _(id: [rec-cb76c19c-a9ce-4c0f-ad6f-7f6428370e54](.artifacts/records/project__work-item/rec-cb76c19c-a9ce-4c0f-ad6f-7f6428370e54.md))_
 - **task-list-filters**: Filter the task table and hide done tasks; dashboard-actions; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-b67330a1-dded-40dd-a847-e16aa9bd3a71](.artifacts/records/project__work-item/rec-b67330a1-dded-40dd-a847-e16aa9bd3a71.md))_
 - **verify-dashboard-actions-phase**: Integration-test the dashboard actions and verify the phase; dashboard-actions; deliver; dashboard; state: done; ready: True; wave: 3; criteria: 2 pass / 0 fail _(id: [rec-5d978ee0-11d9-4081-8387-52e12599a0c3](.artifacts/records/project__work-item/rec-5d978ee0-11d9-4081-8387-52e12599a0c3.md))_
+
+## wave-executor
+
+### Work
+- **execute-wave-dispatch**: Dispatch each wave inline or as subagents; wave-executor; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-b9536deb-8dcc-45d3-93d4-910f32be06e3](.artifacts/records/project__work-item/rec-b9536deb-8dcc-45d3-93d4-910f32be06e3.md))_
+- **plan-wave-rules**: Record recipe, executor, and phase run facts in plan-phase; wave-executor; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-00ad8c6d-818c-4832-abcd-44337b36efdf](.artifacts/records/project__work-item/rec-00ad8c6d-818c-4832-abcd-44337b36efdf.md))_
+- **verify-wave-executor**: Verify inline and subagent waves agree; wave-executor; deliver; workflow-loop; state: done; ready: True; wave: 2; criteria: 3 pass / 0 fail _(id: [rec-303a813d-f447-4633-acc4-c803a58792af](.artifacts/records/project__work-item/rec-303a813d-f447-4633-acc4-c803a58792af.md))_
 
 ## task-navigation
 

@@ -7,7 +7,7 @@
     "resolved_contract_format": "0.3.0",
     "traits_version": "0.4.0",
     "backends_version": "0.4.0",
-    "design_digest": "sha256:c41f0e13f2d0a1378a1cf7d01ef56fa8079e54d9fe7d5e1697a1726c75fe75eb",
+    "design_digest": "sha256:70818ae9ff071b9d79d0acf5a64d6f7332b425b98834132bddcad964b121ce4c",
     "source_lock": {
       "catalog_version": "0.7.0",
       "catalog": "sha256:d7f0f1d05f8c67f638c0ff1b4ad738161f43c1ec970729709f8f2afc1d8c1eb1",
@@ -83,7 +83,8 @@
         "goal",
         "scope",
         "kind",
-        "status"
+        "status",
+        "merged_from"
       ],
       "lifecycle": {
         "initial": "active",
@@ -112,7 +113,8 @@
         "history"
       ],
       "optional_payload": [
-        "status"
+        "status",
+        "merged_from"
       ],
       "payload_enum": {
         "status": [
@@ -287,7 +289,8 @@
         "phase",
         "kind",
         "assignee",
-        "effort"
+        "effort",
+        "executor"
       ],
       "lifecycle": {
         "initial": "planned",
@@ -332,6 +335,15 @@
       ],
       "payload_references": {
         "phase": "project:phase"
+      },
+      "optional_payload": [
+        "executor"
+      ],
+      "payload_enum": {
+        "executor": [
+          "inline",
+          "subagent"
+        ]
       },
       "pattern": "task",
       "purpose": "A unit of work with a staged lifecycle and dependencies on other work",

@@ -2,11 +2,11 @@
 name: execute-phase
 description: >-
   Dispatches se-workflow work-items whose derived.ready is true, in
-  dependency order, to parallel subagents for the focused effort,
-  recording an assignment and execution-report per dispatch. Parent
-  session writes records; subagents return evidence only. Use when
-  the user asks to execute a phase, run ready work, or continue after
-  engage.
+  dependency order, each wave inline in this session or as one
+  subagent per task, recording an assignment and execution-report
+  per dispatch. Parent session writes records; subagents return
+  evidence only. Use when the user asks to execute a phase, run
+  ready work, or continue after engage.
 ---
 
 # Execute the focused effort
@@ -15,7 +15,8 @@ Requires `artifact-runtime` and a live se-workflow store. If missing,
 follow [ensure-store.md](../ensure-store.md) then `init` (if no goal
 for the focus) and `plan-phase`. Follow
 [kinds-and-focus.md](../kinds-and-focus.md). Follow `verify-work`
-after each subagent returns.
+after each task finishes, whether a subagent returned or this
+session just implemented it inline.
 
 The git-filesystem backend is **single-writer**. Only this parent
 session may call `adaptive-artifacts` in any form that writes.
@@ -67,19 +68,35 @@ adaptive-artifacts list --type project:work-item --state planned \
    `plan-phase`. Several may be `in_progress` (one chat per phase):
    use the one named in context, and ask if none is named.
 3. Group the results by `derived.wave` (each result carries it).
-   Within a wave, run independent tasks in parallel. Do lower waves
-   first; different waves stay serial. A wave number can shift between
-   waves as earlier tasks finish — re-run the `list` above before each
-   wave rather than trusting a wave computed earlier in this session.
-4. For each task about to dispatch, transition it to `in_progress` and
-   set `assignee` to a short subagent label. Fetch `--expected-revision`
-   from the `list`/`get` output:
+   Do lower waves first; different waves stay serial. A wave number
+   can shift between waves as earlier tasks finish — re-run the
+   `list` above before each wave rather than trusting a wave computed
+   earlier in this session.
+
+   When dispatching a wave, read `payload.executor` on each ready
+   task. Missing or empty means `subagent`. Resolve that before
+   comparing. The values are `inline` and `subagent`. If the tasks
+   in the wave disagree, stop and name them. Do not spawn anything.
+   Do not transition those tasks. If `payload.executor` is set to
+   anything other than `inline` or `subagent`, stop and name that
+   task. Do not spawn anything.
+
+   The brief already carries the work-item body. Follow `## Approach`
+   in that body. Do not ask the user for an implementation recipe
+   when `## Approach` is present. The parent remains the only writer.
+4. When the wave agrees on one executor, transition each task about
+   to dispatch to `in_progress` and set `assignee`. For `subagent`,
+   `assignee` is a short subagent label. For `inline`, `assignee` is
+   `inline`, because this session runs the task. The assignment's
+   `executor` is that assignee — who was handed the work — while the
+   work-item's `payload.executor` is only the wave mode. Fetch
+   `--expected-revision` from the `list`/`get` output:
 
 ```bash
 adaptive-artifacts update --type project:work-item --id <id> \
   --transition in_progress \
   --expected-revision <revision> \
-  --payload '{"assignee":"<subagent-label>"}'
+  --payload '{"assignee":"<assignee>"}'
 ```
 
    Regenerate the brief so it is current for this dispatch, then
@@ -96,14 +113,17 @@ adaptive-artifacts view --id project:brief --out views/brief.md
 
 adaptive-artifacts create --type project:assignment \
   --subject "<task-slug>" \
-  --payload '{"work_item":"<task-slug>","executor":"<subagent-label>","effort":"<focus>"}' \
+  --payload '{"work_item":"<task-slug>","executor":"<assignee>","effort":"<focus>"}' \
   --body "## Orientation
 
 <territory split / concurrency warning / operational context only>"
 ```
 
-5. Spawn one subagent per in-progress task (`Task` /
-   `generalPurpose`). Give it only:
+5. Dispatch the wave by that shared `payload.executor`.
+
+   `subagent` keeps the current dispatch: one `generalPurpose`
+   subagent per task, in parallel within the wave (`Task` /
+   `generalPurpose`). Give each only:
 
    - repo path, task `subject` / title, `kind`, focus `effort`
    - the `## <task-slug>` section of `views/brief.md` (work-item body,
@@ -116,11 +136,21 @@ adaptive-artifacts create --type project:assignment \
        if found, then fix; do not skip diagnose
      - `evaluate` — run the campaign; return metrics / comparison;
        do not "fix" the system unless the criterion says so
+   - follow `## Approach` in the work-item body; do not ask the user
+     for an implementation recipe when that section is present
    - do **not** run `adaptive-artifacts` in any form that writes — that
      holds even once a `--read-only` mode exists for executors; do
      **not** edit `.artifacts/`; return the evidence block below
 
-   Subagent return shape:
+   `inline` does not spawn a subagent. This session implements the
+   task, then still writes the execution-report and runs
+   `verify-work` in step 7 — not twice. Use the same brief section,
+   orientation, and kind-specific instruction a subagent would have
+   been given. Follow `## Approach`. Fill the evidence block below
+   in this session.
+
+   Evidence block (what a subagent returns, or what this session
+   records after an inline task):
 
    ```
    subject: <task-slug>
@@ -139,11 +169,13 @@ adaptive-artifacts create --type project:assignment \
    blocker: <only if blocked>
    ```
 
-6. If the assignment's terms turn out wrong or incomplete while the
-   subagent is still working — a change to what it was told, not a
-   status ping — send the correction to the subagent directly (it
-   cannot read the store to pick up a change) and record it, so it
-   survives past the chat transcript:
+6. If the assignment's terms turn out wrong or incomplete while a
+   `subagent` task is still working — a change to what it was told,
+   not a status ping — send the correction to that subagent directly
+   (it cannot read the store to pick up a change) and record it, so
+   it survives past the chat transcript. An `inline` task has no
+   separate executor to message; record the same amendment if the
+   terms change, and keep implementing in this session:
 
 ```bash
 adaptive-artifacts create --type project:assignment-amendment \
@@ -154,15 +186,16 @@ adaptive-artifacts create --type project:assignment-amendment \
 <the correction, as sent to the executor>"
 ```
 
-7. When a subagent returns, record its evidence before judging it —
-   the returned block is the record, not raw material for this
-   session to hand-pick fragments from:
+7. When a subagent returns, or when this session finishes an
+   `inline` task, record the evidence block before judging it. That
+   block is the record, not raw material for this session to
+   hand-pick fragments from:
 
 ```bash
 adaptive-artifacts create --type project:execution-report \
   --subject "<task-slug>" \
   --payload '{"work_item":"<task-slug>","assignment":"<task-slug>","result":"<pass|fail|blocked|abandoned>","verdict":"<pass|fail|delta|inconclusive>","revision":"<git sha or dirty>"}' \
-  --body "<the subagent's full returned evidence block, verbatim>"
+  --body "<the evidence block, verbatim>"
 ```
 
    Then run `verify-work` in this parent. It derives
@@ -264,7 +297,11 @@ adaptive-artifacts supersede --type project:current-position --id <position-id> 
   `project:brief` already carries, and goes stale the moment its
   source does
 - Skip the `project:execution-report` and derive check-runs straight
-  from chat memory of what a subagent said
+  from chat memory of what a subagent or this session reported
+- Ask the user for an implementation recipe when `## Approach` is
+  present
+- Spawn a subagent for an `inline` task, or spawn anything when the
+  wave's tasks disagree on `payload.executor`
 - Dispatch a work-item whose `derived.ready` is `false`, or another
   focus's work
 - Write or recompute `ready`/`wave` — they are derived; re-query them

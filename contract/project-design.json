@@ -95,13 +95,23 @@
         "phase",
         "kind",
         "assignee",
-        "effort"
+        "effort",
+        "executor"
+      ],
+      "optional_payload": [
+        "executor"
       ],
       "required_sections": [
         "Description"
       ],
       "payload_references": {
         "phase": "project:phase"
+      },
+      "payload_enum": {
+        "executor": [
+          "inline",
+          "subagent"
+        ]
       }
     },
     {

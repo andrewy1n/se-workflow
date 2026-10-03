@@ -62,6 +62,14 @@ kind/focus are unset).
   not a unit test. A phase whose exit criteria no acceptance checks
   is not planned yet. `evaluate` phases need it only when the
   campaign has a binary gate; incidental work never has one.
+- Each new work-item body includes `## Approach`, the implementation
+  recipe, and payload `executor` is `inline` or `subagent`. Every task
+  in a wave uses the same executor. Missing `executor` means
+  `subagent`.
+- The phase body records size as `one sitting` or `more than one`,
+  the human stops, and the areas parallel tasks share (collision
+  notes). Do not open the plan-review question until the recipe, the
+  shared executor, and these phase run facts are present.
 - Current-claims (`decision`) change via `supersede` (new id), never
   `update` to `superseded`, never payload-only `update`.
 - Parent writes records. Do not spawn subagents here.
@@ -113,6 +121,8 @@ adaptive-artifacts update --type project:phase --id <phase-id> \
 
    `<phase-plan.md>` has real `## Problem`, `## Approach`, `## Exit
    criteria` sections now — this body is the phase's plan of record.
+   In that body, record size as `one sitting` or `more than one`, the
+   human stops, and the areas parallel tasks share (collision notes).
    If the phase record doesn't exist yet, `create --type project:phase`
    first (`init` step 7 shape), then run the `update` above with the
    revision `create` returned. Skip this step entirely for incidental
@@ -151,9 +161,10 @@ adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'E
       "phase": "<current-phase-slug>",
       "kind": "deliver",
       "assignee": "",
-      "effort": "<effort-slug>"
+      "effort": "<effort-slug>",
+      "executor": "subagent"
     },
-    "body": "## Description\n\n<what this task builds/fixes>"
+    "body": "## Description\n\n<what this task builds/fixes>\n\n## Approach\n\n<implementation recipe>"
   },
   {
     "type": "project:acceptance",
@@ -187,7 +198,9 @@ EOF
    least one `acceptance`, not exactly one of each.
 
    Set `kind` and `phase` from the effort (`phase` is `""` when
-   incidental). `method` is `tdd`, `check`, or `manual`; `verify_command`
+   incidental). Set `executor` to `inline` or `subagent`. Every task
+   in a wave uses the same executor. `method` is `tdd`, `check`, or
+   `manual`; `verify_command`
    is the literal command (empty string for `manual` with no script).
 
    - `repair` — criterion is repro-gone plus a regression check, not
@@ -205,10 +218,14 @@ EOF
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "<task-slug>" \
-  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>"}' \
+  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent"}' \
   --body "## Description
 
-<what this task builds/fixes, and why it waits>" \
+<what this task builds/fixes, and why it waits>
+
+## Approach
+
+<implementation recipe>" \
   --rel depends_on:<prerequisite-work-item-id>
 
 adaptive-artifacts create --type project:acceptance \
@@ -225,11 +242,15 @@ adaptive-artifacts create --type project:acceptance \
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "verify-<phase-slug>" \
-  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>"}' \
+  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent"}' \
   --body "## Description
 
 Prove the phase exit criteria hold together: run the integration
-check through the real entry point, then every other phase check." \
+check through the real entry point, then every other phase check.
+
+## Approach
+
+<implementation recipe>" \
   --rel depends_on:<work-item-id-1> \
   --rel depends_on:<work-item-id-2>
 
@@ -264,7 +285,12 @@ adaptive-artifacts list --type project:work-item \
 ```
 
 10. Open the plan review gate, so nothing dispatches before the user
-   has seen the tasks (skip for incidental):
+    has seen the tasks (skip for incidental). Do not open the
+    plan-review question until those are present: each work-item has
+    `## Approach` (the implementation recipe), every task in a wave
+    uses the same executor (`inline` or `subagent`), and the phase
+    body records size as `one sitting` or `more than one`, the human
+    stops, and the areas parallel tasks share.
 
 ```bash
 adaptive-artifacts create --type project:continuity-question \

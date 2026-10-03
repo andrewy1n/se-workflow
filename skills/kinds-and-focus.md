@@ -22,6 +22,9 @@ check with no script). Do not stuff a metric delta into
 `check-run.result`. Use `project:finding` (`claim`, `basis`,
 `invalidated_when`, `needs`).
 
+`executor` on a work-item is `inline` or `subagent`. Every task in a
+wave uses the same executor. Missing `executor` means `subagent`.
+
 ## Focus
 
 A **live** goal is an `active-goal` in lifecycle `active` whose
