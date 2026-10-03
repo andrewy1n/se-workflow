@@ -93,7 +93,7 @@ def test_e2e_side_pane_and_status_follow_every_lifecycle_step(home, adopted, sid
         def redrawn():
             screen = side_pane()
             last["map"] = _task_map(screen)
-            return last["map"] == expected and f"Done {len(finished)}" in screen and f"ship {EFFORT}" in screen and tab in screen and (needs or "⚠" not in screen)
+            return last["map"] == expected and f"Done ({len(finished)})" in screen and f"ship {EFFORT}" in screen and tab in screen and (needs or "⚠" not in screen)
 
         h.wait_for(redrawn, f"side pane tasks {expected}", lambda: f"{last.get('map')}\n{side_pane()}", REDRAW)
         want = f"{EFFORT} · {status}\n"

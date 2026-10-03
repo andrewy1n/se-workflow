@@ -148,8 +148,9 @@ def test_shows_goal_stepper_and_progress(seeded, width):
     async def scenario(app, pilot):
         assert "ship the alpha dashboard" in _text(app, "#goal")
         stepper = _text(app, "#stepper")
-        assert "✓ Phase one" in stepper and "● Phase two 0/3" in stepper and "○ Phase three" in stepper
-        assert stepper.index("one") < stepper.index("two") < stepper.index("three")
+        assert "1 done" in stepper and "● Phase two 0/3" in stepper and "○ Phase three" in stepper
+        assert "✓" not in stepper and "Phase one" not in stepper
+        assert stepper.index("done") < stepper.index("two") < stepper.index("three")
         assert _text(app, "#progress-label") == "phase 2/3 · 1 of 4 tasks"
         bar = app.query_one("#progress")
         assert (bar.progress, bar.total) == (1, 4)
@@ -197,19 +198,31 @@ async def _pane_settled(app, pilot):
 
 def test_stepper_wraps_by_pane_width_and_keeps_glyph_with_label(store):
     stamped_store(store, "long-phases", lambda root, cli, defs: _seed_long_phases(cli, defs))
-    glyphs = tuple(app_module.PHASE_GLYPH.values())
 
     async def scenario(app, pilot):
         pane = app.query_one(app_module.EffortPane)
         await _pane_settled(app, pilot)
         lines = _stepper_lines(app)
-        assert len(lines) > 1
-        assert all(line.startswith(glyphs) for line in lines), lines
-        assert not any(line.endswith(glyphs) for line in lines), lines
-        assert all(len(line) <= pane.scrollable_content_region.width for line in lines), lines
         joined = " ".join(lines)
-        assert "○ Admin console button" in joined and "● PDF export 0/4" in joined
-        assert "○ Audit trail" in joined and "…" in joined
+        assert "2 done" in joined and "● PDF export 0/4" in joined and "○ Admin console button" in joined
+        assert "Invoice schema" not in joined and "Rollout" not in joined and "Audit" not in joined
+        assert "✓" not in joined
+        assert all(len(line) <= pane.scrollable_content_region.width for line in lines), lines
+        await pilot.click("#stepper")
+        await pilot.pause()
+        expanded = " ".join(_stepper_lines(app))
+        assert "Invoice schema" in expanded and "CSV export" in expanded
+        assert "● PDF export 0/4" in expanded and "○ Admin console button" in expanded
+        assert "2 done" not in expanded and "Rollout" not in expanded and "Audit" not in expanded
+        assert "✓" not in expanded
+        await pilot.resize_terminal(22, 30)
+        await _pane_settled(app, pilot)
+        width = pane.scrollable_content_region.width
+        clipped = _stepper_lines(app)
+        assert width < len("○ Admin console button")
+        assert any(line.startswith("○") and "…" in line for line in clipped), clipped
+        assert not any(line.endswith(("●", "○", "✓")) for line in clipped), clipped
+        assert all(len(line) <= width for line in clipped), clipped
 
     _run(store, 60, scenario, height=20)
 
@@ -639,8 +652,8 @@ def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, wid
     async def scenario(app, pilot):
         labels = _tab_labels(app)
         assert {k: v.split() for k, v in labels.items()} == {
-            "active": ["1", "Active", "3"], "running": ["2", "Running", "1"], "ready": ["3", "Ready", "1"],
-            "waiting": ["4", "Waiting", "1"], "done": ["5", "Done", "1"], "all": ["6", "All", "4"],
+            "active": ["Active", "(3)"], "running": ["Running", "(1)"], "ready": ["Ready", "(1)"],
+            "waiting": ["Waiting", "(1)"], "done": ["Done", "(1)"], "all": ["All", "(4)"],
         }
         assert all(tab.region.right <= width for tab in app.query(app_module.StatusTab))
         assert _selected(app) == ["active"]
@@ -664,9 +677,9 @@ def test_tab_row_holds_all_six_tabs_on_one_row_at_120_columns(seeded):
 
 def test_tab_row_wraps_inside_the_pane_at_60_columns(seeded):
     async def scenario(app, pilot):
-        assert len(_tab_rows(app)) == 2
-        assert all(tab.region.right <= 60 for tab in app.query(app_module.StatusTab))
-        order = sorted(app.query(app_module.StatusTab), key=lambda tab: (tab.region.y, tab.region.x))
+        tabs = list(app.query(app_module.StatusTab))
+        assert all(tab.region.right <= 60 for tab in tabs)
+        order = sorted(tabs, key=lambda tab: (tab.region.y, tab.region.x))
         assert [tab.tab_name for tab in order] == [name for name, _, _ in tasks_module.STATUS_TABS]
 
     _run(seeded, 60, scenario)
@@ -674,20 +687,39 @@ def test_tab_row_wraps_inside_the_pane_at_60_columns(seeded):
 
 def test_tab_row_unwraps_when_the_pane_grows(seeded):
     async def scenario(app, pilot):
-        assert len(_tab_rows(app)) == 2
         await pilot.resize_terminal(120, 40)
         await _until(pilot, lambda: len(_tab_rows(app)) == 1)
 
     _run(seeded, 60, scenario)
 
 
+def _styles_covering(content, start, end):
+    return [span.style for span in content.spans if span.start < end and span.end > start]
+
+
 @pytest.mark.parametrize("width", WIDTHS)
-def test_tab_row_labels_start_with_their_number_key(seeded, width):
+def test_tab_labels_are_the_word_and_a_dim_parenthetical_tally(seeded, width):
     async def scenario(app, pilot):
         labels = _tab_labels(app)
-        assert all(labels[name] == f"{key} {label} {labels[name].split()[-1]}" for name, label, key in tasks_module.STATUS_TABS)
-        assert labels["active"] == "1 Active 3"
+        assert labels == {
+            "active": "Active (3)", "running": "Running (1)", "ready": "Ready (1)",
+            "waiting": "Waiting (1)", "done": "Done (1)", "all": "All (4)",
+        }
+        assert all(not label[0].isdigit() for label in labels.values())
         assert all(tab.region.width == len(labels[tab.tab_name]) for tab in app.query(app_module.StatusTab))
+        selected = app.query_one("#status-active").render()
+        word_end = selected.plain.index(" ")
+        tally_at = selected.plain.index("(")
+        word = _styles_covering(selected, 0, word_end)
+        tally = _styles_covering(selected, tally_at, tally_at + 1)
+        assert any(style.bold and style.reverse for style in word)
+        assert any(style.dim for style in tally)
+        assert not any(style.reverse for style in tally)
+        other = app.query_one("#status-running").render()
+        other_tally = other.plain.index("(")
+        assert any(style.dim for style in _styles_covering(other, other_tally, other_tally + 1))
+        assert not any(style.reverse for style in _styles_covering(other, 0, other.plain.index(" ")))
+        assert "text-style: bold reverse" not in app_module.DashboardApp.CSS
 
     _run(seeded, width, scenario)
 
@@ -698,7 +730,9 @@ def test_tab_row_once_tally_shows_number_keys(seeded):
         env={**os.environ, "COLUMNS": "120"},
     )
     assert result.returncode == 0, result.stderr
-    assert "1 Active 3   2 Running 1   3 Ready 1   4 Waiting 1   5 Done 1   6 All 4" in result.stdout
+    assert "Active (3)   Running (1)   Ready (1)   Waiting (1)   Done (1)   All (4)" in result.stdout
+    assert "1 done" in result.stdout and "● Phase two 0/3" in result.stdout and "○ Phase three" in result.stdout
+    assert "✓ Phase one" not in result.stdout
 
 
 def test_status_tabs_are_six_on_keys_one_to_six_without_a_needs_you_tab():
@@ -1708,7 +1742,7 @@ def test_once_prints_a_plain_text_frame(seeded):
     assert result.returncode == 0, result.stderr
     out = result.stdout
     assert "\x1b" not in out
-    for needle in ("alpha", "ship the alpha dashboard", "✓ Phase one", "Running", "title of a-running", "which backend", "Needs you 1"):
+    for needle in ("alpha", "ship the alpha dashboard", "1 done", "Running", "title of a-running", "which backend", "Needs you 1"):
         assert needle in out
     assert max(len(line) for line in out.splitlines()) <= 100
 
@@ -1742,7 +1776,7 @@ def test_status_tab_survives_a_store_refresh(seeded, cli, defs, width):
         await pilot.press("5")
         await pilot.press("enter")
         _work_item(cli, defs, "alpha", "a-fresh", "two")
-        await _until(pilot, lambda: _tab_labels(app)["all"].split()[-1] == "5")
+        await _until(pilot, lambda: _tab_labels(app)["all"] == "All (5)")
         assert _selected(app) == ["done"]
         assert _titles(app) == ["title of a-done"]
 
@@ -1826,7 +1860,10 @@ def test_done_phases_collapse_and_older_ones_fold_into_one_row(phased, width):
         assert "2 earlier phases done" in _row_text(app, "fold")
         assert not any(key.startswith("phase:d1") or key.startswith("phase:d2") for key in keys)
         assert all("-task" not in key for key in keys[:3])
-        assert "▸" in _row_text(app, "phase:d4")
+        assert str(app.query_one("#tasks").get_row("phase:d4")[0]) == "▸"
+        assert "✓" not in _row_text(app, "phase:d3") and "✓" not in _row_text(app, "phase:d4")
+        assert "●" in str(app.query_one("#tasks").get_row("phase:cur")[0])
+        assert "○" in str(app.query_one("#tasks").get_row("phase:later")[0])
 
     _run(phased, width, scenario)
 
@@ -1920,7 +1957,7 @@ def test_a_collapsed_phase_stays_collapsed_across_a_store_refresh(phased, cli, d
         await pilot.press("enter")
         await pilot.pause()
         _work_item(cli, defs, "alpha", "cur-fresh", "cur")
-        await _until(pilot, lambda: _tab_labels(app)["all"].split()[-1] == "9")
+        await _until(pilot, lambda: _tab_labels(app)["all"] == "All (9)")
         assert "▸" in _row_text(app, "phase:cur")
         assert len(_keys(app)) == 4
 

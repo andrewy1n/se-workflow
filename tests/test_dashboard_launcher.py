@@ -157,7 +157,7 @@ def test_renders_a_seeded_store_once_with_the_textual_app(home, store, cli, reso
     cache = os.environ.get("UV_CACHE_DIR") or str(Path.home() / ".cache" / "uv")
     result = _run_real(store, home, cache)
     assert result.returncode == 0, result.stdout + result.stderr
-    for text in ("launchfx", "ship launchfx", "title of lx-ready", "3 Ready 1", "2 Running 0"):
+    for text in ("launchfx", "ship launchfx", "title of lx-ready", "Ready (1)", "Running (0)"):
         assert text in result.stdout, result.stdout
 
 

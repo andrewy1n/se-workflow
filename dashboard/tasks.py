@@ -168,8 +168,11 @@ def section_cells(row: SectionRow, columns: list[str], title_width: int, colors:
         label = f"{phase.title or phase.subject} {phase.done}/{phase.total}"
         if phase.awaiting_signoff:
             label += " · awaiting sign-off"
+        status = Text(marker, style=colors["muted"]) if phase.state == "done" else Text(
+            f"{marker} {PHASE_GLYPH[phase.state]}", style=style,
+        )
         values = {
-            "status": Text(f"{marker} {PHASE_GLYPH[phase.state]}", style=style),
+            "status": status,
             "task": Text(clip(label, title_width), style=style),
         }
     return [values.get(name, "") for name in columns]

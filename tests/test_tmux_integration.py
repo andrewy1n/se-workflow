@@ -62,6 +62,24 @@ def _markers() -> list[str]:
     return [EFFORT, f"ship {EFFORT}", "title of fx-running", "title of fx-ready", "Running", "Ready", "Needs you", "Done"]
 
 
+def _refreshed(server, *needles: str) -> str:
+    """Popup text after a client redraw. A live write omits cells that did not change."""
+    end = time.monotonic() + h.DEADLINE
+    last = ""
+    while True:
+        server.output = b""
+        server("refresh-client")
+        if select.select([server.client_fd], [], [], 0.5)[0]:
+            try:
+                server.output += os.read(server.client_fd, 65536)
+            except OSError:
+                pass
+        last = h.plain_terminal(server.output)
+        if all(needle in last for needle in needles) or time.monotonic() > end:
+            return last
+        time.sleep(0.3)
+
+
 def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard_and_a_stepper_that_never_splits_a_glyph_from_its_label(
     tmux, seeded, cli, resolved_contract,
 ):
@@ -84,14 +102,19 @@ def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard_and_a_stepper_t
     h.wait_for(screen, "side pane dashboard", capture)
     assert tmux("display", "-p", "-t", side, "#{pane_current_path}").strip() == str(seeded)
     assert 40 <= int(tmux("display", "-p", "-t", side, "#{pane_width}")) <= 60
-    lines = [line.strip() for line in h.wait_for(lambda: screen() if "…" in capture() else None, "clipped stepper", capture).splitlines()]
+    def collapsed() -> str | None:
+        text = capture()
+        if "1 done" in text and "● Shape the store" in text and "○ Draw the dashboard" in text:
+            return text
+        return None
+
+    lines = [line.strip() for line in h.wait_for(collapsed, "collapsed stepper", capture).splitlines()]
     goal = lines.index(f"ship {EFFORT}")
     progress = next(i for i, line in enumerate(lines) if line.startswith("phase 2/4"))
     stepper = [line for line in lines[goal + 1:progress] if line]
-    assert len(stepper) > 1, lines
-    assert all(line[0] in "✓●○" for line in stepper), stepper
-    assert not any(line[-1] in "✓●○" for line in stepper), stepper
-    assert any(line.startswith("○ Wire every tmux binding") and line.endswith("…") for line in stepper), stepper
+    joined = " ".join(stepper)
+    assert "1 done" in joined and "● Shape the store" in joined and "○ Draw the dashboard" in joined
+    assert "Wire every" not in joined and "✓" not in joined, stepper
 
 
 def test_prefix_a_binding_is_a_popup_of_the_launcher_in_the_pane_directory(tmux):
@@ -141,9 +164,8 @@ def test_prefix_a_popup_redraws_as_a_task_moves_from_ready_to_running_to_done(tm
     assert "running" in running, running[-2000:]
 
     h.transition(cli, "project:work-item", task, "done")
-    tmux.output = b""
-    done = tmux.screen_text(["5 Done 1"])
-    assert "5 Done 1" in done, done[-2000:]
+    done = _refreshed(tmux, "Done (1)")
+    assert "Done (1)" in done, done[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
@@ -177,13 +199,11 @@ def test_prefix_a_popup_detail_screen_follows_a_task_through_its_lifecycle_and_e
         cli, defs, "project:check-run", subject="fx-moving",
         extra_payload={"criterion_id": criterion["id"], "method": "check", "result": "pass", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
     )
-    tmux.output = b""
-    checked = tmux.screen_text(["check passed", "✓ unit tests pass"])
+    checked = _refreshed(tmux, "check passed", "✓ unit tests pass")
     assert all(n in checked for n in ("check passed", "✓ unit tests pass")), checked[-2000:]
 
     h.transition(cli, "project:work-item", task, "done")
-    tmux.output = b""
-    done = tmux.screen_text(["done"])
+    done = _refreshed(tmux, "done")
     assert "done" in done, done[-2000:]
 
     tmux.output = b""
@@ -384,7 +404,7 @@ def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_re
     tmux.press("A")
     assert "assignee" in tmux.screen_text(["title of fx-ready", "assignee"])
 
-    tabs = ("1 Active 2", "2 Running 1", "3 Ready 1", "4 Waiting 0", "5 Done 0", "6 All 2")
+    tabs = ("Active (2)", "Running (1)", "Ready (1)", "Waiting (0)", "Done (0)", "All (2)")
     opening = press(b"", *tabs, "Needs you 2", "unsigned pages render on mobile pass fx-ready")
     assert " ".join(tabs) in opening, opening[-2000:]
     assert opening.count("Needs you") == 1, opening[-2000:]
@@ -400,8 +420,14 @@ def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_re
     press(b"\r", "fx-ready tmuxfx", "Description", absent=("title of fx-running",))
     press(b"\x1b", "title of fx-running", "assignee", absent=("Description",))
 
+    # tmux 3.2 closes a popup when the client tty changes size, so reopen at the new size.
+    os.write(tmux.client_fd, b"q")
+    time.sleep(0.4)
     fcntl.ioctl(tmux.client_fd, termios.TIOCSWINSZ, struct.pack("HHHH", tmux.rows, 80, 0, 0))
-    narrow = press(b"", "title of fx-running", "title of fx-ready", "wave", absent=("assignee",))
+    time.sleep(0.2)
+    tmux.press("A")
+    narrow = tmux.screen_text(["title of fx-running", "title of fx-ready", "wave"])
+    assert "assignee" not in narrow, narrow[-2000:]
     assert "No live efforts" not in narrow, narrow[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 

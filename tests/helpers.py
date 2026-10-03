@@ -227,6 +227,12 @@ def _apply_transition(cli, record_def: dict, record_type: str, record: dict, des
 TMUX_ENTRY = REPO_ROOT / "se-workflow.tmux"
 DEADLINE = 10.0
 ANSI = re.compile(r"\x1b(\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(\x07|\x1b\\)|[()][0-9A-Za-z]|[=>78DEHMc])")
+_SGR = re.compile(r"\x1b\[[0-?]*m")
+
+
+def plain_terminal(raw: bytes) -> str:
+    text = _SGR.sub("", raw.decode("utf-8", "replace"))
+    return " ".join(ANSI.sub(" ", text).split())
 _DASHBOARD_ITEM = re.compile(r"^- (?:\*\*(.+?)\*\*|([^*:][^:]*):)")
 
 
@@ -313,7 +319,7 @@ class Tmux:
     def screen_text(self, needles: list[str]) -> str:
         deadline = time.monotonic() + DEADLINE
         while True:
-            text = " ".join(ANSI.sub(" ", self.output.decode("utf-8", "replace")).split())
+            text = plain_terminal(self.output)
             if all(needle in text for needle in needles) or time.monotonic() > deadline:
                 return text
             ready, _, _ = select.select([self.client_fd], [], [], 0.2)

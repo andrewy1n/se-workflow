@@ -56,15 +56,29 @@ def current_phase(view: model.EffortView) -> tuple[int, model.PhaseRow] | None:
     return None
 
 
-def stepper_text(view: model.EffortView, colors: dict[str, str], width: int = 100) -> Text:
-    style = {"done": colors["success"], "in_progress": colors["primary"], "planned": colors["muted"]}
+def _stepper_segments(view: model.EffortView, colors: dict[str, str], expanded: bool = False) -> list[Text]:
+    done = [phase for phase in view.phases if phase.state == "done"]
+    current = next((phase for phase in view.phases if phase.state == "in_progress"), None)
+    nxt = next((phase for phase in view.phases if phase.state == "planned"), None)
+    muted = colors["muted"]
+    segments: list[Text] = []
+    if expanded:
+        segments.extend(Text(phase.title or phase.subject, style=muted) for phase in done)
+    elif done:
+        segments.append(Text(f"{len(done)} done", style=muted))
+    if current is not None:
+        title = current.title or current.subject
+        segments.append(Text(f"● {title} {current.done}/{current.total}", style=colors["primary"]))
+    if nxt is not None:
+        title = nxt.title or nxt.subject
+        segments.append(Text(f"○ {title}", style=muted))
+    return segments
+
+
+def stepper_text(view: model.EffortView, colors: dict[str, str], width: int = 100, expanded: bool = False) -> Text:
     text = Text()
     used = 0
-    for index, phase in enumerate(view.phases):
-        name = f"{PHASE_GLYPH[phase.state]} {phase.title or phase.subject}"
-        if phase.state == "in_progress":
-            name += f" {phase.done}/{phase.total}"
-        label = Text(name, style=style[phase.state])
+    for index, label in enumerate(_stepper_segments(view, colors, expanded)):
         label.truncate(max(width, 3), overflow="ellipsis")
         if index:
             if used + 3 + label.cell_len > width:
@@ -143,7 +157,7 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         if label:
             console.print(Text(label, style=colors["muted"]))
         tally = counts(view)
-        console.print("   ".join(f"{key} {label} {tally[name]}" for name, label, key in STATUS_TABS))
+        console.print("   ".join(f"{word} ({tally[name]})" for name, word, _key in STATUS_TABS))
         if view.tasks:
             columns = ["status", "task", "wave", "phase", "assignee"] if console.width >= WIDE else task_columns(console.width)
             table = Table(box=None, pad_edge=False, header_style=colors["muted"])
@@ -182,15 +196,23 @@ def phase_task_line(task: model.TaskRow, colors: dict[str, str]) -> Text:
     return text
 
 
+class PhaseStepper(Static):
+    def on_click(self, event: events.Click) -> None:
+        pane = self.query_ancestor(EffortPane)
+        if pane is not None:
+            pane.toggle_stepper()
+
+
 class EffortPane(VerticalScroll):
     def __init__(self, effort: str) -> None:
         super().__init__(classes="effort")
         self.effort = effort
+        self.stepper_open = False
         self.sections: dict[str, SectionRow] = {}
 
     def compose(self) -> ComposeResult:
         yield Static(id="goal")
-        yield Static(id="stepper")
+        yield PhaseStepper(id="stepper")
         yield Static(id="progress-label")
         yield ProgressBar(id="progress", show_eta=False, show_percentage=False)
         with Container(id="status-tabs"):
@@ -218,7 +240,7 @@ class EffortPane(VerticalScroll):
         inner = self.scrollable_content_region.width or width - 2
         self.inner = inner
         self.query_one("#goal", Static).update(Text(view.goal, style=colors["muted"]))
-        self.query_one("#stepper", Static).update(stepper_text(view, colors, inner))
+        self.query_one("#stepper", Static).update(stepper_text(view, colors, inner, self.stepper_open))
         found = current_phase(view)
         self.query_one("#progress-label", Static).update(progress_label(view))
         bar = self.query_one("#progress", ProgressBar)
@@ -237,6 +259,13 @@ class EffortPane(VerticalScroll):
         self.fill_tasks(view, now, width, inner, colors)
         self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
         self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
+
+    def toggle_stepper(self) -> None:
+        self.stepper_open = not self.stepper_open
+        last = getattr(self, "last", None)
+        if last is not None:
+            view, now, width, colors = last
+            self.show(view, now, width, colors)
 
     def mark_status_tab(self, selected: str) -> None:
         for tab in self.query(StatusTab):
@@ -313,7 +342,8 @@ class StatusTab(Static):
         self.text = Text()
 
     def show(self, number: int, selected: bool) -> None:
-        self.text = Text.assemble((self.tab_key, ""), " ", (self.tab_label, ""), " ", (str(number), "bold"))
+        word = "bold reverse" if selected else ""
+        self.text = Text.assemble((self.tab_label, word), (f" ({number})", "dim"))
         self.update(self.text)
         self.set_class(selected, "selected")
 
@@ -615,7 +645,7 @@ class DashboardApp(App[None]):
     #progress Bar { width: 1fr; }
     #status-tabs { layout: grid; grid-size: 6; grid-columns: auto; grid-rows: 1; grid-gutter: 0 1; height: auto; margin-top: 1; }
     .status-tab { width: auto; height: 1; color: $text-muted; }
-    .status-tab.selected { color: $text; text-style: bold reverse; }
+    .status-tab.selected { color: $text; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
     #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }
     #filter:focus { border: none; background: $panel; }
