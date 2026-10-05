@@ -29,7 +29,19 @@ from dashboard import model as model_module  # noqa: E402
 from dashboard import app as app_module  # noqa: E402
 from dashboard import commit as commit_module  # noqa: E402
 from dashboard import task_detail as detail_module  # noqa: E402
-from dashboard import tasks as tasks_module  # noqa: E402
+from dashboard import tasks as tasks_module
+from test_dashboard_model import (  # noqa: E402
+    ROW_SPEC,
+    _accept,
+    _assessment,
+    _check,
+    _decision,
+    _design,
+    _release,
+    _report,
+    _spec,
+    _task,
+)  # noqa: E402
 
 SCRIPT = REPO_ROOT / "dashboard" / "__main__.py"
 WIDTHS = (60, 120)
@@ -2421,3 +2433,418 @@ def test_needs_you_detail_follows_the_store_and_blocks_dashboard_keys(seeded, cl
         await _until(pilot, lambda: screen.query_one("#needs-text Markdown").source == "which backend, revised")
 
     _detail_run(seeded, (120, 40), scenario, interval=0.3)
+
+
+def _evidence_goal(cli, defs, effort="alpha"):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject=effort,
+        extra_payload={"goal": f"ship {effort}", "kind": "deliver"},
+    )
+
+
+def _widget_lines(widget):
+    return [widget.render_line(y).text.rstrip() for y in range(widget.size.height)]
+
+
+def _plain_lines(widget):
+    rendered = widget.render()
+    if hasattr(rendered, "plain"):
+        text = rendered.plain
+    elif hasattr(rendered, "renderable"):
+        inner = rendered.renderable
+        text = inner.plain if hasattr(inner, "plain") else str(inner)
+    elif hasattr(widget, "option_count"):
+        text = "\n".join(_prompt_plain(widget.get_option_at_index(i).prompt) for i in range(widget.option_count))
+    else:
+        text = str(rendered)
+    return text.splitlines()
+
+
+def _prompt_plain(prompt):
+    return prompt.plain if hasattr(prompt, "plain") else str(prompt)
+
+
+def _is_dim(style):
+    if isinstance(style, str):
+        return "dim" in style.split()
+    return bool(getattr(style, "dim", False))
+
+
+def _error_colours(rendered, line, error):
+    start = str(rendered).index(line)
+    return {
+        Style.parse(str(span.style)).color.get_truecolor()
+        for span in rendered.spans if span.start < start + len(line) and span.end > start + 8
+    }
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_evidence_tally_shows_verified_count_at_both_widths(store, cli, defs, width):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "t", 1, "in_progress")
+    _spec(cli, defs, "t", "R1, R2")
+    _task(cli, defs, "t-one", "t", "R1")
+    _task(cli, defs, "t-two", "t", "R2")
+    _assessment(cli, defs, "t", "R1", status="verified", next="release", confidence="high")
+
+    async def scenario(app, pilot):
+        row = _row_text(app, "phase:t")
+        assert "R 1/2 verified" in row
+        assert "Release ready" not in row
+
+    _run(store, width, scenario)
+
+
+def test_evidence_activity_shows_new_kinds_in_error_colour(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "act", 1, "in_progress")
+    _spec(cli, defs, "act", "R1, R2")
+    _assessment(cli, defs, "act", "R1", status="failed", level="implementation", next="execute", confidence="high")
+    _assessment(cli, defs, "act", "R2", status="blocked", level="plan", next="plan", confidence="high")
+    _report(cli, defs, "act", "fail", "ports disagree")
+    _release(cli, defs, "act", "failed")
+    _phase(cli, defs, "alpha", "blk", 2, "in_progress")
+    _spec(cli, defs, "blk")
+    _report(cli, defs, "blk", "blocked", "stuck")
+    _phase(cli, defs, "alpha", "ok", 3, "in_progress")
+    _spec(cli, defs, "ok")
+    _assessment(cli, defs, "ok", "R1", status="verified", next="release", confidence="high")
+    _report(cli, defs, "ok", "pass", "clean")
+    _release(cli, defs, "ok", "ready")
+
+    async def scenario(app, pilot):
+        error = app_module.palette_from(app.get_css_variables())["error"]
+        rendered = app.query_one("#activity").render()
+        lines = str(rendered).splitlines()
+        failed = [
+            "R1 failed execute", "R2 blocked plan upstream", "act fail", "blk blocked", "act failed",
+        ]
+        quiet = ["R1 verified release", "ok pass", "ok ready"]
+        for suffix in failed:
+            line = next(item for item in lines if item.endswith(suffix))
+            assert " ✗ " in line
+            assert _error_colours(rendered, line, error) == {Style.parse(error).color.get_truecolor()}
+        for suffix in quiet:
+            line = next(item for item in lines if item.endswith(suffix))
+            assert "✗" not in line
+
+    _run(store, 60, scenario)
+
+
+def test_evidence_needs_shows_loop_and_integration_lines(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "up", 1, "in_progress")
+    _spec(cli, defs, "up")
+    _task(cli, defs, "up-task", "up", "R1")
+    _assessment(cli, defs, "up", "R1", status="failed", level="design", next="design", confidence="high")
+    _phase(cli, defs, "alpha", "bad", 2, "in_progress")
+    _spec(cli, defs, "bad")
+    _task(cli, defs, "bad-task", "bad", "R1")
+    _report(cli, defs, "bad", "blocked", "stuck")
+
+    async def scenario(app, pilot):
+        text = _needs_text(app)
+        route = next(line for line in text.splitlines() if "R1" in line and "design" in line)
+        assert "failed" in route
+        blocked = next(line for line in text.splitlines() if "bad" in line and "blocked" in line)
+        assert "R1" not in blocked or "design" not in blocked
+        pane = app.query_one(app_module.EffortPane)
+        limit = pane.size.width
+        assert limit <= 60
+        for line in _widget_lines(app.query_one("#needs-you")):
+            assert len(line) <= limit, line
+
+    _run(store, 60, scenario)
+
+
+def test_evidence_strip_marks_the_current_stage_and_fits(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "strip", 1, "in_progress")
+    _spec(cli, defs, "strip", "R1", weight="full", non_goals="No new screen.")
+    _design(cli, defs, "strip", "use-columns")
+    _decision(cli, defs, "use-columns", "strip", "two")
+    _task(cli, defs, "strip-task", "strip", "R1", done=True)
+    _report(cli, defs, "strip", "fail", "ports disagree")
+    _phase(cli, defs, "alpha", "plain", 2, "in_progress")
+    _spec(cli, defs, "plain")
+    _task(cli, defs, "plain-task", "plain", "R1")
+
+    async def scenario(app, pilot):
+        await pilot.press("6")
+        await pilot.pause()
+        table = app.query_one("#tasks")
+        table.move_cursor(row=table.get_row_index("phase:strip"))
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        stage = screen.query_one("#phase-stage").render()
+        plain = stage.plain
+        for name in ("specify", "design", "plan", "execute", "integrate", "verify", "assess", "release"):
+            assert name in plain
+        marked = plain.index("assess")
+        assert any(style.bold for style in _styles_covering(stage, marked, marked + len("assess")))
+        other = plain.index("specify")
+        assert not any(style.bold for style in _styles_covering(stage, other, other + len("specify")))
+        spec = str(screen.query_one("#phase-spec").render())
+        assert "full" in spec and "No new screen." in spec
+        design = str(screen.query_one("#phase-design").render())
+        assert "use-columns" in design and "two" in design
+        report = str(screen.query_one("#phase-integration").render())
+        assert "fail" in report and "Conflicts" in report and "ports disagree" in report
+        limit = screen.query_one("#phase").scrollable_content_region.width
+        assert limit <= 60
+        for selector in ("#phase-stage", "#phase-spec", "#phase-design", "#phase-integration", "#phase-requirements"):
+            widget = screen.query_one(selector)
+            assert widget.display
+            for line in _plain_lines(widget):
+                assert len(line) <= limit, (selector, line)
+            for line in _widget_lines(widget):
+                assert len(line) <= screen.query_one("#phase").size.width, (selector, line)
+        await pilot.press("escape")
+        await _until(pilot, lambda: not isinstance(app.screen, app_module.PhaseDetailScreen))
+        table = app.query_one("#tasks")
+        table.move_cursor(row=table.get_row_index("phase:plain"))
+        await pilot.press("p")
+        bare = await _phase_shown(app, pilot)
+        assert bare.query_one("#phase-stage").display
+        assert not bare.query_one("#phase-integration").display
+
+    _run(store, 60, scenario, height=40)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_evidence_release_marks_the_tab_and_phase_row(store, cli, defs, width):
+    _evidence_goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "rel", 1, "in_progress")
+    _spec(cli, defs, "rel", effort="alpha")
+    _task(cli, defs, "rel-task", "rel", "R1", effort="alpha")
+    _release(cli, defs, "rel", "ready", effort="alpha")
+    _evidence_goal(cli, defs, "gamma")
+    _phase(cli, defs, "gamma", "nof", 1, "in_progress")
+    _spec(cli, defs, "nof", effort="gamma")
+    _task(cli, defs, "nof-task", "nof", "R1", effort="gamma")
+    _release(cli, defs, "nof", "failed", effort="gamma")
+    _evidence_goal(cli, defs, "beta")
+    _phase(cli, defs, "beta", "ship", 1, "in_progress", "done")
+    _spec(cli, defs, "ship", effort="beta")
+    _task(cli, defs, "ship-task", "ship", "R1", done=True, effort="beta")
+    _release(cli, defs, "ship", "ready", effort="beta")
+
+    def row(app, effort, key):
+        table = app.panes[effort].query_one("#tasks")
+        return " ".join(str(cell) for cell in table.get_row(key))
+
+    async def scenario(app, pilot):
+        tabs = app.query_one("#efforts")
+        alpha = tabs.get_tab("effort-alpha")
+        assert "Release ready" in str(alpha.label)
+        assert "finished" not in alpha.classes
+        assert "Release ready" in row(app, "alpha", "phase:rel")
+        await pilot.press("tab")
+        await pilot.pause()
+        gamma = tabs.get_tab("effort-gamma")
+        assert "Release ready" not in str(gamma.label)
+        assert "finished" not in gamma.classes
+        assert "Release ready" not in row(app, "gamma", "phase:nof")
+        await pilot.press("tab")
+        await pilot.pause()
+        beta = tabs.get_tab("effort-beta")
+        assert "Release ready" in str(beta.label)
+        assert "finished" in beta.classes
+        await pilot.press("6")
+        await pilot.pause()
+        assert "Release ready" in row(app, "beta", "phase:ship")
+
+    _run(store, width, scenario)
+
+
+def test_evidence_requirement_list_shows_status_next_and_dim_check(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "rows", 1, "in_progress")
+    _spec(cli, defs, "rows", "R1, R2", weight="full", body=ROW_SPEC)
+    _task(cli, defs, "row-a", "rows", "R1")
+    _task(cli, defs, "row-b", "rows", "R1")
+    _task(cli, defs, "row-c", "rows", "R2")
+    _assessment(cli, defs, "rows", "R1", status="failed", level="design", next="design", confidence="high")
+    own = _accept(cli, defs, "row-c-check", "rows", "R2")
+    _check(cli, defs, "row-c-fail", own["id"], "fail", "R2", "integration")
+
+    async def scenario(app, pilot):
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        reqs = screen.query_one("#phase-requirements")
+        prompts = [reqs.get_option_at_index(index).prompt for index in range(reqs.option_count)]
+        by_id = {prompt.plain.split()[0]: prompt for prompt in prompts}
+        assert set(by_id) == {"R1", "R2"}
+        assert by_id["R1"].plain.split() == ["R1", "failed", "design", "2"]
+        assert by_id["R2"].plain.split()[:3] == ["R2", "unassessed", "1"]
+        assert by_id["R2"].plain.split()[-1] == "fail"
+        start = by_id["R2"].plain.rindex("fail")
+        assert any(_is_dim(span.style) for span in by_id["R2"].spans if span.start <= start < span.end)
+        failed_at = by_id["R1"].plain.index("failed")
+        assert not any(_is_dim(span.style) for span in by_id["R1"].spans if span.start <= failed_at < span.end)
+
+    _run(store, 60, scenario)
+
+
+def test_evidence_simple_phase_matches_the_previous_frame(seeded):
+    async def scenario(app, pilot):
+        assert "ship the alpha dashboard" in _text(app, "#goal")
+        row = _row_text(app, "phase:two")
+        assert "Phase two" in row and "0/3" in row
+        assert "verified" not in row and "Release ready" not in row
+        stepper = _text(app, "#stepper")
+        assert "1 done" in stepper and "● Phase two 0/3" in stepper and "○ Phase three" in stepper
+        assert "✓" not in stepper and "Phase one" not in stepper
+        assert " · " not in stepper
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        assert "Phase two" in str(screen.query_one("#phase-bar").render())
+        assert "in_progress" in str(screen.query_one("#phase-chips").render())
+        for selector in ("#phase-stage", "#phase-spec", "#phase-design", "#phase-integration", "#phase-requirements"):
+            assert not screen.query_one(selector).display
+
+    _run(seeded, 60, scenario)
+    result = subprocess.run(
+        ["uv", "run", "--script", str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(seeded),
+    )
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert "\x1b" not in out
+    for needle in ("alpha", "ship the alpha dashboard", "1 done", "Running", "title of a-running", "which backend", "Needs you 1"):
+        assert needle in out
+    assert "Active (3)   Running (1)   Ready (1)   Waiting (1)   Done (1)   All (4)" in out
+    assert "● Phase two 0/3" in out and "○ Phase three" in out
+    assert "✓ Phase one" not in out
+    stepper_line = next(line for line in out.splitlines() if "Phase two" in line)
+    assert " · " not in stepper_line
+    assert "verified" not in out and "Release ready" not in out
+    assert max(len(line) for line in out.splitlines()) <= 100
+
+
+def _option_index(widget, prefix):
+    for index in range(widget.option_count):
+        if str(widget.get_option_at_index(index).id).startswith(prefix):
+            return index
+    raise AssertionError(prefix)
+
+
+async def _requirement_shown(app, pilot):
+    from dashboard.requirement_detail import RequirementDetailScreen
+
+    await _until(pilot, lambda: type(app.screen) is RequirementDetailScreen and app.screen.loaded)
+    await _settled(app, pilot)
+    return app.screen
+
+
+def test_evidence_link_task_opens_the_requirement(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "linked", 1, "in_progress")
+    _spec(cli, defs, "linked", "R1")
+    _decision(cli, defs, "pick-a", "linked", "keep the list")
+    task = _task(cli, defs, "linked-task", "linked", "R1, R2", "pick-a, pick-b")
+
+    async def scenario(app, pilot):
+        screen = await _open_task(app, pilot, task)
+        lines = _link_lines(screen)
+        assert "Requirement: R1" in lines
+        assert "Requirement: R2" in lines
+        assert "Decision: pick-a" in lines
+        assert "Decision: pick-b" in lines
+        links = screen.query_one("#detail-links")
+        assert links.get_option_at_index(_option_index(links, "req:linked:R1")).id == "req:linked:R1"
+        assert links.get_option_at_index(_option_index(links, "decision:pick-a")).id == "decision:pick-a"
+        await _focus_links(app, pilot, screen)
+        links.highlighted = _option_index(links, "decision:pick-a")
+        await pilot.press("enter")
+        await pilot.pause()
+        assert type(app.screen) is detail_module.TaskDetailScreen
+        assert len(app.screen_stack) == 2
+        links.highlighted = _option_index(links, "req:linked:R1")
+        await pilot.press("enter")
+        opened = await _requirement_shown(app, pilot)
+        assert (opened.effort, opened.phase, opened.requirement) == ("alpha", "linked", "R1")
+        assert "text of R1" in str(opened.query_one("#requirement-text").render())
+        await pilot.press("escape")
+        await _until(pilot, lambda: type(app.screen) is detail_module.TaskDetailScreen and app.screen.loaded)
+        assert app.screen is screen
+        assert len(app.screen_stack) == 2
+
+    _run(store, 60, scenario)
+
+
+def test_evidence_link_needs_opens_the_requirement(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "up", 1, "in_progress")
+    _spec(cli, defs, "up")
+    _task(cli, defs, "up-task", "up", "R1")
+    _assessment(cli, defs, "up", "R1", status="failed", level="design", next="design", confidence="high")
+    _phase(cli, defs, "alpha", "bad", 2, "in_progress")
+    _spec(cli, defs, "bad")
+    _task(cli, defs, "bad-task", "bad", "R1")
+    _report(cli, defs, "bad", "blocked", "stuck")
+
+    async def scenario(app, pilot):
+        await pilot.press("n", "enter")
+        opened = await _requirement_shown(app, pilot)
+        assert (opened.phase, opened.requirement) == ("up", "R1")
+        assert "text of R1" in str(opened.query_one("#requirement-text").render())
+        await pilot.press("escape")
+        await _until(pilot, lambda: type(app.screen) is not type(opened))
+        await pilot.press("n", "j", "enter")
+        await _until(pilot, lambda: type(app.screen) is app_module.NeedsYouDetailScreen)
+        assert app.screen.item.kind == "integration"
+        assert (app.screen.item.phase, app.screen.item.result) == ("bad", "blocked")
+
+    _run(store, 60, scenario)
+
+
+def test_evidence_link_phase_opens_the_requirement(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "rows", 1, "in_progress")
+    _spec(cli, defs, "rows", "R1")
+    _task(cli, defs, "row-a", "rows", "R1")
+
+    async def scenario(app, pilot):
+        await pilot.press("p")
+        screen = await _phase_shown(app, pilot)
+        reqs = screen.query_one("#phase-requirements")
+        reqs.focus()
+        if reqs.highlighted is None:
+            reqs.highlighted = 0
+        await pilot.press("enter")
+        opened = await _requirement_shown(app, pilot)
+        assert (opened.effort, opened.phase, opened.requirement) == ("alpha", "rows", "R1")
+        assert "text of R1" in str(opened.query_one("#requirement-text").render())
+        await pilot.press("escape")
+        await _until(pilot, lambda: type(app.screen) is app_module.PhaseDetailScreen and app.screen.loaded)
+        assert app.screen is screen
+        assert len(app.screen_stack) == 2
+
+    _run(store, 60, scenario)
+
+
+def test_evidence_stepper_shows_the_stage_word_within_60_columns(store, cli, defs):
+    _evidence_goal(cli, defs)
+    _phase(cli, defs, "alpha", "old", 1, "in_progress", "done")
+    done = _task(cli, defs, "old-task", "old", done=True)
+    assert done["lifecycle_state"] == "done"
+    _phase(cli, defs, "alpha", "step", 2, "in_progress")
+    _spec(cli, defs, "step")
+    _task(cli, defs, "step-task", "step", "R1")
+    _assessment(cli, defs, "step", "R1", status="failed", level="implementation", next="execute", confidence="high")
+    _phase(cli, defs, "alpha", "later", 3)
+
+    async def scenario(app, pilot):
+        await _pane_settled(app, pilot)
+        pane = app.query_one(app_module.EffortPane)
+        lines = _stepper_lines(app)
+        limit = pane.scrollable_content_region.width
+        assert limit <= 60
+        assert all(len(line) <= limit for line in lines), lines
+        joined = " ".join(lines)
+        assert "● Phase step 0/1 · execute" in joined
+        tail = joined.split("○", 1)[1]
+        assert tail.strip() == "Phase later"
+        assert " · " not in tail
+
+    _run(store, 60, scenario)

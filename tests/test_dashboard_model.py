@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 import helpers as h
-from conftest import REPO_ROOT, stamped_store
+from conftest import CONTRACT_PATH, REPO_ROOT, make_git_repo, run_cli, stamped_store
 
 sys.path.insert(0, str(REPO_ROOT))
 from dashboard import artifact_store  # noqa: E402
@@ -688,3 +688,519 @@ def test_task_detail_lists_a_check_run_recorded_under_a_merged_effort(store, cli
     task = _merged_store(cli, defs)
     detail = model.load_task_detail(_target(store), task["id"])
     assert [e.kind for e in detail.timeline] == ["check-run"]
+
+
+def _body(defs, record_type: str, fills: dict | None = None) -> str | None:
+    required = defs[record_type].get("required_sections") or []
+    if not required:
+        return None
+    fills = fills or {}
+    return "\n\n".join(f"## {name}\n\n{fills.get(name, 'placeholder.')}" for name in required)
+
+
+def _spec(cli, defs, phase: str, requirements: str = "R1", *, weight: str = "light", body: str | None = None, non_goals: str = "none", effort: str = "alpha") -> dict:
+    if body is None:
+        lines = "\n".join(f"{part.strip()}: text of {part.strip()}" for part in requirements.split(",") if part.strip())
+        body = _body(defs, "project:specification", {"Requirements": lines, "Non-goals": non_goals})
+    return _record(cli, defs, "project:specification", phase, {
+        "weight": weight, "phase": phase, "effort": effort, "requirements": requirements,
+    }, body)
+
+
+def _design(cli, defs, phase: str, decisions: str = "", *, effort: str = "alpha") -> dict:
+    return _record(cli, defs, "project:design", phase, {"phase": phase, "effort": effort, "decisions": decisions})
+
+
+def _decision(cli, defs, subject: str, phase: str, choice: str, *, effort: str = "alpha") -> dict:
+    return _record(cli, defs, "project:decision", subject, {
+        "choice": choice, "alternatives": "other", "phase": phase, "effort": effort,
+    })
+
+
+def _task(cli, defs, subject: str, phase: str, requirements: str = "", decisions: str = "", *, done: bool = False, effort: str = "alpha") -> dict:
+    payload = {"title": subject, "phase": phase, "kind": "deliver", "assignee": "", "effort": effort}
+    if requirements:
+        payload["requirements"] = requirements
+    if decisions:
+        payload["decisions"] = decisions
+    record = _record(cli, defs, "project:work-item", subject, payload)
+    if done:
+        record = h.transition(cli, "project:work-item", record, "in_progress", "done")
+    return record
+
+
+def _accept(cli, defs, subject: str, phase: str, requirement: str, *, effort: str = "alpha") -> dict:
+    return _record(cli, defs, "project:acceptance", subject, {
+        "criterion": subject, "method": "check", "phase": phase, "effort": effort,
+        "verify_command": "true", "requirement": requirement,
+    })
+
+
+def _check(cli, defs, subject: str, acceptance_id: str, result: str, requirement: str, evidence_kind: str) -> dict:
+    return _record(cli, defs, "project:check-run", subject, {
+        "criterion_id": acceptance_id, "revision": "dirty", "result": result, "effort": "alpha",
+        "method": "check", "signed_by": "ayin", "requirement": requirement, "evidence_kind": evidence_kind,
+    })
+
+
+def _assessment(cli, defs, phase: str, requirement: str, **fields) -> dict:
+    payload = {
+        "requirement": requirement, "phase": phase, "effort": fields.pop("effort", "alpha"), "missing": "",
+        "confidence": "high", "status": "failed", "next": "execute", "level": "implementation",
+    }
+    payload.update(fields)
+    if payload.get("status") == "verified":
+        payload.pop("level", None)
+    return _record(cli, defs, "project:assessment", f"{phase}-{requirement}", payload)
+
+
+def _supersede(cli, defs, record_type: str, record: dict, payload: dict) -> dict:
+    args = [
+        "supersede", "--type", record_type, "--id", record["id"],
+        "--expected-revision", record["revision"], "--payload", json.dumps({**record["payload"], **payload}),
+    ]
+    body = _body(defs, record_type)
+    if body:
+        args.extend(["--body", body])
+    result = cli(*args)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)["record"]
+
+
+def _report(cli, defs, phase: str, result: str, conflicts: str = "none", *, subject: str | None = None, effort: str = "alpha") -> dict:
+    body = _body(defs, "project:integration-report", {"Conflicts": conflicts})
+    return _record(cli, defs, "project:integration-report", subject or f"{phase}-report", {
+        "phase": phase, "effort": effort, "result": result, "revision": "dirty",
+    }, body)
+
+
+def _release(cli, defs, phase: str, state: str, *, effort: str = "alpha") -> dict:
+    return _record(cli, defs, "project:release", phase, {"state": state, "phase": phase, "effort": effort})
+
+
+ROW_SPEC = """## Non-goals
+
+R1: decoy
+
+No new screen.
+
+## Requirements
+
+R1: alpha holds
+R2: beta holds
+
+## Acceptance criteria
+
+ok
+
+## Constraints
+
+ok
+
+## Invariants
+
+ok
+
+## Assumptions
+
+ok
+"""
+
+
+def test_evidence_requirement_rows_join_by_phase_and_id(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-rows", 1, "in_progress")
+    _phase(cli, defs, "alpha", "p-other", 2)
+    _spec(cli, defs, "p-rows", "R1, R2", weight="full", body=ROW_SPEC)
+    _design(cli, defs, "p-rows", "use-columns")
+    _decision(cli, defs, "use-columns", "p-rows", "two")
+    _task(cli, defs, "row-a", "p-rows", "R1")
+    _task(cli, defs, "row-b", "p-rows", "R1")
+    _task(cli, defs, "row-c", "p-rows", "R2")
+    _task(cli, defs, "row-d", "p-rows", "R10")
+    verified = _assessment(cli, defs, "p-rows", "R1", status="verified", next="release", confidence="high")
+    _supersede(cli, defs, "project:assessment", verified, {
+        "status": "failed", "level": "design", "next": "design", "confidence": "high",
+    })
+    own = _accept(cli, defs, "row-c-check", "p-rows", "R2")
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:check-run", "--subject", "row-c-pass",
+        "--payload", json.dumps({
+            "criterion_id": own["id"], "revision": "dirty", "result": "pass", "effort": "alpha",
+            "method": "check", "signed_by": "ayin", "requirement": "R2", "evidence_kind": "unit",
+        }),
+    )
+    _check(cli, defs, "row-c-fail", own["id"], "fail", "R2", "integration")
+    other = _accept(cli, defs, "other-check", "p-other", "R2")
+    _check(cli, defs, "other-pass", other["id"], "pass", "R2", "unit")
+
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    phase = next(row for row in view.phases if row.subject == "p-rows")
+    evidence = phase.evidence
+    assert evidence is not None
+    assert evidence.phase == "p-rows"
+    assert evidence.weight == "full"
+    assert evidence.non_goals == "R1: decoy\n\nNo new screen."
+    assert [(item.subject, item.choice) for item in evidence.decisions] == [("use-columns", "two")]
+    assert [(row.id, row.phase, row.text, row.status, row.next, row.tasks) for row in evidence.requirements] == [
+        ("R1", "p-rows", "alpha holds", "failed", "design", 2),
+        ("R2", "p-rows", "beta holds", "unassessed", "", 1),
+    ]
+    assert evidence.requirements[0].latest_check is None
+    assert evidence.requirements[1].latest_check.result == "fail"
+    detail = model.load_phase_detail(_target(store), "alpha", "p-rows")
+    assert [row.id for row in detail.evidence.requirements] == ["R1", "R2"]
+
+
+def test_evidence_requirement_detail_includes_superseded_assessments(store, cli, defs, monkeypatch):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-detail", 1, "in_progress")
+    _spec(cli, defs, "p-detail", "R1", body=_body(defs, "project:specification", {
+        "Requirements": "R1: the traced requirement",
+    }))
+    _design(cli, defs, "p-detail", "design-only")
+    _decision(cli, defs, "design-only", "p-detail", "nope")
+    _decision(cli, defs, "pick-a", "p-detail", "alpha")
+    _decision(cli, defs, "pick-b", "p-detail", "beta")
+    traced = _task(cli, defs, "trace-yes", "p-detail", "R1", "pick-a, pick-b")
+    _task(cli, defs, "trace-no", "p-detail", "R2", "design-only")
+    acceptance = _accept(cli, defs, "trace-yes-acc", "p-detail", "R1")
+    _accept(cli, defs, "other-acc", "p-detail", "R2")
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:check-run", "--subject", "trace-early",
+        "--payload", json.dumps({
+            "criterion_id": acceptance["id"], "revision": "dirty", "result": "fail", "effort": "alpha",
+            "method": "check", "signed_by": "ayin", "requirement": "R1", "evidence_kind": "integration",
+        }),
+    )
+    _check(cli, defs, "trace-late", acceptance["id"], "pass", "R1", "unit")
+    first = _assessment(
+        cli, defs, "p-detail", "R1", status="failed", level="implementation", next="execute", confidence="low",
+    )
+    second = _supersede(cli, defs, "project:assessment", first, {
+        "status": "failed", "level": "design", "next": "design", "confidence": "high",
+    })
+
+    calls = []
+    real = model.subprocess.run
+
+    def spy(cmd, **kwargs):
+        calls.append(cmd)
+        return real(cmd, **kwargs)
+
+    monkeypatch.setattr(model.subprocess, "run", spy)
+    detail = model.load_requirement_detail(_target(store), "alpha", "p-detail", "R1")
+    assert any(
+        "project:assessment" in cmd and "--state" in cmd and "superseded" in cmd for cmd in calls
+    )
+    assert (detail.phase, detail.id, detail.text, detail.status, detail.next) == (
+        "p-detail", "R1", "the traced requirement", "failed", "design",
+    )
+    assert [(item.subject, item.choice) for item in detail.decisions] == [("pick-a", "alpha"), ("pick-b", "beta")]
+    assert [task.id for task in detail.tasks] == [traced["id"]]
+    assert len(detail.acceptances) == 1
+    assert (detail.acceptances[0].check.result, detail.acceptances[0].check.evidence_kind) == ("pass", "unit")
+    assert [(item.id, item.status, item.level, item.next, item.confidence) for item in detail.assessments] == [
+        (first["id"], "failed", "implementation", "execute", "low"),
+        (second["id"], "failed", "design", "design", "high"),
+    ]
+
+
+def test_evidence_activity_marks_upstream_and_failed(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    for ordinal, subject in enumerate(("act", "act-pass", "act-block", "act-bad", "act-ok", "act-old"), 1):
+        _phase(cli, defs, "alpha", subject, ordinal)
+        _spec(cli, defs, subject, "R1, R2, R3" if subject == "act" else "R1")
+    old_body = _body(defs, "project:assessment")
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:assessment", "--subject", "act-old-R9",
+        "--payload", json.dumps({
+            "requirement": "R9", "status": "failed", "level": "implementation", "next": "execute",
+            "confidence": "high", "phase": "act-old", "effort": "alpha", "missing": "",
+        }),
+        "--body", old_body,
+    )
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:integration-report", "--subject", "act-old-report",
+        "--payload", json.dumps({"phase": "act-old", "effort": "alpha", "result": "fail", "revision": "dirty"}),
+        "--body", _body(defs, "project:integration-report"),
+    )
+    previous = _assessment(
+        cli, defs, "act", "R1", status="failed", level="implementation", next="execute", confidence="high",
+    )
+    _supersede(cli, defs, "project:assessment", previous, {
+        "status": "failed", "level": "design", "next": "design", "confidence": "low",
+    })
+    _assessment(cli, defs, "act", "R2", status="verified", next="release", confidence="high")
+    _assessment(cli, defs, "act", "R3", status="blocked", level="plan", next="plan", confidence="high")
+    _report(cli, defs, "act", "fail", "ports disagree")
+    _report(cli, defs, "act-pass", "pass", "clean")
+    _report(cli, defs, "act-block", "blocked", "waiting")
+    _release(cli, defs, "act-bad", "failed")
+    _release(cli, defs, "act-ok", "ready")
+
+    activity = _effort(model.load_snapshot(_target(store)), "alpha").activity
+    assert all("R9" not in item.summary and item.subject != "act-old-report" for item in activity)
+    assessments = [item for item in activity if item.kind == "assessment"]
+    assert sorted(item.summary for item in assessments if item.summary.startswith("R1 ")) == [
+        "R1 failed design upstream level implementation to design",
+        "R1 failed execute",
+    ]
+    assert all(item.failed for item in assessments if item.summary.startswith("R1 "))
+    verified = next(item for item in assessments if item.summary.startswith("R2 "))
+    assert verified.summary == "R2 verified release"
+    assert verified.failed is False
+    blocked = next(item for item in assessments if item.summary.startswith("R3 "))
+    assert blocked.summary == "R3 blocked plan upstream"
+    assert blocked.failed is True
+    assert {(item.summary, item.failed) for item in activity if item.kind == "integration"} == {
+        ("act fail", True), ("act-pass pass", False), ("act-block blocked", True),
+    }
+    assert {(item.summary, item.failed) for item in activity if item.kind == "release"} == {
+        ("act-bad failed", True), ("act-ok ready", False),
+    }
+
+
+def test_evidence_needs_you_for_routes_and_integration(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    h.create_generic_record(
+        cli, defs, "project:continuity-question", subject="alpha",
+        extra_payload={"blocking": True, "scope": "hold"},
+    )
+    cases = {
+        "n-up": dict(status="failed", level="design", next="design", confidence="high"),
+        "n-block": dict(status="blocked", level="verification", next="verify", confidence="high"),
+        "n-low": dict(status="failed", level="integration", next="integrate", confidence="low"),
+        "n-exec": dict(status="failed", level="implementation", next="execute", confidence="low"),
+        "n-ver": dict(status="failed", level="verification", next="verify", confidence="low"),
+        "n-ins": dict(status="insufficient", level="specification", next="specify", confidence="low"),
+        "n-execblock": dict(status="blocked", level="implementation", next="execute", confidence="high"),
+    }
+    for ordinal, (subject, fields) in enumerate(cases.items(), 1):
+        _phase(cli, defs, "alpha", subject, ordinal)
+        _spec(cli, defs, subject)
+        _assessment(cli, defs, subject, "R1", **fields)
+    for ordinal, subject in enumerate(("n-fail", "n-blocked", "n-pass"), len(cases) + 1):
+        _phase(cli, defs, "alpha", subject, ordinal)
+        _spec(cli, defs, subject)
+    _report(cli, defs, "n-fail", "fail", "ports disagree")
+    _report(cli, defs, "n-blocked", "blocked", "stuck")
+    h.run_cli_48h_ago(
+        store, "create", "--type", "project:integration-report", "--subject", "n-pass-old",
+        "--payload", json.dumps({"phase": "n-pass", "effort": "alpha", "result": "fail", "revision": "dirty"}),
+        "--body", _body(defs, "project:integration-report", {"Conflicts": "old"}),
+    )
+    _report(cli, defs, "n-pass", "pass", "clean", subject="n-pass-new")
+
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    assert model.NEEDS_ORDER[:3] == ("blocking-question", "loop-route", "integration")
+    kinds = [item.kind for item in view.needs_you]
+    assert kinds == sorted(kinds, key=lambda kind: model.NEEDS_ORDER.index(kind))
+    assert kinds[0] == "blocking-question"
+    routes = [item for item in view.needs_you if item.kind == "loop-route"]
+    assert sorted((item.phase, item.requirement, item.status, item.next) for item in routes) == [
+        ("n-block", "R1", "blocked", "verify"),
+        ("n-low", "R1", "failed", "integrate"),
+        ("n-up", "R1", "failed", "design"),
+    ]
+    assert all(item.requirement in item.text and item.status in item.text and item.next in item.text for item in routes)
+    integrations = [item for item in view.needs_you if item.kind == "integration"]
+    assert sorted((item.phase, item.requirement, item.result) for item in integrations) == [
+        ("n-blocked", "", "blocked"),
+        ("n-fail", "", "fail"),
+    ]
+    assert all(item.phase in item.text and item.result in item.text for item in integrations)
+    assert not any(item.phase in {"n-exec", "n-ver", "n-ins", "n-execblock", "n-pass"} for item in view.needs_you)
+    by_phase = {phase.subject: phase for phase in view.phases}
+    assert (by_phase["n-fail"].evidence.integration.result, by_phase["n-fail"].evidence.integration.conflicts) == (
+        "fail", "ports disagree",
+    )
+    assert by_phase["n-pass"].evidence.integration.result == "pass"
+    assert by_phase["n-pass"].evidence.integration.conflicts == "clean"
+
+
+def test_evidence_release_ready_sets_flags_and_leaves_finished(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _goal(cli, defs, "beta")
+    _goal(cli, defs, "gamma")
+    _phase(cli, defs, "alpha", "rel-open", 1, "in_progress")
+    _spec(cli, defs, "rel-open")
+    _task(cli, defs, "rel-open-task", "rel-open")
+    _release(cli, defs, "rel-open", "ready")
+    _phase(cli, defs, "beta", "rel-done", 1, "in_progress", "done")
+    _spec(cli, defs, "rel-done", effort="beta")
+    _task(cli, defs, "rel-done-task", "rel-done", done=True, effort="beta")
+    _release(cli, defs, "rel-done", "ready", effort="beta")
+    _phase(cli, defs, "gamma", "rel-failed", 1, "in_progress")
+    _spec(cli, defs, "rel-failed", effort="gamma")
+    _release(cli, defs, "rel-failed", "failed", effort="gamma")
+
+    snapshot = model.load_snapshot(_target(store))
+    alpha = _effort(snapshot, "alpha")
+    beta = _effort(snapshot, "beta")
+    gamma = _effort(snapshot, "gamma")
+    assert alpha.release_ready is True
+    assert alpha.finished is False
+    assert alpha.phases[0].evidence.release_ready is True
+    assert beta.release_ready is True
+    assert beta.finished is True
+    assert gamma.release_ready is False
+    assert gamma.phases[0].evidence is not None
+    assert gamma.phases[0].evidence.release_ready is False
+    live = model.EffortView(
+        "e", "", phases=[_phase_row("in_progress")], tasks=[_task_row("ready")], release_ready=True,
+    )
+    done = model.EffortView(
+        "e", "", phases=[_phase_row("done")], tasks=[_task_row("done")], release_ready=True,
+    )
+    assert live.finished is False
+    assert done.finished is True
+
+
+def test_evidence_simple_phase_adds_no_items(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-simple", 1, "in_progress")
+    _task(cli, defs, "simple-task", "p-simple")
+    _assessment(cli, defs, "p-simple", "R1", status="failed", level="design", next="design", confidence="low")
+    _report(cli, defs, "p-simple", "fail", "clash")
+    _release(cli, defs, "p-simple", "ready")
+
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    assert view.phases[0].evidence is None
+    assert view.release_ready is False
+    assert view.finished is False
+    assert view.needs_you == []
+    assert view.activity == []
+    assert model.load_phase_detail(_target(store), "alpha", "p-simple").evidence is None
+
+
+def test_evidence_legacy_store_loads_when_types_are_rejected(monkeypatch):
+    import shutil
+
+    design = json.loads(CONTRACT_PATH.read_text())
+    drop = {"specification", "design", "assessment", "integration-report", "release"}
+    design["records"] = [record for record in design["records"] if record["name"] not in drop]
+    root = make_git_repo()
+    try:
+        artifacts = root / ".artifacts"
+        artifacts.mkdir()
+        (artifacts / "project-design.json").write_text(json.dumps(design))
+        assert run_cli("resolve", root=root).returncode == 0
+        assert run_cli("init", root=root).returncode == 0
+        rejected = run_cli("list", "--type", "project:assessment", root=root)
+        assert rejected.returncode != 0
+        defs = h.record_defs_by_id(json.loads((artifacts / "resolved-contract.json").read_text()))
+
+        def cli(*args):
+            return run_cli(*args, root=root)
+
+        _goal(cli, defs, "alpha")
+        _phase(cli, defs, "alpha", "legacy-phase", 1)
+        view = _effort(model.load_snapshot(_target(root)), "alpha")
+        assert view.phases[0].evidence is None
+        assert view.release_ready is False
+        assert view.needs_you == []
+
+        real = model._run
+
+        def boom(target, *args):
+            if "project:work-item" in args:
+                raise model.ModelError("work-item failed")
+            return real(target, *args)
+
+        monkeypatch.setattr(model, "_run", boom)
+        with pytest.raises(model.ModelError):
+            model.load_snapshot(_target(root))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_evidence_stage_returns_each_rule(store, cli, defs):
+    _goal(cli, defs, "alpha")
+
+    def open_phase(subject: str, ordinal: int) -> None:
+        _phase(cli, defs, "alpha", subject, ordinal)
+        _spec(cli, defs, subject, "R1, R2" if subject in {"s-verified", "s-earliest", "s-partial"} else "R1")
+
+    open_phase("s-ready", 1)
+    _assessment(cli, defs, "s-ready", "R1", status="failed", next="execute", level="implementation")
+    _release(cli, defs, "s-ready", "ready")
+
+    for ordinal, (subject, nxt, level) in enumerate((
+        ("s-specify", "specify", "specification"),
+        ("s-design", "design", "design"),
+        ("s-plan", "plan", "plan"),
+        ("s-execute", "execute", "implementation"),
+        ("s-nextint", "integrate", "integration"),
+        ("s-nextverify", "verify", "verification"),
+        ("s-nextrelease", "release", "unknown"),
+    ), 2):
+        open_phase(subject, ordinal)
+        _assessment(cli, defs, subject, "R1", status="failed", next=nxt, level=level, confidence="high")
+
+    open_phase("s-verified", 9)
+    _assessment(cli, defs, "s-verified", "R1", status="verified", next="release", confidence="high")
+    _assessment(cli, defs, "s-verified", "R2", status="verified", next="release", confidence="high")
+    _release(cli, defs, "s-verified", "failed")
+
+    open_phase("s-earliest", 10)
+    _assessment(cli, defs, "s-earliest", "R1", status="failed", next="verify", level="verification")
+    _assessment(cli, defs, "s-earliest", "R2", status="failed", next="plan", level="plan")
+
+    open_phase("s-partial", 11)
+    _assessment(cli, defs, "s-partial", "R1", status="verified", next="release", confidence="high")
+
+    open_phase("s-nodesign", 12)
+
+    open_phase("s-notasks", 13)
+    _design(cli, defs, "s-notasks")
+
+    open_phase("s-opentask", 14)
+    _design(cli, defs, "s-opentask")
+    _task(cli, defs, "s-opentask-task", "s-opentask")
+
+    open_phase("s-integrate", 15)
+    _design(cli, defs, "s-integrate")
+    _task(cli, defs, "s-integrate-a", "s-integrate", done=True)
+    _task(cli, defs, "s-integrate-b", "s-integrate", done=True)
+    _report(cli, defs, "s-integrate", "fail", "drift")
+    _accept(cli, defs, "s-integrate-acc", "s-integrate", "R1")
+
+    open_phase("s-verify", 16)
+    _design(cli, defs, "s-verify")
+    _task(cli, defs, "s-verify-task", "s-verify", done=True)
+    _accept(cli, defs, "s-verify-acc", "s-verify", "R1")
+
+    open_phase("s-assess", 17)
+    _design(cli, defs, "s-assess")
+    _task(cli, defs, "s-assess-task", "s-assess", done=True)
+    acceptance = _accept(cli, defs, "s-assess-acc", "s-assess", "R1")
+    _check(cli, defs, "s-assess-check", acceptance["id"], "pass", "R1", "unit")
+
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    integrate = [task for task in view.tasks if task.phase == "s-integrate"]
+    assert len(integrate) == 2 and len({task.wave for task in integrate}) == 1
+    assert {phase.subject: phase.evidence.stage for phase in view.phases} == {
+        "s-ready": "release",
+        "s-specify": "specify",
+        "s-design": "design",
+        "s-plan": "plan",
+        "s-execute": "execute",
+        "s-nextint": "integrate",
+        "s-nextverify": "verify",
+        "s-nextrelease": "release",
+        "s-verified": "release",
+        "s-earliest": "plan",
+        "s-partial": "design",
+        "s-nodesign": "design",
+        "s-notasks": "plan",
+        "s-opentask": "execute",
+        "s-integrate": "integrate",
+        "s-verify": "verify",
+        "s-assess": "assess",
+    }
+    flags = {phase.subject: phase.evidence.release_ready for phase in view.phases}
+    assert flags["s-ready"] is True
+    assert flags["s-verified"] is False
+    assert flags["s-nextrelease"] is False
+    assert view.release_ready is True

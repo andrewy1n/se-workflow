@@ -261,7 +261,36 @@ task's status shows its running time, counted from its latest
 assignment (for example `running 2h`). A waiting task's title ends with
 a muted `waits on <subjects>` note that lists its unfinished
 dependencies. In recent activity, a failed check-run or execution
-report shows `✗` and is red.
+report shows `✗` and is red. Activity also lists assessments,
+integration reports, and releases. A failed or blocked one is red.
+
+A phase with a specification is structured. Its header shows
+`R n/m verified`, where m is the number of requirement ids and n is
+how many have a latest assessment of verified. The stepper appends
+only the current stage word, for example `· execute`. Phase detail
+shows the full stage strip — specify, design, plan, execute,
+integrate, verify, assess, release — with the current stage marked,
+the specification weight and non-goals, the design decisions, and the
+latest integration result with its conflicts. Each requirement is
+listed with its id, status, next stage, and traced task count. A
+requirement with no assessment shows unassessed, and its latest
+check-run result is dimmed. A latest release whose state is ready
+adds a Release ready badge on the effort tab and on the phase header.
+The badge does not mark the effort finished.
+
+Needs you also lists a route when a requirement's latest assessment
+routes to specify, design, or plan, is blocked, or has low confidence,
+and an integrate item when the phase's latest integration report is
+fail or blocked. Enter on a route opens the requirement detail. Enter
+on an integrate item opens the Needs you detail.
+
+The requirement detail shows the requirement text from the
+specification, the decisions of the tasks traced to it, those tasks
+and their acceptances, the latest check-run for each acceptance with
+its evidence kind, and every assessment oldest first. Open it with
+Enter on a requirement in the phase detail, Enter on a route in Needs
+you, or Enter on a requirement link in the task detail. Enter on a
+traced task opens that task's detail. Esc returns one screen at a time.
 
 It needs `uv`. The first run downloads `textual`.
 
@@ -269,15 +298,16 @@ It needs `uv`. The first run downloads `textual`.
 |---|---|
 | `tab` / `shift+tab` | Switch effort |
 | `enter` / click | Open the task detail, or expand or collapse a phase header or the earlier-phases row |
-| `p` | Open the phase detail (body, decisions, constraints, tasks) for the selected row |
+| `p` | Open the phase detail (stage strip, specification, requirements, body, decisions, constraints, tasks) for the selected row |
 | `n` | Focus the Needs you list; arrows or `j` / `k` move, `esc` returns to the task table |
-| `enter` on a Needs you item | Open the task detail when the item has a task, else the Needs you detail (kind, record type, full text, body) |
+| `enter` on a Needs you item | Open the requirement detail for a route, the task detail when the item has a task, else the Needs you detail (kind, record type, full text, body) |
+| `enter` on a phase-detail requirement | Open the requirement detail |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
 | `1`-`6` / `left` / `right` / click | Pick a status tab; the filter applies on top |
 | `esc` | Clear the filter, or go back one screen |
 | `c` | Copy the selected task's slug, or the subject of the selected Needs you item |
 | `g` | In the detail, show the commit of the task's latest revision |
-| `l` | In the task detail, focus the links (depends on, blocks, phase); arrows or `j` / `k` move, `enter` opens the task or phase detail |
+| `l` | In the task detail, focus the links (depends on, blocks, phase, requirements, decisions); arrows or `j` / `k` move, `enter` opens the task, phase, or requirement detail |
 | `enter` on a phase detail task | Open the task detail; the phase detail opens with its task list focused, arrows or `j` / `k` move |
 | `r` | Refresh now |
 | `q` | Quit |

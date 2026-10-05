@@ -154,6 +154,23 @@ def task_cells(
     return [values[name] for name in columns]
 
 
+def phase_label(phase: model.PhaseRow, title_width: int) -> str:
+    label = f"{phase.title or phase.subject} {phase.done}/{phase.total}"
+    if phase.awaiting_signoff:
+        label += " · awaiting sign-off"
+    evidence = phase.evidence
+    if evidence is None:
+        return clip(label, title_width)
+    verified = sum(row.status == "verified" for row in evidence.requirements)
+    suffix = f" · R {verified}/{len(evidence.requirements)} verified"
+    if evidence.release_ready:
+        suffix += " · Release ready"
+    if len(suffix) >= title_width:
+        return suffix[-title_width:]
+    shown = clip(label, title_width - len(suffix)) + suffix
+    return shown if len(shown) <= title_width else suffix[-title_width:]
+
+
 def section_cells(row: SectionRow, columns: list[str], title_width: int, colors: dict[str, str]) -> list[Text | str]:
     marker = "▾" if row.expanded else "▸"
     if row.phase is None:
@@ -165,15 +182,12 @@ def section_cells(row: SectionRow, columns: list[str], title_width: int, colors:
     else:
         phase = row.phase
         style = colors["warning"] if phase.awaiting_signoff else colors["muted"] if phase.state != "in_progress" else colors["primary"]
-        label = f"{phase.title or phase.subject} {phase.done}/{phase.total}"
-        if phase.awaiting_signoff:
-            label += " · awaiting sign-off"
         status = Text(marker, style=colors["muted"]) if phase.state == "done" else Text(
             f"{marker} {PHASE_GLYPH[phase.state]}", style=style,
         )
         values = {
             "status": status,
-            "task": Text(clip(label, title_width), style=style),
+            "task": Text(phase_label(phase, title_width), style=style),
         }
     return [values.get(name, "") for name in columns]
 

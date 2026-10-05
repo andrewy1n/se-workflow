@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import textwrap
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,11 +39,13 @@ from textual.widgets.option_list import Option
 ACTIVITY_LINES = 10
 RESULT_GLYPH = {"pass": "✓", "fail": "✗"}
 NEEDS_LABEL = {
-    "blocking-question": "blocking", "needs-human": "needs you",
-    "unsigned-check": "unsigned", "open-question": "question",
+    "blocking-question": "blocking", "loop-route": "route", "integration": "integrate",
+    "needs-human": "needs you", "unsigned-check": "unsigned", "open-question": "question",
 }
+STAGE_NAMES = ("specify", "design", "plan", "execute", "integrate", "verify", "assess", "release")
 NEEDS_TEXT_TITLE = {
     "blocking-question": "Question", "open-question": "Question", "needs-human": "Claim", "unsigned-check": "Check",
+    "loop-route": "Assessment", "integration": "Report",
 }
 
 
@@ -56,7 +59,7 @@ def current_phase(view: model.EffortView) -> tuple[int, model.PhaseRow] | None:
     return None
 
 
-def _stepper_segments(view: model.EffortView, colors: dict[str, str], expanded: bool = False) -> list[Text]:
+def _stepper_segments(view: model.EffortView, colors: dict[str, str], expanded: bool = False, width: int = 100) -> list[Text]:
     done = [phase for phase in view.phases if phase.state == "done"]
     current = next((phase for phase in view.phases if phase.state == "in_progress"), None)
     nxt = next((phase for phase in view.phases if phase.state == "planned"), None)
@@ -68,7 +71,17 @@ def _stepper_segments(view: model.EffortView, colors: dict[str, str], expanded: 
         segments.append(Text(f"{len(done)} done", style=muted))
     if current is not None:
         title = current.title or current.subject
-        segments.append(Text(f"● {title} {current.done}/{current.total}", style=colors["primary"]))
+        head = f"● {title} {current.done}/{current.total}"
+        if current.evidence is None:
+            segments.append(Text(head, style=colors["primary"]))
+        else:
+            stage = f" · {current.evidence.stage}"
+            segment = Text(style=colors["primary"])
+            head_text = Text(head, style=colors["primary"])
+            head_text.truncate(max(width - len(stage), 3), overflow="ellipsis")
+            segment.append_text(head_text)
+            segment.append(stage)
+            segments.append(segment)
     if nxt is not None:
         title = nxt.title or nxt.subject
         segments.append(Text(f"○ {title}", style=muted))
@@ -104,14 +117,27 @@ def progress_label(view: model.EffortView) -> str:
     return f"phase {found[0]}/{len(view.phases)} · {done} of {total} tasks"
 
 
+
+def _needs_detail(item: model.NeedsYouItem) -> str | None:
+    if item.kind == "loop-route":
+        return " ".join(part for part in (item.requirement, item.status, item.next) if part)
+    if item.kind == "integration":
+        return " ".join(part for part in (item.phase, item.result) if part)
+    return None
+
+
 def needs_lines(view: model.EffortView, colors: dict[str, str], width: int = 100) -> list[Text]:
     lines = []
     for item in view.needs_you:
         color = colors["error"] if item.kind == "blocking-question" else colors["warning"]
         line = Text(no_wrap=True, overflow="ellipsis")
         line.append(f"{NEEDS_LABEL[item.kind]:<9}", style=color)
-        line.append(f" {clip(item.text, max(width - 12 - len(item.subject) - 2, 10))}")
-        line.append(f"  {clip(item.subject, max(width - 12, 10))}", style=colors["muted"])
+        detail = _needs_detail(item)
+        if detail is None:
+            line.append(f" {clip(item.text, max(width - 12 - len(item.subject) - 2, 10))}")
+            line.append(f"  {clip(item.subject, max(width - 12, 10))}", style=colors["muted"])
+        else:
+            line.append(" " + clip(detail, max(width - 10, 10)))
         lines.append(line)
     return lines
 
@@ -140,7 +166,51 @@ def header_text(target: artifact_store.Target, stamp: datetime | None, colors: d
 
 
 def tab_label(view: model.EffortView) -> str:
-    return f"⚠ {view.effort}" if view.needs_you else view.effort
+    label = f"⚠ {view.effort}" if view.needs_you else view.effort
+    if view.release_ready:
+        label += " · Release ready"
+    return label
+
+
+def stage_strip(stage: str, colors: dict[str, str], width: int) -> Text:
+    width = max(width, 8)
+    text = Text()
+    used = 0
+    for name in STAGE_NAMES:
+        style = "bold " + colors["primary"] if name == stage else colors["muted"]
+        gap = 3 if used else 0
+        if used and used + gap + len(name) > width:
+            text.append("\n")
+            used = 0
+            gap = 0
+        if gap:
+            text.append(" · ", style=colors["muted"])
+            used += 3
+        text.append(name, style=style)
+        used += len(name)
+    return text
+
+
+def wrap_block(text: str, width: int) -> str:
+    width = max(width, 8)
+    return "\n".join(
+        "\n".join(textwrap.wrap(paragraph, width) or [""])
+        for paragraph in text.splitlines() or [""]
+    )
+
+
+def requirement_line(row: model.RequirementRow, width: int) -> Text:
+    parts = [row.id, row.status]
+    if row.next:
+        parts.append(row.next)
+    parts.append(str(row.tasks))
+    text = Text("  ".join(parts), no_wrap=True, overflow="ellipsis")
+    if row.status == "unassessed" and row.latest_check is not None:
+        text.append("  ")
+        text.append(row.latest_check.result, style="dim")
+    text.truncate(max(width, 8), overflow="ellipsis")
+    return text
+
 
 
 def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console: Console) -> None:
@@ -436,6 +506,18 @@ class PhaseTaskList(OptionList):
         scroll.scroll_to_region(Region(0, top, 1, 1), animate=False, immediate=True)
 
 
+class RequirementList(OptionList):
+    def __init__(self, id: str) -> None:
+        super().__init__(id=id)
+        self.rows: list[model.RequirementRow] = []
+
+    def fill(self, rows, width: int) -> None:
+        self.rows = list(rows)
+        self.clear_options()
+        for row in self.rows:
+            self.add_option(Option(requirement_line(row, width), id=row.id))
+
+
 class PhaseDetailScreen(Screen[None]):
     CSS = """
     #phase-bar { height: 1; padding: 0 1; background: $panel; }
@@ -451,6 +533,9 @@ class PhaseDetailScreen(Screen[None]):
     #phase-body Markdown > MarkdownBlock:first-child { margin-top: 0; }
     #phase-tasks { height: auto; max-height: 1000; background: transparent; }
     #phase-tasks:focus { border: round $accent; }
+    #phase-stage { height: auto; margin-top: 1; }
+    #phase-requirements { height: auto; max-height: 1000; background: transparent; }
+    #phase-requirements:focus { border: round $accent; }
     """
     AUTO_FOCUS = "#phase"
     BINDINGS = [
@@ -477,6 +562,19 @@ class PhaseDetailScreen(Screen[None]):
             with Vertical(id="phase-content"):
                 yield Static(id="phase-title")
                 yield Static(id="phase-chips")
+                stage = Static(id="phase-stage")
+                stage.display = False
+                yield stage
+                for name, label in (("spec", "Specification"), ("design", "Design"), ("integration", "Integration")):
+                    panel = Static(id=f"phase-{name}", classes="phase-panel")
+                    panel.border_title = label
+                    panel.display = False
+                    yield panel
+                requirements = RequirementList(id="phase-requirements")
+                requirements.add_class("phase-panel")
+                requirements.border_title = "Requirements"
+                requirements.display = False
+                yield requirements
                 for name, label in (("body", "Phase"), ("decisions", "Decisions"), ("constraints", "Constraints"), ("tasks", "Tasks")):
                     if name == "body":
                         panel = Vertical(Markdown(), id="phase-body", classes="phase-panel")
@@ -532,6 +630,7 @@ class PhaseDetailScreen(Screen[None]):
         self.query_one("#phase-bar", Static).update(bar)
         self.query_one("#phase-title", Static).update(Text(detail.title or detail.subject, style="bold"))
         self.query_one("#phase-chips", Static).update(phase_chips(detail, colors))
+        self._show_evidence(detail, colors)
         body = self.query_one("#phase-body")
         body.display = bool(detail.body.strip())
         await self.query_one("#phase-body Markdown", Markdown).update(detail.body.strip())
@@ -546,12 +645,62 @@ class PhaseDetailScreen(Screen[None]):
             tasks.focus(scroll_visible=False)
         self.loaded = True
 
+
+    def _evidence_width(self) -> int:
+        pane = self.query_one("#phase")
+        width = pane.scrollable_content_region.width
+        if width <= 0:
+            width = max(self.size.width - 4, 20)
+        return width
+
+    def _show_evidence(self, detail: model.PhaseDetail, colors: dict[str, str]) -> None:
+        evidence = detail.evidence
+        width = self._evidence_width()
+        inner = max(width - 4, 8)
+        stage = self.query_one("#phase-stage", Static)
+        spec = self.query_one("#phase-spec", Static)
+        design = self.query_one("#phase-design", Static)
+        integration = self.query_one("#phase-integration", Static)
+        requirements = self.query_one("#phase-requirements", RequirementList)
+        stage.display = evidence is not None
+        spec.display = evidence is not None
+        design.display = evidence is not None and bool(evidence.decisions)
+        integration.display = evidence is not None and evidence.integration is not None
+        requirements.display = evidence is not None and bool(evidence.requirements)
+        if evidence is None:
+            return
+        stage.update(stage_strip(evidence.stage, colors, width))
+        spec_text = evidence.weight
+        if evidence.non_goals.strip():
+            spec_text = f"{spec_text}\n{evidence.non_goals.strip()}"
+        spec.update(wrap_block(spec_text, inner))
+        if design.display:
+            design.update(wrap_block(
+                "\n".join(f"{item.subject}: {item.choice}" for item in evidence.decisions), inner,
+            ))
+        if integration.display and evidence.integration is not None:
+            report = evidence.integration
+            integration.update(wrap_block(f"{report.result}\nConflicts\n{report.conflicts}", inner))
+        if requirements.display:
+            requirements.fill(evidence.requirements, inner)
+
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        tasks = event.option_list
-        if not isinstance(tasks, PhaseTaskList) or event.option_index >= len(tasks.tasks):
+        selected = event.option_list
+        if isinstance(selected, RequirementList):
+            if event.option_index >= len(selected.rows):
+                return
+            event.stop()
+            from dashboard.requirement_detail import RequirementDetailScreen
+
+            row = selected.rows[event.option_index]
+            self.app.push_screen(
+                RequirementDetailScreen(self.target, self.effort, self.phase_subject, row.id)
+            )
+            return
+        if not isinstance(selected, PhaseTaskList) or event.option_index >= len(selected.tasks):
             return
         event.stop()
-        self.app.push_screen(TaskDetailScreen(self.target, tasks.tasks[event.option_index].id))
+        self.app.push_screen(TaskDetailScreen(self.target, selected.tasks[event.option_index].id))
 
 
 class NeedsYouDetailScreen(Screen[None]):
@@ -703,7 +852,7 @@ class DashboardApp(App[None]):
 
     def focus_tasks(self) -> None:
         pane = self.active_pane()
-        if pane is None or isinstance(self.screen, DETAIL_SCREENS):
+        if pane is None or isinstance(self.screen, DETAIL_SCREENS) or not pane.query("#tasks"):
             return
         table = pane.query_one("#tasks", DataTable)
         if table.display:
@@ -735,6 +884,14 @@ class DashboardApp(App[None]):
         if not isinstance(needs, NeedsList) or event.option_index >= len(needs.items):
             return
         item = needs.items[event.option_index]
+        if item.kind == "loop-route" and item.phase and item.requirement:
+            from dashboard.requirement_detail import RequirementDetailScreen
+
+            event.stop()
+            self.push_screen(RequirementDetailScreen(
+                self.target, needs.query_ancestor(EffortPane).effort, item.phase, item.requirement,
+            ))
+            return
         if item.task_id:
             self.open_task(item.task_id)
         elif not isinstance(self.screen, DETAIL_SCREENS):
@@ -968,6 +1125,7 @@ class DashboardApp(App[None]):
                 self.panes[view.effort] = pane
                 await tabs.add_pane(TabPane(tab_label(view), pane, id=f"effort-{slug(view.effort)}"))
         if kept[moved:] and active in [pane.id for pane in tabs.query(TabPane)]:
+            self.set_focus(None)
             tabs.active = active
         self.query_one("#empty", Static).display = not names
         tabs.display = bool(names)
