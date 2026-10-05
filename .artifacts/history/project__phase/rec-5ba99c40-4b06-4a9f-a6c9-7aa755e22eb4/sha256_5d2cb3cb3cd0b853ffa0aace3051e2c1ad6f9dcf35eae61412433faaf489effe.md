@@ -1,0 +1,64 @@
+---
+{
+  "base_kind": "phase",
+  "id": "rec-5ba99c40-4b06-4a9f-a6c9-7aa755e22eb4",
+  "identity": "unknown",
+  "lifecycle_state": "in_progress",
+  "payload": {
+    "effort": "dashboard",
+    "ordinal": 21,
+    "title": "Show size and time estimates on the task table"
+  },
+  "record_type": "project:phase",
+  "recorded_at": "2026-10-05T06:20:42+00:00",
+  "relationships": {},
+  "revision": "sha256:5d2cb3cb3cd0b853ffa0aace3051e2c1ad6f9dcf35eae61412433faaf489effe",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "estimate-view"
+}
+---
+
+## Problem
+
+`run-facts` stores `size` and `estimate_minutes` on each work-item and defines how those minutes add up, and it does not change the dashboard. The sitting line and the executor are already stored. None of them appear on the task table, so a scan still does not show how big a task is, how long its agent should take, or how long the phase should take.
+
+## Approach
+
+Decisions: estimate-titles. Also follows task-agent-estimate and glance-run-facts. Run as structured work: specification `estimate-view`, design `estimate-view`.
+
+The phase header, after the done/total count, shows the sitting phrase when the body has one, then the derived elapsed minutes. Each task title shows its size, its own minutes, and its executor. Missing size or missing minutes are left out. A missing executor is shown as `subagent`. When some counted tasks have no `estimate_minutes`, the header keeps the partial total and shows how many are unset. Clipping shortens the title and keeps the suffixes. Task detail repeats size, minutes, and executor as chips.
+
+The header minute figure is the wave rule from task-agent-estimate. It is not the sum of every task.
+
+This phase edits the dashboard and does not change `contract/project-design.json` or `~/adaptive-artifacts`. It starts after `evidence-view` is on main, because both edit `dashboard/model.py`, `dashboard/tasks.py`, and `dashboard/task_detail.py`.
+
+Size: more than one sitting. Human stops: plan review. No push. Do not dispatch until `evidence-view` is on main.
+
+Waves:
+
+1. `estimate-model` (subagent) owns `dashboard/model.py` and `tests/test_dashboard_model.py`. Later tasks read the model and do not edit it.
+2. `estimate-table` (subagent) owns `dashboard/tasks.py`, `tests/test_dashboard_tasks.py`, and the task-cell assertions in `tests/test_dashboard_app.py`.
+3. `estimate-chips` (subagent) owns `dashboard/task_detail.py`, `tests/test_dashboard_estimate.py`, and the existing chip assertions in `tests/test_dashboard_app.py`. It waits until wave 2 has finished with that test file.
+4. `verify-estimate-view` (subagent) runs the phase checks and the full suite. It edits no dashboard module.
+
+Collision notes: no wave has two writers. Waves 2 and 3 both edit `tests/test_dashboard_app.py`, so wave 3 waits. `evidence-view` shares `dashboard/model.py`, `dashboard/tasks.py`, and `dashboard/task_detail.py` with this phase.
+
+## Landing
+
+- Branch: `phase/estimate-view`
+- Worktree: `/home/andrewyin/se-workflow--estimate-view`
+- Base: `main`
+- Close: commit code on the phase branch, merge it into `main`, then commit the store on the primary checkout.
+- Human stops: none. No push.
+
+## Exit criteria
+
+1. A 60-column pilot shows `one sitting` or `more than one` and the derived elapsed minutes on the phase header, and the full suite passes. `uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_sitting && uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux`
+2. Each task title shows its size, minutes, and executor. A missing size is omitted, `0` shows as `0m`, and a missing executor shows as `subagent`. `uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_title_suffix`
+3. Clipping shortens the title and keeps the sitting phrase, the elapsed minutes, the unset count, and the task suffix. `uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_clip`
+4. A phase where some counted tasks have no `estimate_minutes` shows the partial total and the unset count. A phase where none have an estimate shows no minute suffix. `uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_app.py -q -k 'estimate_view_unset_count or estimate_view_header_partial'`
+5. The header minute figure matches the wave rule, including a parallel subagent wave that contributes its longest task. `uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_wave_rule`
+6. Task detail at 60 columns shows chips for size, minutes, and executor. `uv run --with textual --with pytest python -m pytest tests/test_dashboard_estimate.py -q -k estimate_view_chips`
+7. The phase diff does not change `contract/project-design.json`, and a task with neither field still shows executor `subagent`. `uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_blank_executor && test -z "$(git diff --name-only main -- contract/project-design.json)"`

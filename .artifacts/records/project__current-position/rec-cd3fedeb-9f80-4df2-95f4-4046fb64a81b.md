@@ -4,7 +4,7 @@
   "epistemic_status": "asserted",
   "id": "rec-cd3fedeb-9f80-4df2-95f4-4046fb64a81b",
   "identity": "unknown",
-  "lifecycle_state": "active",
+  "lifecycle_state": "superseded",
   "payload": {
     "effort": "dashboard",
     "phase": "estimate-view",
@@ -12,13 +12,13 @@
     "scope": "phase"
   },
   "record_type": "project:current-position",
-  "recorded_at": "2026-10-05T06:24:21+00:00",
+  "recorded_at": "2026-10-05T06:52:37+00:00",
   "relationships": {
     "supersedes": [
       "rec-05c2743c-e91d-4c3d-8416-1f65ee82b2d6"
     ]
   },
-  "revision": "sha256:9e65eeee00acef4b02473f15ee4b0da806e3641663a32c7de85a3648b8983768",
+  "revision": "sha256:fed45a756826e28e997a89dae0ca7b758fe755d8e9511c6b1bde77b9c16ac61c",
   "stewardship": {
     "steward": "agent"
   },

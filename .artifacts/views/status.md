@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:de3592ea809986d4be1aa5eb3bafa66f48cd342dd2369461b47439006d34f7cd
+> Store state: sha256:43edcff7bc16cea6b65769b763b0ebae7e89867dd52f79a1effd1a329c61ea91
 
 ## dashboard-view
 
@@ -236,10 +236,10 @@
 ## estimate-view
 
 ### Work
-- **estimate-chips**: Show size, minutes, and executor as task detail chips; estimate-view; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-a5afd59d-ced8-4b93-a273-77482086696d](.artifacts/records/project__work-item/rec-a5afd59d-ced8-4b93-a273-77482086696d.md))_
-- **estimate-model**: Load size and estimate minutes into the dashboard model; estimate-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
-- **estimate-table**: Show estimates on the phase header and task title; estimate-view; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
-- **verify-estimate-view**: Verify size and time estimates on the task table; estimate-view; deliver; dashboard; state: planned; ready: False; wave: 4; criteria: 0 pass / 0 fail _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
+- **estimate-chips**: Show size, minutes, and executor as task detail chips; estimate-view; deliver; dashboard; state: done; ready: True; wave: 3; criteria: 1 pass / 1 fail _(id: [rec-a5afd59d-ced8-4b93-a273-77482086696d](.artifacts/records/project__work-item/rec-a5afd59d-ced8-4b93-a273-77482086696d.md))_
+- **estimate-model**: Load size and estimate minutes into the dashboard model; estimate-view; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 5 pass / 5 fail _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
+- **estimate-table**: Show estimates on the phase header and task title; estimate-view; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 5 pass / 5 fail _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
+- **verify-estimate-view**: Verify size and time estimates on the task table; estimate-view; deliver; dashboard; state: done; ready: True; wave: 4; criteria: 7 pass / 1 fail _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
 
 ## 
 

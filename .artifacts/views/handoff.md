@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:e6cb8fbfffd6780d21f5324aa7c9bbbd89ab61158ce3d918f6b7cb2b2ff1d349
+> Store state: sha256:ed40a799af5a4af0d9da17f4fe4dc714d8b24d7d9ad02210bbdd074a2967423e
 
 ## dashboard
 
@@ -9,8 +9,7 @@
 - **dashboard**: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; effort; deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
 ### Position
-- **dashboard**: evidence-view done; next up: estimate-view; effort _(id: [rec-ae6bb7bd-3923-4263-a617-3426d627c06a](.artifacts/records/project__current-position/rec-ae6bb7bd-3923-4263-a617-3426d627c06a.md))_
-- **estimate-view**: Plan approved. Dispatch waits until evidence-view is on main.; phase _(id: [rec-cd3fedeb-9f80-4df2-95f4-4046fb64a81b](.artifacts/records/project__current-position/rec-cd3fedeb-9f80-4df2-95f4-4046fb64a81b.md))_
+- **dashboard**: estimate-view done; next up: phase-selector; effort _(id: [rec-946de64d-9d2d-40c1-90c2-94c2569368ed](.artifacts/records/project__current-position/rec-946de64d-9d2d-40c1-90c2-94c2569368ed.md))_
 
 ## session-analysis
 

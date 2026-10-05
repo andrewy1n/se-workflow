@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:9f873d4f812d31dca0c6e40f253166ef533d92466cfcc867e1611ba99d5cc1ea
+> Store state: sha256:76f69cc53f16ff93a700227c403998ed2963661d3e604a02a9e4558227bcf7ed
 
 ## activity-failures
 
@@ -112,7 +112,7 @@
 ## dashboard
 
 ### Position
-- **dashboard**: evidence-view done; next up: estimate-view; effort _(id: [rec-ae6bb7bd-3923-4263-a617-3426d627c06a](.artifacts/records/project__current-position/rec-ae6bb7bd-3923-4263-a617-3426d627c06a.md))_
+- **dashboard**: estimate-view done; next up: phase-selector; effort _(id: [rec-946de64d-9d2d-40c1-90c2-94c2569368ed](.artifacts/records/project__current-position/rec-946de64d-9d2d-40c1-90c2-94c2569368ed.md))_
 
 ## dashboard-app
 
@@ -185,6 +185,11 @@
 ### Acceptance
 - **dashboard-status-segment**: Against a seeded store the segment prints the correct running, ready and needs-you counts within 1 s; with no store it prints nothing and exits 0; tdd; dashboard; cd ~/se-workflow && python3 -m pytest tests -q _(id: [rec-e7e94ca1-9742-44b2-9fe1-7a014b58ef3d](.artifacts/records/project__acceptance/rec-e7e94ca1-9742-44b2-9fe1-7a014b58ef3d.md))_
 
+## dashboard-ux-plan-before-execute
+
+### Constraint
+- **dashboard-ux-plan-before-execute**: Do not execute any of the five dashboard UX phases until all five have been discussed and planned; phase-selector,human-gates,spec-view,evidence-matrix,journal-view; dashboard _(id: [rec-9c441f5e-4313-4d89-9ec2-1d2df485e1ea](.artifacts/records/project__constraint/rec-9c441f5e-4313-4d89-9ec2-1d2df485e1ea.md))_
+
 ## detail-redraw-race
 
 ### Acceptance
@@ -215,9 +220,6 @@
 
 ## estimate-chips
 
-### Work
-- **estimate-chips**: Show size, minutes, and executor as task detail chips; estimate-view; deliver; dashboard _(id: [rec-a5afd59d-ced8-4b93-a273-77482086696d](.artifacts/records/project__work-item/rec-a5afd59d-ced8-4b93-a273-77482086696d.md))_
-
 ### Acceptance
 - **estimate-chips**: test_estimate_view_chips fails before the change and passes after: at 60 columns the opened task shows chips for size when set, minutes when set including 0m, and executor inline or executor subagent.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_estimate.py -q -k estimate_view_chips _(id: [rec-9151bd53-c190-48d4-a538-e887e6f192bd](.artifacts/records/project__acceptance/rec-9151bd53-c190-48d4-a538-e887e6f192bd.md))_
 
@@ -232,9 +234,6 @@
 - **estimate-contract-minutes**: estimate_minutes is an optional work-item field and is not an enum, and the work-item has no minutes or hours field.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_contract.py -q -k minutes _(id: [rec-5a0f9f85-407d-497d-b412-1e314d15e91d](.artifacts/records/project__acceptance/rec-5a0f9f85-407d-497d-b412-1e314d15e91d.md))_
 
 ## estimate-model
-
-### Work
-- **estimate-model**: Load size and estimate minutes into the dashboard model; estimate-view; deliver; dashboard _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
 
 ### Acceptance
 - **estimate-model**: test_estimate_view_sitting_phrase fails before the change and passes after: Size: more than one sitting returns more than one, Size: one sitting returns one sitting, and a body with no Size line returns empty.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_sitting_phrase _(id: [rec-7eabd5f4-5519-4834-b2f5-2330ed0ff75e](.artifacts/records/project__acceptance/rec-7eabd5f4-5519-4834-b2f5-2330ed0ff75e.md))_
@@ -276,9 +275,6 @@
 
 ## estimate-table
 
-### Work
-- **estimate-table**: Show estimates on the phase header and task title; estimate-view; deliver; dashboard _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
-
 ### Acceptance
 - **estimate-table**: test_estimate_view_header_sitting fails before the change and passes after: at 60 columns a phase header shows more than one after the done/total count when the body says Size: more than one sitting, and a phase with no Size line shows no sitting phrase.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_sitting _(id: [rec-0334ff65-b695-433e-97e4-feed4a633233](.artifacts/records/project__acceptance/rec-0334ff65-b695-433e-97e4-feed4a633233.md))_
 
@@ -301,11 +297,6 @@
 
 ### Acceptance
 - **estimate-table-suffix**: test_estimate_view_title_suffix fails before the change and passes after: the task title shows size, minutes, and executor before a waits-on note; a missing size is omitted; 0 shows as 0m; a missing executor shows as subagent.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_title_suffix _(id: [rec-c823c876-890c-4582-b8ac-0b8e804b6de6](.artifacts/records/project__acceptance/rec-c823c876-890c-4582-b8ac-0b8e804b6de6.md))_
-
-## estimate-view
-
-### Position
-- **estimate-view**: Plan approved. Dispatch waits until evidence-view is on main.; phase _(id: [rec-cd3fedeb-9f80-4df2-95f4-4046fb64a81b](.artifacts/records/project__current-position/rec-cd3fedeb-9f80-4df2-95f4-4046fb64a81b.md))_
 
 ## evidence-model
 
@@ -827,9 +818,6 @@
 - **verify-end-to-end-phase-clear**: The watch-dashboard dashboard shows no Open Question, Needs Human, or Unsigned Manual Check; check; dashboard; ~/se-workflow/scripts/dashboard-status ~/se-workflow _(id: [rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85](.artifacts/records/project__acceptance/rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85.md))_
 
 ## verify-estimate-view
-
-### Work
-- **verify-estimate-view**: Verify size and time estimates on the task table; estimate-view; deliver; dashboard _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
 
 ### Acceptance
 - **verify-estimate-view**: A 60-column pilot shows one sitting or more than one and the derived elapsed minutes on the phase header, and the full suite passes.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_sitting && uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-9b9d3ec2-b413-4471-8991-8546a7f1c82b](.artifacts/records/project__acceptance/rec-9b9d3ec2-b413-4471-8991-8546a7f1c82b.md))_

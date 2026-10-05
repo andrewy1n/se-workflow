@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:360da346ba3c8dc2a81efe5c2d6a60904e47689ac3daefe2d95d4d4325d8e1fa
+> Store state: sha256:b58941c24e3f0cc01e6a85ace68c78b559f4fcb2f7ace894d80e165889bd9cf7
 
 ## dashboard-view
 
@@ -299,15 +299,6 @@
 
 ## estimate-view
 
-### Phase
-- **estimate-view**: Show size and time estimates on the task table; 21; dashboard _(id: [rec-5ba99c40-4b06-4a9f-a6c9-7aa755e22eb4](.artifacts/records/project__phase/rec-5ba99c40-4b06-4a9f-a6c9-7aa755e22eb4.md))_
-
-### Work
-- **estimate-chips**: Show size, minutes, and executor as task detail chips; estimate-view; deliver; dashboard _(id: [rec-a5afd59d-ced8-4b93-a273-77482086696d](.artifacts/records/project__work-item/rec-a5afd59d-ced8-4b93-a273-77482086696d.md))_
-- **estimate-model**: Load size and estimate minutes into the dashboard model; estimate-view; deliver; dashboard _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
-- **estimate-table**: Show estimates on the phase header and task title; estimate-view; deliver; dashboard _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
-- **verify-estimate-view**: Verify size and time estimates on the task table; estimate-view; deliver; dashboard _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
-
 ### Acceptance
 - **estimate-chips**: test_estimate_view_chips fails before the change and passes after: at 60 columns the opened task shows chips for size when set, minutes when set including 0m, and executor inline or executor subagent.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_estimate.py -q -k estimate_view_chips _(id: [rec-9151bd53-c190-48d4-a538-e887e6f192bd](.artifacts/records/project__acceptance/rec-9151bd53-c190-48d4-a538-e887e6f192bd.md))_
 - **estimate-model**: test_estimate_view_sitting_phrase fails before the change and passes after: Size: more than one sitting returns more than one, Size: one sitting returns one sitting, and a body with no Size line returns empty.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_sitting_phrase _(id: [rec-7eabd5f4-5519-4834-b2f5-2330ed0ff75e](.artifacts/records/project__acceptance/rec-7eabd5f4-5519-4834-b2f5-2330ed0ff75e.md))_
@@ -327,6 +318,31 @@
 - **verify-estimate-view-suffix**: Each task title shows its size, minutes, and executor. A missing size is omitted, 0 shows as 0m, and a missing executor shows as subagent.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_title_suffix _(id: [rec-f812f0d8-f363-4ec3-b7c8-32463a0d9d0b](.artifacts/records/project__acceptance/rec-f812f0d8-f363-4ec3-b7c8-32463a0d9d0b.md))_
 - **verify-estimate-view-unset**: A phase where some counted tasks have no estimate_minutes shows the partial total and the unset count. A phase where none have an estimate shows no minute suffix.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_app.py -q -k 'estimate_view_unset_count or estimate_view_header_partial' _(id: [rec-8b8345bb-5686-47dc-869d-39897b52c173](.artifacts/records/project__acceptance/rec-8b8345bb-5686-47dc-869d-39897b52c173.md))_
 - **verify-estimate-view-wave**: The header minute figure matches the wave rule, including a parallel subagent wave that contributes its longest task.; check; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_wave_rule _(id: [rec-29ba3627-46df-4308-bae9-8939ff93b2f1](.artifacts/records/project__acceptance/rec-29ba3627-46df-4308-bae9-8939ff93b2f1.md))_
+
+## phase-selector
+
+### Phase
+- **phase-selector**: Select a phase: selector, scoped table, wave strip; 22; dashboard _(id: [rec-43cf812c-ec3b-4f0a-9e56-090bd4e84ca2](.artifacts/records/project__phase/rec-43cf812c-ec3b-4f0a-9e56-090bd4e84ca2.md))_
+
+## human-gates
+
+### Phase
+- **human-gates**: Show the human gates: action labels, copy prompt, next step, landing; 23; dashboard _(id: [rec-c52c1f18-8b64-4731-9d21-2e74eabf7366](.artifacts/records/project__phase/rec-c52c1f18-8b64-4731-9d21-2e74eabf7366.md))_
+
+## spec-view
+
+### Phase
+- **spec-view**: Spec view and decision log, with a pager for derived views; 24; dashboard _(id: [rec-681ec18d-4093-4bd3-9426-5997f25fced6](.artifacts/records/project__phase/rec-681ec18d-4093-4bd3-9426-5997f25fced6.md))_
+
+## evidence-matrix
+
+### Phase
+- **evidence-matrix**: Requirements matrix for the selected phase; 25; dashboard _(id: [rec-0bdee82d-39eb-4e98-9606-407b3f717a02](.artifacts/records/project__phase/rec-0bdee82d-39eb-4e98-9606-407b3f717a02.md))_
+
+## journal-view
+
+### Phase
+- **journal-view**: Journal, kind-based default view, and agent work on task detail; 26; dashboard _(id: [rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3](.artifacts/records/project__phase/rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3.md))_
 
 ## 
 
