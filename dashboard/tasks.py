@@ -136,11 +136,24 @@ def task_columns(width: int) -> list[str]:
     return columns + ["assignee"] if width >= WIDE else columns
 
 
+def task_suffix(task: model.TaskRow) -> str:
+    parts = []
+    if task.size:
+        parts.append(task.size)
+    if task.estimate_minutes is not None:
+        parts.append(f"{task.estimate_minutes}m")
+    parts.append(task.executor or "subagent")
+    return " · " + " · ".join(parts)
+
+
 def title_cell(task: model.TaskRow, width: int, colors: dict[str, str], indent: str = "") -> Text:
     title = task.title or task.subject
     note = f"  waits on {', '.join(sorted(task.waits_on))}" if task.status == "waiting" and task.waits_on else ""
-    text = Text(indent + clip(title + note, width - len(indent)))
-    text.stylize(colors["muted"], len(indent) + len(title))
+    tail = task_suffix(task) + note
+    room = width - len(indent)
+    shown = "…" if len(tail) >= room else clip(title, room - len(tail))
+    text = Text(indent + shown + tail)
+    text.stylize(colors["muted"], len(indent) + len(shown))
     return text
 
 
@@ -155,20 +168,26 @@ def task_cells(
 
 
 def phase_label(phase: model.PhaseRow, title_width: int) -> str:
-    label = f"{phase.title or phase.subject} {phase.done}/{phase.total}"
+    title = phase.title or phase.subject
+    tail = f" {phase.done}/{phase.total}"
+    if phase.sitting:
+        tail += f" · {phase.sitting}"
+    if phase.elapsed_minutes is not None:
+        tail += f" · {phase.elapsed_minutes}m"
+        if phase.unset_estimates > 0:
+            tail += f" · {phase.unset_estimates} unset"
     if phase.awaiting_signoff:
-        label += " · awaiting sign-off"
+        tail += " · awaiting sign-off"
     evidence = phase.evidence
-    if evidence is None:
-        return clip(label, title_width)
-    verified = sum(row.status == "verified" for row in evidence.requirements)
-    suffix = f" · R {verified}/{len(evidence.requirements)} verified"
-    if evidence.release_ready:
-        suffix += " · Release ready"
-    if len(suffix) >= title_width:
-        return suffix[-title_width:]
-    shown = clip(label, title_width - len(suffix)) + suffix
-    return shown if len(shown) <= title_width else suffix[-title_width:]
+    if evidence is not None:
+        verified = sum(row.status == "verified" for row in evidence.requirements)
+        tail += f" · R {verified}/{len(evidence.requirements)} verified"
+        if evidence.release_ready:
+            tail += " · Release ready"
+    room = title_width - len(tail)
+    if room < 1:
+        return "…" + tail
+    return clip(title, room) + tail
 
 
 def section_cells(row: SectionRow, columns: list[str], title_width: int, colors: dict[str, str]) -> list[Text | str]:

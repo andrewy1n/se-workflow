@@ -1204,3 +1204,123 @@ def test_evidence_stage_returns_each_rule(store, cli, defs):
     assert flags["s-verified"] is False
     assert flags["s-nextrelease"] is False
     assert view.release_ready is True
+
+
+def _estimated(ident: str, wave: int | None, executor: str, minutes: int | None) -> model.TaskRow:
+    return model.TaskRow(
+        id=ident, subject=ident, title="", phase="p", assignee="", wave=wave, status="ready",
+        executor=executor, estimate_minutes=minutes,
+    )
+
+
+def test_estimate_view_sitting_phrase():
+    assert model.sitting_phrase("Size: more than one sitting") == "more than one"
+    assert model.sitting_phrase("Size: more than one sitting.") == "more than one"
+    assert model.sitting_phrase("## Approach\n\nSize: one sitting\n") == "one sitting"
+    assert model.sitting_phrase("Size: one sitting\nSize: more than one sitting") == "one sitting"
+    assert model.sitting_phrase("## Problem\n\nNo size line here.\n") == ""
+
+
+def test_estimate_view_wave_rule():
+    tasks = [
+        _estimated("in-a", 1, "inline", 10),
+        _estimated("in-b", 1, "inline", 15),
+        _estimated("sub-a", 2, "subagent", 10),
+        _estimated("sub-b", 2, "subagent", 40),
+        _estimated("sub-blank", 2, "subagent", None),
+        _estimated("zero", 3, "inline", 0),
+    ]
+    elapsed, unset = model.phase_elapsed(tasks)
+    assert elapsed == 10 + 15 + 40
+    assert elapsed != sum(task.estimate_minutes or 0 for task in tasks)
+    assert unset == 1
+    assert model.phase_elapsed([_estimated("only-zero", 1, "subagent", 0)]) == (0, 0)
+    separate = [
+        _estimated("lone-a", None, "subagent", 10),
+        _estimated("lone-b", None, "subagent", 40),
+    ]
+    assert model.phase_elapsed(separate) == (50, 0)
+
+
+def test_estimate_view_unset_count():
+    elapsed, unset = model.phase_elapsed([
+        _estimated("missing-a", 1, "inline", None),
+        _estimated("missing-b", 1, "inline", None),
+        _estimated("known", 1, "inline", 25),
+    ])
+    assert (elapsed, unset) == (25, 2)
+    elapsed, unset = model.phase_elapsed([
+        _estimated("none-a", 1, "subagent", None),
+        _estimated("none-b", 2, "inline", None),
+    ])
+    assert elapsed is None
+    assert unset == 2
+
+
+def _estimate_record(subject: str, **payload) -> dict:
+    fields = {"title": subject, "phase": "p-est", "assignee": ""}
+    fields.update(payload)
+    return {
+        "id": f"id-{subject}",
+        "subject": subject,
+        "lifecycle_state": "planned",
+        "payload": fields,
+        "derived": {"wave": 1, "ready": True},
+        "relationships": {},
+    }
+
+
+def test_estimate_view_row_fields(store, cli, defs):
+    sized = _estimate_record("sized", size="L", estimate_minutes=25, executor="inline")
+    zero = _estimate_record("zero", size="", estimate_minutes=0, executor="")
+    blank = _estimate_record("blank")
+    null = _estimate_record("null", size=None, estimate_minutes=None, executor=None)
+    rows = {row.subject: row for row in model._task_rows([sized, zero, blank, null])}
+    assert (rows["sized"].size, rows["sized"].estimate_minutes, rows["sized"].executor) == ("L", 25, "inline")
+    assert (rows["zero"].size, rows["zero"].estimate_minutes, rows["zero"].executor) == ("", 0, "subagent")
+    assert (rows["blank"].size, rows["blank"].estimate_minutes, rows["blank"].executor) == ("", None, "subagent")
+    assert rows["null"].estimate_minutes is None
+    assert rows["null"].executor == "subagent"
+
+    phase = {
+        "id": "phase-est",
+        "subject": "p-est",
+        "lifecycle_state": "in_progress",
+        "payload": {"title": "Estimates", "ordinal": 1},
+        "body": "Size: more than one sitting.",
+    }
+    phase_row = model._phase_rows([phase], [sized])[0]
+    assert phase_row.sitting == "more than one"
+    assert phase_row.elapsed_minutes == 25
+    assert phase_row.unset_estimates == 0
+
+    _goal(cli, defs, "alpha")
+    body = "## Problem\n\nplaceholder.\n\n## Approach\n\nSize: more than one sitting.\n\n## Exit criteria\n\nplaceholder.\n"
+    _record(cli, defs, "project:phase", "p-snap", {"title": "Snap", "ordinal": 1, "effort": "alpha"}, body)
+    _record(cli, defs, "project:work-item", "snap-task", {
+        "title": "Snap task", "phase": "p-snap", "kind": "deliver", "assignee": "", "effort": "alpha",
+        "size": "L", "estimate_minutes": 25, "executor": "inline",
+    })
+    _record(cli, defs, "project:work-item", "snap-zero", {
+        "title": "Snap zero", "phase": "p-snap", "kind": "deliver", "assignee": "", "effort": "alpha",
+        "estimate_minutes": 0, "executor": "inline",
+    })
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    snap = view.phases[0]
+    assert snap.sitting == "more than one"
+    assert snap.elapsed_minutes == 25
+    assert snap.unset_estimates == 0
+    tasks = {task.subject: task for task in view.tasks}
+    assert (tasks["snap-task"].size, tasks["snap-task"].estimate_minutes, tasks["snap-task"].executor) == (
+        "L", 25, "inline",
+    )
+    assert tasks["snap-zero"].estimate_minutes == 0
+    assert tasks["snap-zero"].size == ""
+
+
+def test_estimate_view_blank_executor(store, cli, defs):
+    task = _work_item(cli, defs, "alpha", "blank-task", "p-one")
+    detail = model.load_task_detail(_target(store), task["id"])
+    assert detail.executor == "subagent"
+    assert detail.size == ""
+    assert detail.estimate_minutes is None

@@ -97,7 +97,9 @@ def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard_and_a_stepper_t
 
     def screen() -> str | None:
         text = capture()
-        return text if all(marker in text for marker in _markers()) else None
+        markers = [marker for marker in _markers() if not marker.startswith("title of ")]
+        markers.append(" · subagent")
+        return text if all(marker in text for marker in markers) else None
 
     h.wait_for(screen, "side pane dashboard", capture)
     assert tmux("display", "-p", "-t", side, "#{pane_current_path}").strip() == str(seeded)
@@ -142,7 +144,7 @@ def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_ti
         extra_payload={"method": "check", "result": "fail", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
     )
     tmux.press("A")
-    needles = [*_markers(), "running 48h", "title of fx-waiting waits on fx-running", "✗ fx-broken check failed", "status task wave"]
+    needles = [*_markers(), "running 48h", "waits on fx-running", "✗ fx-broken check failed", "status task wave"]
     text = tmux.screen_text(needles)
     missing = [needle for needle in needles if needle not in text]
     assert not missing, f"missing {missing} in client output: {text[-2000:]}"
@@ -286,11 +288,12 @@ def test_prefix_a_popup_switches_status_tabs_filters_copies_a_slug_and_opens_a_c
     def side_screen(needle: str):
         return lambda: needle in tmux("capture-pane", "-p", "-J", "-t", side)
 
-    h.wait_for(side_screen("title of fx-shipped"), "side pane dashboard")
+    h.wait_for(side_screen(" · subagent"), "side pane dashboard")
     tmux("send-keys", "-t", side, "/")
     h.wait_for(side_screen("filter tasks"), "side pane filter box")
     tmux("send-keys", "-t", side, "shipped", "Enter")
-    h.wait_for(lambda: "title of fx-ready" not in tmux("capture-pane", "-p", "-J", "-t", side), "side pane filtered")
+    h.wait_for(side_screen("/shipped"), "side pane filtered")
+    h.wait_for(lambda: "title of fx-ready" not in tmux("capture-pane", "-p", "-J", "-t", side), "side pane hides ready")
     tmux("send-keys", "-t", side, "c")
     copied = h.wait_for(lambda: tmux("show-buffer", check=False), "tmux buffer from OSC 52")
     assert copied == "fx-shipped", copied

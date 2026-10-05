@@ -351,10 +351,16 @@ def test_waiting_row_title_ends_with_muted_waits_on_its_unfinished_dependencies(
 
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
-        cell = _row_by_title(table, "title of w-waiting")[1]
-        full = "title of w-waiting  waits on w-other, w-running"
+        cell = next(
+            table.get_row(key.value)[1] for key in table.rows if "waits on" in str(table.get_row(key.value)[1])
+        )
+        tail = " · subagent  waits on w-other, w-running"
         plain = str(cell).strip()
-        assert plain == full if width == 120 else (plain.endswith("…") and full.startswith(plain[:-1]))
+        assert plain.endswith(tail)
+        if width == 120:
+            assert plain == "title of w-waiting" + tail
+        else:
+            assert "…" in plain[: plain.index(tail)]
         start = str(cell).index("waits on")
         muted = app_module.palette_from(app.get_css_variables())["muted"]
         assert any(span.start <= start and str(span.style) == muted for span in cell.spans)
@@ -371,7 +377,7 @@ def test_running_row_status_shows_its_running_time(waits, width):
         table = app.query_one("#tasks")
         row = _row_by_title(table, "title of w-running")
         assert str(row[0]) == "▶ running 48h"
-        assert str(row[1]).strip() == "title of w-running"
+        assert str(row[1]).strip().endswith(" · subagent")
         assert str(_row_by_title(table, "title of w-other")[0]) == "▶ running"
 
     _run(store, width, scenario)
@@ -382,7 +388,7 @@ def test_detail_chips_show_running_time_from_the_running_since_stamp():
     detail = app_module.model.TaskDetail(
         "i", "s", "e", "t", "running", "", None, "", "", [], [], [], [], [], running_since=since)
     chips = detail_module.detail_chips(detail, app_module.ANSI_PALETTE, 100, since + timedelta(minutes=14))
-    assert chips.plain == "▶ running 14m"
+    assert chips.plain == "▶ running 14m · executor subagent"
 
 
 @pytest.mark.parametrize("width", WIDTHS)
@@ -486,8 +492,9 @@ def test_task_title_uses_spare_width_at_120_columns(store, cli, defs):
 
     async def scenario(app, pilot):
         tasks = app.query_one("#tasks")
-        await _until(pilot, lambda: tasks.row_count and str(tasks.get_row_at(0)[1]) == title)
-        assert str(tasks.get_row_at(0)[1]) == title
+        shown = title + " · subagent"
+        await _until(pilot, lambda: tasks.row_count and str(tasks.get_row_at(0)[1]) == shown)
+        assert str(tasks.get_row_at(0)[1]) == shown
 
     _run(store, 120, scenario)
 
@@ -539,12 +546,36 @@ def test_keeps_the_cursor_row_across_a_refresh(seeded, cli, defs):
     _run(seeded, 120, scenario, interval=0.3)
 
 
-def _titles(app):
+def _task_cells(app):
     table = app.query_one("#tasks")
     return [
-        str(table.get_row_at(i)[1]).split("  waits on")[0].strip() for i in range(table.row_count)
+        str(table.get_row_at(i)[1])
+        for i in range(table.row_count)
         if not _is_section(list(table.rows)[i].value)
     ]
+
+
+def _titles(app):
+    titles = []
+    for text in _task_cells(app):
+        text = text.split("  waits on")[0]
+        titles.append(text.split(" · ")[0].strip())
+    return titles
+
+
+def _same_tasks(app, expected):
+    cells = _task_cells(app)
+    if len(cells) != len(expected):
+        return False
+    for cell, title in zip(cells, expected):
+        head = cell.split("  waits on")[0].split(" · ")[0].strip()
+        if head == title:
+            continue
+        if not (head.endswith("…") and (head == "…" or title.startswith(head[:-1]))):
+            return False
+        if head == "…" and "  waits on" not in cell:
+            return False
+    return True
 
 
 def _is_section(key):
@@ -582,7 +613,7 @@ def test_filter_matches_the_subject_as_well_as_the_title(seeded, width):
         await pilot.press("slash")
         await pilot.press(*"a-wait")
         await pilot.pause()
-        assert _titles(app) == ["title of a-waiting"]
+        assert _same_tasks(app, ["title of a-waiting"])
 
     _run(seeded, width, scenario)
 
@@ -594,7 +625,7 @@ def test_escape_in_the_filter_input_clears_the_filter(seeded, width):
         await pilot.press(*"ready")
         await pilot.press("escape")
         await pilot.pause()
-        assert _titles(app) == _all_titles()
+        assert _same_tasks(app, _all_titles())
         assert app.query_one("#tasks").border_title == "Tasks"
         assert not app.query_one("#filter").display
         assert app.query_one("#tasks").has_focus
@@ -626,7 +657,7 @@ def test_escape_on_the_dashboard_clears_a_kept_filter(seeded, width):
         await pilot.press("enter")
         await pilot.press("escape")
         await pilot.pause()
-        assert _titles(app) == _all_titles()
+        assert _same_tasks(app, _all_titles())
         assert app.query_one("#tasks").border_title == "Tasks"
 
     _run(seeded, width, scenario)
@@ -669,7 +700,7 @@ def test_status_tabs_show_a_count_on_every_tab_and_default_to_active(seeded, wid
         }
         assert all(tab.region.right <= width for tab in app.query(app_module.StatusTab))
         assert _selected(app) == ["active"]
-        assert _titles(app) == _all_titles()
+        assert _same_tasks(app, _all_titles())
         assert not list(app.query("#tiles"))
 
     _run(seeded, width, scenario)
@@ -784,7 +815,7 @@ def test_number_keys_filter_the_table_by_status_tab(seeded, width):
             if key == "5":
                 await pilot.press("enter")
             await pilot.pause()
-            assert _titles(app) == titles
+            assert _same_tasks(app, titles)
             assert _selected(app) == [name]
 
     _run(seeded, width, scenario)
@@ -1184,8 +1215,14 @@ def test_chips_never_split_a_label_from_its_value_when_narrow():
         "i", "s", "e", "t", "done", "task-details", 1, "sub-task-detail-model", "", [], [], [], [], [])
     colors = app_module.ANSI_PALETTE
     lines = detail_module.detail_chips(detail, colors, 40).plain.splitlines()
-    assert lines == ["✓ done · phase task-details · w1", "assignee sub-task-detail-model"]
-    assert detail_module.detail_chips(detail, colors, 100).plain == "✓ done · phase task-details · w1 · assignee sub-task-detail-model"
+    assert lines == [
+        "✓ done · phase task-details · w1",
+        "assignee sub-task-detail-model",
+        "executor subagent",
+    ]
+    assert detail_module.detail_chips(detail, colors, 100).plain == (
+        "✓ done · phase task-details · w1 · assignee sub-task-detail-model · executor subagent"
+    )
 
 
 @OPENERS
@@ -1207,7 +1244,10 @@ def test_detail_related_panel_is_hidden_without_related_records(detailed, cli, s
 
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
-        blocked = next(k.value for k in table.rows if "det-blocked" in str(table.get_row(k.value)[1]))
+        blocked = next(
+            k.value for k in table.rows
+            if "det-blocked" in str(table.get_row(k.value)[1]) or "waits on det-task" in str(table.get_row(k.value)[1])
+        )
         await _open_by_click(app, pilot, blocked)
         screen = await _shown(app, pilot)
         assert not screen.query_one("#related").display
@@ -2846,5 +2886,155 @@ def test_evidence_stepper_shows_the_stage_word_within_60_columns(store, cli, def
         tail = joined.split("○", 1)[1]
         assert tail.strip() == "Phase later"
         assert " · " not in tail
+
+    _run(store, 60, scenario)
+
+
+def _estimate_goal(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha",
+        extra_payload={"goal": "g", "kind": "deliver"},
+    )
+
+
+def _phase_body(defs, size_line=None):
+    approach = size_line if size_line else "placeholder text for Approach."
+    return (
+        "## Problem\n\nplaceholder text for Problem.\n\n"
+        f"## Approach\n\n{approach}\n\n"
+        "## Exit criteria\n\nplaceholder text for Exit criteria.\n"
+    )
+
+
+def _open_phase(cli, defs, subject, ordinal, title, body):
+    record = _record(
+        cli, defs, "project:phase", subject,
+        {"title": title, "ordinal": ordinal, "effort": "alpha"}, body,
+    )
+    return h.transition(cli, "project:phase", record, "in_progress")
+
+
+def _estimate_task(cli, defs, subject, phase, **payload):
+    fields = {
+        "title": payload.pop("title", f"title of {subject}"),
+        "phase": phase, "kind": "deliver", "assignee": "", "effort": "alpha",
+    }
+    fields.update(payload)
+    rels = []
+    depends = fields.pop("depends_on", None)
+    if depends:
+        rels.append(f"depends_on:{depends}")
+    return _record(cli, defs, "project:work-item", subject, fields, None, *rels)
+
+
+def _task_plain(app, task_id):
+    return str(app.query_one("#tasks").get_row(task_id)[1]).strip()
+
+
+def test_estimate_view_header_sitting(store, cli, defs):
+    _estimate_goal(cli, defs)
+    _open_phase(cli, defs, "wide", 1, "Wide phase", _phase_body(defs, "Size: more than one sitting."))
+    _open_phase(cli, defs, "plain", 2, "Plain phase", _phase_body(defs))
+    _estimate_task(cli, defs, "wide-task", "wide")
+    _estimate_task(cli, defs, "plain-task", "plain")
+
+    async def scenario(app, pilot):
+        wide = _row_text(app, "phase:wide")
+        plain = _row_text(app, "phase:plain")
+        assert re.search(r"0/1 · more than one", wide)
+        assert "one sitting" not in wide
+        assert "more than one" not in plain
+        assert "one sitting" not in plain
+
+    _run(store, 60, scenario)
+
+
+def test_estimate_view_header_elapsed(store, cli, defs):
+    _estimate_goal(cli, defs)
+    _open_phase(cli, defs, "sub", 1, "Sub phase", _phase_body(defs))
+    _open_phase(cli, defs, "add", 2, "Inline phase", _phase_body(defs))
+    _estimate_task(cli, defs, "sub-short", "sub", estimate_minutes=10, executor="subagent")
+    _estimate_task(cli, defs, "sub-long", "sub", estimate_minutes=40, executor="subagent")
+    _estimate_task(cli, defs, "add-a", "add", estimate_minutes=10, executor="inline")
+    _estimate_task(cli, defs, "add-b", "add", estimate_minutes=15, executor="inline")
+
+    async def scenario(app, pilot):
+        sub = _row_text(app, "phase:sub")
+        inline = _row_text(app, "phase:add")
+        assert re.search(r"40m", sub) and "50m" not in sub
+        assert re.search(r"25m", inline) and "15m" not in inline
+
+    _run(store, 60, scenario)
+
+
+def test_estimate_view_header_partial(store, cli, defs):
+    _estimate_goal(cli, defs)
+    _open_phase(cli, defs, "part", 1, "Partial phase", _phase_body(defs))
+    _open_phase(cli, defs, "none", 2, "None phase", _phase_body(defs))
+    _estimate_task(cli, defs, "part-a", "part")
+    _estimate_task(cli, defs, "part-b", "part")
+    _estimate_task(cli, defs, "part-c", "part", estimate_minutes=25)
+    _estimate_task(cli, defs, "none-a", "none")
+    _estimate_task(cli, defs, "none-b", "none")
+
+    async def scenario(app, pilot):
+        partial = _row_text(app, "phase:part")
+        blank = _row_text(app, "phase:none")
+        assert re.search(r"25m · 2 unset", partial)
+        assert not re.search(r"\d+m", blank)
+        assert "unset" not in blank
+
+    _run(store, 60, scenario)
+
+
+def test_estimate_view_title_suffix(store, cli, defs):
+    _estimate_goal(cli, defs)
+    _open_phase(cli, defs, "suf", 1, "Suffix phase", _phase_body(defs))
+    blocker = _estimate_task(cli, defs, "blocker", "suf", title="Blocker")
+    full = _estimate_task(
+        cli, defs, "full", "suf", title="Full", size="M", estimate_minutes=25,
+        executor="inline", depends_on=blocker["id"],
+    )
+    nosize = _estimate_task(cli, defs, "nosize", "suf", title="Nosize", estimate_minutes=10, executor="inline")
+    zero = _estimate_task(cli, defs, "zero", "suf", title="Zero", estimate_minutes=0)
+    blank = _estimate_task(cli, defs, "blank", "suf", title="Blank")
+
+    async def scenario(app, pilot):
+        full_plain = _task_plain(app, full["id"])
+        assert " · M · 25m · inline  waits on blocker" in full_plain
+        assert full_plain.index(" · M") < full_plain.index("  waits on")
+        cell = app.query_one("#tasks").get_row(full["id"])[1]
+        start = str(cell).index(" · M")
+        muted = app_module.palette_from(app.get_css_variables())["muted"]
+        assert any(span.start <= start and str(span.style) == muted for span in cell.spans)
+        assert _task_plain(app, nosize["id"]).endswith(" · 10m · inline")
+        assert _task_plain(app, zero["id"]).endswith(" · 0m · subagent")
+        blank_plain = _task_plain(app, blank["id"])
+        assert blank_plain.endswith(" · subagent")
+        assert not re.search(r"\d+m", blank_plain)
+
+    _run(store, 60, scenario)
+
+
+def test_estimate_view_clip(store, cli, defs):
+    _estimate_goal(cli, defs)
+    phase_title = "Long phase " + "word " * 40
+    task_title = "Long task " + "word " * 40
+    _open_phase(cli, defs, "clip", 1, phase_title, _phase_body(defs, "Size: more than one sitting."))
+    long = _estimate_task(
+        cli, defs, "long", "clip", title=task_title, size="M", estimate_minutes=25, executor="inline",
+    )
+    _estimate_task(cli, defs, "clip-a", "clip", title="Unset one")
+    _estimate_task(cli, defs, "clip-b", "clip", title="Unset two")
+
+    async def scenario(app, pilot):
+        header = _row_text(app, "phase:clip")
+        assert re.search(r"0/3 · more than one · 25m · 2 unset", header)
+        assert header.index("…") < header.index("more than one")
+        assert "…" not in header.split("…", 1)[1]
+        plain = _task_plain(app, long["id"])
+        assert " · M · 25m · inline" in plain
+        assert plain.index("…") < plain.index(" · M · 25m · inline")
+        assert "…" not in plain.split("…", 1)[1]
 
     _run(store, 60, scenario)

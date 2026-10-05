@@ -34,6 +34,11 @@ def detail_chips(detail: model.TaskDetail, colors: dict[str, str], width: int = 
         chips.append((f"w{detail.wave}", colors["muted"]))
     if detail.assignee:
         chips.append((f"assignee {detail.assignee}", colors["muted"]))
+    if detail.size:
+        chips.append((detail.size, colors["muted"]))
+    if detail.estimate_minutes is not None:
+        chips.append((f"{detail.estimate_minutes}m", colors["muted"]))
+    chips.append((f"executor {detail.executor or 'subagent'}", colors["muted"]))
     text = Text()
     used = 0
     for index, (chip, chip_style) in enumerate(chips):

@@ -24,7 +24,7 @@ CHECK_RESULT = {"pass": "passed", "fail": "failed"}
 TOKEN_DIRS = ("records", "history")
 FULL_TYPES = (
     "project:continuity-question", "project:finding", "project:check-run", "project:work-item",
-    "project:specification", "project:assessment", "project:integration-report",
+    "project:phase", "project:specification", "project:assessment", "project:integration-report",
 )
 SOFT_TYPES = frozenset({
     "project:specification", "project:design", "project:assessment", "project:integration-report", "project:release",
@@ -48,6 +48,9 @@ class PhaseRow:
     id: str = ""
     awaiting_signoff: bool = False
     evidence: "PhaseEvidence | None" = None
+    sitting: str = ""
+    elapsed_minutes: int | None = None
+    unset_estimates: int = 0
 
 
 @dataclass(frozen=True)
@@ -61,6 +64,9 @@ class TaskRow:
     status: str
     waits_on: tuple[str, ...] = ()
     running_since: datetime | None = None
+    size: str = ""
+    estimate_minutes: int | None = None
+    executor: str = "subagent"
 
 
 @dataclass(frozen=True)
@@ -370,6 +376,69 @@ def _assessment_summary(record: dict[str, Any], by_id: dict[str, dict[str, Any]]
     return summary, payload.get("status") in ("failed", "blocked")
 
 
+def sitting_phrase(body: str) -> str:
+    """Return the phase sitting phrase from the first Size: line, or empty."""
+    for line in (body or "").splitlines():
+        if "Size:" not in line:
+            continue
+        text = line.split("Size:", 1)[1]
+        if "more than one" in text:
+            return "more than one"
+        if "one sitting" in text:
+            return "one sitting"
+        return ""
+    return ""
+
+
+def phase_elapsed(tasks: list[TaskRow]) -> tuple[int | None, int]:
+    """Wave-rule minutes for already-counted tasks, plus how many lack an estimate.
+
+    An inline wave sums its estimates. Any other wave contributes its longest.
+    A task with no wave is its own group. Blank estimates are skipped, and zero counts.
+    """
+    unset = sum(task.estimate_minutes is None for task in tasks)
+    groups: dict[Any, list[TaskRow]] = {}
+    for task in tasks:
+        key = task.wave if task.wave is not None else task.id
+        groups.setdefault(key, []).append(task)
+
+    def order(key: Any) -> tuple:
+        return (0, key) if isinstance(key, int) else (1, str(key))
+
+    figures: list[int] = []
+    for key in sorted(groups, key=order):
+        members = groups[key]
+        values = [task.estimate_minutes for task in members if task.estimate_minutes is not None]
+        if not values:
+            continue
+        if all(task.executor == "inline" for task in members):
+            figures.append(sum(values))
+        else:
+            figures.append(max(values))
+    if not figures:
+        return (None, unset)
+    return (sum(figures), unset)
+
+
+def _size(payload: dict[str, Any]) -> str:
+    size = payload.get("size")
+    return size if isinstance(size, str) and size else ""
+
+
+def _estimate_minutes(payload: dict[str, Any]) -> int | None:
+    if "estimate_minutes" not in payload:
+        return None
+    value = payload["estimate_minutes"]
+    if value is None:
+        return None
+    return value
+
+
+def _executor(payload: dict[str, Any]) -> str:
+    executor = payload.get("executor")
+    return executor if executor else "subagent"
+
+
 def _task_status(record: dict[str, Any]) -> str | None:
     state = record["lifecycle_state"]
     if state == "planned":
@@ -398,6 +467,7 @@ def _task_rows(records: list[dict[str, Any]], assignments: list[dict[str, Any]] 
             wave=_derived(record).get("wave"), status=status,
             waits_on=tuple(dep["subject"] for dep in depends_on if dep["lifecycle_state"] != "done"),
             running_since=_assigned_at(assignments or [], record) if status == "running" else None,
+            size=_size(payload), estimate_minutes=_estimate_minutes(payload), executor=_executor(payload),
         ))
     rows.sort(key=lambda row: (TASK_ORDER.index(row.status), row.wave if row.wave is not None else 0, row.subject))
     return rows
@@ -437,11 +507,14 @@ def _phase_rows(
             _awaits_signoff(task, [s for s in subjects if s != task["subject"]], acceptances or [], latest)
             for task in open_tasks
         )
+        elapsed_minutes, unset_estimates = phase_elapsed(_task_rows(members))
         rows.append(PhaseRow(
             subject=record["subject"], title=payload.get("title", ""), ordinal=payload.get("ordinal", 0),
             state=record["lifecycle_state"], done=sum(t["lifecycle_state"] == "done" for t in members),
             total=len(members), id=record["id"], awaiting_signoff=awaiting,
             evidence=evidence_by_phase.get(record["subject"]),
+            sitting=sitting_phrase(record.get("body") or ""),
+            elapsed_minutes=elapsed_minutes, unset_estimates=unset_estimates,
         ))
     rows.sort(key=lambda row: (row.ordinal, row.subject))
     return rows
@@ -879,6 +952,9 @@ class TaskDetail:
     running_since: datetime | None = None
     requirements: str = ""
     decisions: str = ""
+    size: str = ""
+    estimate_minutes: int | None = None
+    executor: str = "subagent"
 
 
 RELATED_TEXT = {
@@ -995,6 +1071,7 @@ def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
         acceptances=acceptances, timeline=_timeline(assignments, amendments, reports, checks), related=related,
         running_since=max(map(_recorded_at, assignments), default=None) if status == "running" else None,
         requirements=payload.get("requirements") or "", decisions=payload.get("decisions") or "",
+        size=_size(payload), estimate_minutes=_estimate_minutes(payload), executor=_executor(payload),
     )
 
 
