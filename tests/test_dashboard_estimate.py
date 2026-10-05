@@ -51,7 +51,7 @@ def test_estimate_view_chips(store, cli, defs):
     blank = _estimate_task(cli, defs, "blank", "est")
 
     async def scenario(app, pilot):
-        await _until(pilot, lambda: app.query("#tasks") and app.query_one("#tasks").row_count >= 4)
+        await _until(pilot, lambda: app.query("#tasks") and app.query_one("#tasks").row_count >= 3)
         sized_parts = _parts(await _chip_text(app, pilot, sized["id"]))
         assert "M" in sized_parts
         assert "25m" in sized_parts

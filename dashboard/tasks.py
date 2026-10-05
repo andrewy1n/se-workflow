@@ -23,14 +23,20 @@ TAB_STATUSES = {
 }
 
 
-def tab_tasks(view: model.EffortView, tab: str) -> list[model.TaskRow]:
+def tab_tasks(view: model.EffortView, tab: str, selected_phase: str | None = None) -> list[model.TaskRow]:
+    pool = [task for task in view.tasks if selected_phase is None or task.phase == selected_phase]
     if tab == "all":
-        return list(view.tasks)
-    return [task for task in view.tasks if task.status in TAB_STATUSES[tab]]
+        return pool
+    return [task for task in pool if task.status in TAB_STATUSES[tab]]
 
 
-def counts(view: model.EffortView) -> dict[str, int]:
-    return {name: len(tab_tasks(view, name)) for name, _, _ in STATUS_TABS}
+def counts(view: model.EffortView, selected_phase: str | None = None) -> dict[str, int]:
+    return {name: len(tab_tasks(view, name, selected_phase)) for name, _, _ in STATUS_TABS}
+
+
+def phase_progress(view: model.EffortView, phase: str) -> tuple[int, int]:
+    tasks = [task for task in view.tasks if task.phase == phase and task.status != "withdrawn"]
+    return sum(task.status == "done" for task in tasks), len(tasks)
 
 
 @dataclass
@@ -80,7 +86,10 @@ def opens_by_default(phase: model.PhaseRow) -> bool:
 
 def section_rows(
     view: model.EffortView, tasks: list[model.TaskRow], sections: dict[str, bool], show_empty: bool,
+    selected_phase: str | None = None,
 ) -> list[SectionRow]:
+    if selected_phase is not None:
+        return [SectionRow(task.id, "task", task=task) for task in tasks if task.phase == selected_phase]
     by_phase: dict[str, list[model.TaskRow]] = {}
     for task in tasks:
         by_phase.setdefault(task.phase, []).append(task)
@@ -127,12 +136,8 @@ def status_cell(task: model.TaskRow, colors: dict[str, str], now: datetime) -> T
     return Text(status_label(task.status, task.running_since, now), style=colors[task.status])
 
 
-def wave_cell(task: model.TaskRow) -> str:
-    return "" if task.wave is None else f"w{task.wave}"
-
-
 def task_columns(width: int) -> list[str]:
-    columns = ["status", "task", "wave"]
+    columns = ["status", "task"]
     return columns + ["assignee"] if width >= WIDE else columns
 
 
@@ -162,7 +167,7 @@ def task_cells(
 ) -> list[Text | str]:
     values: dict[str, Text | str] = {
         "status": status_cell(task, colors, now), "task": title_cell(task, title_width, colors, indent),
-        "wave": wave_cell(task), "phase": task.phase, "assignee": task.assignee,
+        "phase": task.phase, "assignee": task.assignee,
     }
     return [values[name] for name in columns]
 
@@ -213,7 +218,7 @@ def section_cells(row: SectionRow, columns: list[str], title_width: int, colors:
 
 def title_width(columns: list[str], width: int, tasks: list[model.TaskRow], now: datetime) -> int:
     fixed = {
-        "status": max([len(status_label(t.status, t.running_since, now)) for t in tasks] + [9]), "wave": 4,
+        "status": max([len(status_label(t.status, t.running_since, now)) for t in tasks] + [9]),
         "assignee": max([len(t.assignee) for t in tasks] + [8]),
     }
     used = sum(fixed[name] for name in columns if name != "task") + 2 * len(columns)

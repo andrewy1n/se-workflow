@@ -98,7 +98,6 @@ def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard_and_a_stepper_t
     def screen() -> str | None:
         text = capture()
         markers = [marker for marker in _markers() if not marker.startswith("title of ")]
-        markers.append(" · subagent")
         return text if all(marker in text for marker in markers) else None
 
     h.wait_for(screen, "side pane dashboard", capture)
@@ -110,9 +109,9 @@ def test_prefix_s_opens_a_side_pane_with_the_pane_repo_dashboard_and_a_stepper_t
             return text
         return None
 
-    lines = [line.strip() for line in h.wait_for(collapsed, "collapsed stepper", capture).splitlines()]
+    lines = [line.strip() for line in h.wait_for(collapsed, "selector", capture).splitlines()]
     goal = lines.index(f"ship {EFFORT}")
-    progress = next(i for i, line in enumerate(lines) if line.startswith("phase 2/4"))
+    progress = next(i for i, line in enumerate(lines) if "effort" in line)
     stepper = [line for line in lines[goal + 1:progress] if line]
     joined = " ".join(stepper)
     assert "1 done" in joined and "● Shape the store" in joined and "○ Draw the dashboard" in joined
@@ -144,11 +143,11 @@ def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_ti
         extra_payload={"method": "check", "result": "fail", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
     )
     tmux.press("A")
-    needles = [*_markers(), "running 48h", "waits on fx-running", "✗ fx-broken check failed", "status task wave"]
+    needles = [*_markers(), "running 48h", "waits on fx-running", "✗ fx-broken check failed", "status task assignee"]
     text = tmux.screen_text(needles)
     missing = [needle for needle in needles if needle not in text]
     assert not missing, f"missing {missing} in client output: {text[-2000:]}"
-    assert "status task wave assignee" in text and "wave phase" not in text, text[-2000:]
+    assert "status task assignee" in text and "status task wave" not in text, text[-2000:]
     assert "running 48h title of fx-running" in text, text[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
@@ -332,6 +331,8 @@ def test_prefix_a_popup_keys_only_walks_tabs_phase_sections_phase_detail_and_det
             assert time.monotonic() < end, f"{keys!r} needs {needles} without {absent}: {text[-2000:]}"
 
     tmux.press("A")
+    assert "Phase px-later" in tmux.screen_text(["Phase px-later", "title of px-first"])
+    press(b"]", "title of fx-running", absent=("title of px-first",))
     assert "Phase px-later" in tmux.screen_text(["Phase px-later"])
 
     press(b"1", "Phase px-later", "title of fx-running", "title of fx-ready", absent=("title of px-first", "title of px-second"))
@@ -429,7 +430,7 @@ def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_re
     fcntl.ioctl(tmux.client_fd, termios.TIOCSWINSZ, struct.pack("HHHH", tmux.rows, 80, 0, 0))
     time.sleep(0.2)
     tmux.press("A")
-    narrow = tmux.screen_text(["title of fx-running", "title of fx-ready", "wave"])
+    narrow = tmux.screen_text(["title of fx-running", "title of fx-ready"])
     assert "assignee" not in narrow, narrow[-2000:]
     assert "No live efforts" not in narrow, narrow[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
@@ -482,8 +483,7 @@ def test_prefix_a_popup_walks_needs_you_into_task_and_question_details_and_lists
     tmux.press("A")
     assert "Needs you 3" in tmux.screen_text(["Needs you 3"])
 
-    opening = press(b"", "Needs you 3", "pick the fx-ready rollout", "which store should", absent=("quokka",))
-    assert opening.index(f"⚠ {EFFORT}") < opening.index("donefx"), opening[-2000:]
+    opening = press(b"", "Needs you 3", "pick the fx-ready rollout", "which store should", "+1 finished", absent=("quokka", "donefx"))
 
     def focus_needs() -> None:
         press(b"n", "Needs you 3")
@@ -501,6 +501,7 @@ def test_prefix_a_popup_walks_needs_you_into_task_and_question_details_and_lists
     press(b"\x1b", "Needs you 3", absent=("quokka",))
     press(b"\x1b", "Needs you 3")
 
+    press(b"f", "donefx")
     finished = press(b"\t", "All 2 tasks done", absent=("title of fx-running",))
     assert finished.index(f"⚠ {EFFORT}") < finished.index("donefx"), finished[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 
 import helpers as h
+from conftest import REPO_ROOT
 
 EFFORT = "flow"
 PHASE = "flow-phase-1"
@@ -104,3 +106,26 @@ def test_every_record_sits_in_exactly_its_lifecycle_section_after_each_step(stor
     result = cli("validate")
     assert result.returncode == 0, result.stdout + result.stderr
     assert json.loads(result.stdout)["status"] == "valid"
+
+
+def test_once_prints_the_selector_line_and_wave_strip(store, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject=EFFORT,
+        extra_payload={"goal": "ship the flow", "kind": "deliver"},
+    )
+    phase = h.create_generic_record(
+        cli, defs, "project:phase", subject=PHASE,
+        extra_payload={"title": "first phase", "ordinal": 1, "effort": EFFORT},
+    )
+    h.transition(cli, "project:phase", phase, "in_progress")
+    _work_item(cli, defs, "item-a")
+    script = REPO_ROOT / "dashboard" / "__main__.py"
+    result = subprocess.run(
+        ["uv", "run", "--script", str(script), "--once"],
+        capture_output=True, text=True, cwd=str(store),
+    )
+    assert result.returncode == 0, result.stderr
+    assert "All phases" in result.stdout
+    assert "● first phase" in result.stdout
+    assert "w1" in result.stdout

@@ -236,9 +236,11 @@ def test_prefix_a_popup_evidence_view_shows_unassessed_then_a_design_route_then_
             return shown(*needles, absent=absent)
 
         tmux.press("A")
-        shown("Evidence phase", "R 0/2 verified", absent=("Needs you", "Release ready", "unassessed"))
+        shown("Evidence phase", "· design", absent=("Needs you", "Release ready", "unassessed"))
+        press(b"]", "R 0/2 verified", absent=("unassessed",))
+        press(b"[", "· design", absent=("R 0/2 verified",))
         press(b"p", "unassessed", "R1", "R2", absent=("Needs you", "Release ready"))
-        press(b"\x1b", "R 0/2 verified", absent=("unassessed",))
+        press(b"\x1b", "· design", absent=("unassessed",))
 
         tmux.output = b""
         routed = _assessment(
@@ -252,7 +254,9 @@ def test_prefix_a_popup_evidence_view_shows_unassessed_then_a_design_route_then_
         )
         _assessment(cli, defs, "R2", status="verified", next="release", confidence="high")
         _create(cli, defs, "project:release", PHASE_EV, {"state": "ready", "phase": PHASE_EV, "effort": EFFORT_EV})
-        shown("R 2/2 verified", " · release", "Release ready", absent=("Needs you", "unassessed"))
+        shown(" · release", "Release ready", absent=("Needs you", "unassessed"))
+        press(b"]", "R 2/2 verified")
+        press(b"[", " · release")
 
         tmux.output = b""
         os.write(tmux.client_fd, b"j\r")

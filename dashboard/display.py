@@ -8,6 +8,7 @@ from datetime import datetime
 WIDE = 90
 STATUS_GLYPH = {"running": "▶", "ready": "●", "waiting": "◌", "done": "✓", "withdrawn": "✕"}
 PHASE_GLYPH = {"done": "✓", "in_progress": "●", "planned": "○"}
+ACTIVITY_LINES = 10
 
 
 def elapsed(then: datetime, now: datetime) -> str:

@@ -69,8 +69,36 @@ def test_section_rows_append_tasks_of_unknown_phases_last():
 
 
 def test_task_columns_add_assignee_only_at_wide_widths():
-    assert tasks.task_columns(WIDE - 1) == ["status", "task", "wave"]
-    assert tasks.task_columns(WIDE) == ["status", "task", "wave", "assignee"]
+    assert tasks.task_columns(WIDE - 1) == ["status", "task"]
+    assert tasks.task_columns(WIDE) == ["status", "task", "assignee"]
+
+
+def test_tab_tasks_scoped_to_selected_phase():
+    view = model.EffortView(
+        "e", "g",
+        phases=[phase("p1", "in_progress", 1), phase("p2", "planned", 2)],
+        tasks=[task("a", "running", "p1"), task("b", "done", "p1"), task("c", "ready", "p2")],
+    )
+    assert [row.subject for row in tasks.tab_tasks(view, "active", "p1")] == ["a"]
+    assert tasks.counts(view, "p1") == {"active": 1, "running": 1, "ready": 0, "waiting": 0, "done": 1, "all": 2}
+
+
+def test_phase_progress_counts_done_and_total():
+    view = model.EffortView(
+        "e", "g",
+        tasks=[task("a", "done", "p1"), task("b", "running", "p1"), task("c", "withdrawn", "p1"), task("d", "ready", "p2")],
+    )
+    assert tasks.phase_progress(view, "p1") == (1, 2)
+
+
+def test_section_rows_selected_phase_returns_flat_task_rows():
+    view = model.EffortView(
+        "e", "g",
+        phases=[phase("p1", "in_progress", 1), phase("p2", "planned", 2)],
+        tasks=[task("a", "running", "p1"), task("b", "ready", "p2")],
+    )
+    rows = tasks.section_rows(view, view.tasks, {}, show_empty=False, selected_phase="p1")
+    assert [(row.kind, row.task.subject if row.task else None) for row in rows] == [("task", "a")]
 
 
 def test_status_label_shows_elapsed_time_for_a_running_task():

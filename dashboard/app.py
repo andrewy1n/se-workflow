@@ -11,15 +11,15 @@ from pathlib import Path
 
 from dashboard import artifact_store
 from dashboard import model
+from dashboard import selection
 from dashboard.commit import CommitScreen
 from dashboard.display import (
-    ACTIVITY_GLYPH, ANSI_PALETTE, PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, WIDE, clip, palette_from, relative_time,
-    slug,
+    ANSI_PALETTE, PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, WIDE, clip, palette_from, relative_time, slug,
 )
 from dashboard.task_detail import TaskDetailScreen
 from dashboard.tasks import (
-    FOLD_KEY, PHASE_PREFIX, STATUS_TABS, SectionRow, TaskFilter, TaskTable, counts, empty_text, section_cells,
-    section_rows, task_cells, task_columns, tasks_title, tab_tasks, title_width, visible_tasks,
+    FOLD_KEY, PHASE_PREFIX, STATUS_TABS, SectionRow, TaskFilter, TaskTable, counts, empty_text, phase_progress,
+    section_cells, section_rows, task_cells, task_columns, tasks_title, tab_tasks, title_width, visible_tasks,
 )
 from rich.console import Console, Group
 from rich.table import Table
@@ -27,7 +27,7 @@ from rich.text import Text
 from textual import events, work
 from textual.binding import Binding
 from textual.app import App, ComposeResult
-from textual.containers import Container, Vertical, VerticalScroll
+from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.geometry import Region
 from textual.screen import Screen
 from textual.widgets._tabbed_content import ContentTabs
@@ -36,7 +36,6 @@ from textual.widgets import (
 )
 from textual.widgets.option_list import Option
 
-ACTIVITY_LINES = 10
 RESULT_GLYPH = {"pass": "✓", "fail": "✗"}
 NEEDS_LABEL = {
     "blocking-question": "blocking", "loop-route": "route", "integration": "integrate",
@@ -49,72 +48,18 @@ NEEDS_TEXT_TITLE = {
 }
 
 
-def current_phase(view: model.EffortView) -> tuple[int, model.PhaseRow] | None:
-    for state in ("in_progress", "planned"):
-        for index, phase in enumerate(view.phases, 1):
-            if phase.state == state:
-                return index, phase
-    if view.phases:
-        return len(view.phases), view.phases[-1]
-    return None
-
-
-def _stepper_segments(view: model.EffortView, colors: dict[str, str], expanded: bool = False, width: int = 100) -> list[Text]:
-    done = [phase for phase in view.phases if phase.state == "done"]
-    current = next((phase for phase in view.phases if phase.state == "in_progress"), None)
-    nxt = next((phase for phase in view.phases if phase.state == "planned"), None)
-    muted = colors["muted"]
-    segments: list[Text] = []
-    if expanded:
-        segments.extend(Text(phase.title or phase.subject, style=muted) for phase in done)
-    elif done:
-        segments.append(Text(f"{len(done)} done", style=muted))
-    if current is not None:
-        title = current.title or current.subject
-        head = f"● {title} {current.done}/{current.total}"
-        if current.evidence is None:
-            segments.append(Text(head, style=colors["primary"]))
-        else:
-            stage = f" · {current.evidence.stage}"
-            segment = Text(style=colors["primary"])
-            head_text = Text(head, style=colors["primary"])
-            head_text.truncate(max(width - len(stage), 3), overflow="ellipsis")
-            segment.append_text(head_text)
-            segment.append(stage)
-            segments.append(segment)
-    if nxt is not None:
-        title = nxt.title or nxt.subject
-        segments.append(Text(f"○ {title}", style=muted))
-    return segments
-
-
-def stepper_text(view: model.EffortView, colors: dict[str, str], width: int = 100, expanded: bool = False) -> Text:
-    text = Text()
-    used = 0
-    for index, label in enumerate(_stepper_segments(view, colors, expanded)):
-        label.truncate(max(width, 3), overflow="ellipsis")
-        if index:
-            if used + 3 + label.cell_len > width:
-                text.append("\n")
-                used = 0
-            else:
-                text.append("   ")
-                used += 3
-        text.append_text(label)
-        used += label.cell_len
-    return text
-
-
 def effort_progress(view: model.EffortView) -> tuple[int, int]:
     return sum(phase.done for phase in view.phases), sum(phase.total for phase in view.phases)
 
 
-def progress_label(view: model.EffortView) -> str:
-    found = current_phase(view)
-    if found is None:
+def progress_label(view: model.EffortView, selected_phase: str | None) -> str:
+    if not view.phases:
         return ""
-    done, total = effort_progress(view)
-    return f"phase {found[0]}/{len(view.phases)} · {done} of {total} tasks"
+    phase_done, phase_total = phase_progress(view, selected_phase) if selected_phase is not None else effort_progress(view)
+    effort_done, effort_total = effort_progress(view)
+    if selected_phase is None:
+        return f"{effort_done} of {effort_total} tasks"
+    return f"{phase_done}/{phase_total} tasks · {effort_done}/{effort_total} effort"
 
 
 
@@ -138,18 +83,6 @@ def needs_lines(view: model.EffortView, colors: dict[str, str], width: int = 100
             line.append(f"  {clip(item.subject, max(width - 12, 10))}", style=colors["muted"])
         else:
             line.append(" " + clip(detail, max(width - 10, 10)))
-        lines.append(line)
-    return lines
-
-
-def activity_lines(view: model.EffortView, now: datetime, colors: dict[str, str], width: int = 100) -> list[Text]:
-    lines = []
-    for item in view.activity[:ACTIVITY_LINES]:
-        line = Text(no_wrap=True, overflow="ellipsis")
-        line.append(f"{relative_time(item.recorded_at, now):>7}", style=colors["muted"])
-        style = colors["error"] if item.failed else ""
-        line.append(f" {'✗' if item.failed else ACTIVITY_GLYPH.get(item.kind, '·')} ", style=style)
-        line.append(clip(item.summary, max(width - 10, 10)), style=style)
         lines.append(line)
     return lines
 
@@ -222,25 +155,30 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         console.print()
         console.rule(Text(tab_label(view), style="dim" if view.finished else "bold"), align="left")
         console.print(Text(view.goal, style=colors["muted"]))
-        console.print(stepper_text(view, colors, console.width))
-        label = progress_label(view)
+        selected = selection.default_phase(view)
+        console.print(selection.selector_text(view, selected, colors, console.width))
+        strip = selection.wave_strip(view, selected, console.width) if selected is not None else Text()
+        if strip.plain:
+            console.print(strip)
+        label = progress_label(view, selected)
         if label:
             console.print(Text(label, style=colors["muted"]))
-        tally = counts(view)
+        scoped = selection.scoped(view, selected)
+        tally = counts(scoped)
         console.print("   ".join(f"{word} ({tally[name]})" for name, word, _key in STATUS_TABS))
-        if view.tasks:
-            columns = ["status", "task", "wave", "phase", "assignee"] if console.width >= WIDE else task_columns(console.width)
+        if scoped.tasks:
+            columns = ["status", "task", "phase", "assignee"] if console.width >= WIDE else task_columns(console.width)
             table = Table(box=None, pad_edge=False, header_style=colors["muted"])
             for name in columns:
                 table.add_column(name, no_wrap=name != "task", overflow="ellipsis")
-            for task in view.tasks:
+            for task in scoped.tasks:
                 table.add_row(*task_cells(task, columns, console.width, colors, snapshot.generated_at))
             console.print(Group(Text(), table))
         if view.needs_you:
             console.print(Text(f"\nNeeds you {len(view.needs_you)}", style=colors["warning"]))
             for line in needs_lines(view, colors):
                 console.print(line)
-        lines = activity_lines(view, snapshot.generated_at, colors)
+        lines = selection.activity_lines(view, snapshot.generated_at, colors)
         if lines:
             console.print(Text("\nActivity", style=colors["muted"]))
             for line in lines:
@@ -266,23 +204,28 @@ def phase_task_line(task: model.TaskRow, colors: dict[str, str]) -> Text:
     return text
 
 
-class PhaseStepper(Static):
+class PhaseSelector(Static):
     def on_click(self, event: events.Click) -> None:
+        target = event.style.meta.get("target")
         pane = self.query_ancestor(EffortPane)
-        if pane is not None:
-            pane.toggle_stepper()
+        if pane is None or target is None:
+            return
+        if target == "picker":
+            self.app.push_screen(PhasePickerScreen(pane.effort))
+        else:
+            self.app.select_phase(pane.effort, None if target == "all" else target)
 
 
 class EffortPane(VerticalScroll):
     def __init__(self, effort: str) -> None:
         super().__init__(classes="effort")
         self.effort = effort
-        self.stepper_open = False
         self.sections: dict[str, SectionRow] = {}
 
     def compose(self) -> ComposeResult:
         yield Static(id="goal")
-        yield PhaseStepper(id="stepper")
+        yield PhaseSelector(id="stepper")
+        yield Static(id="waves")
         yield Static(id="progress-label")
         yield ProgressBar(id="progress", show_eta=False, show_percentage=False)
         with Container(id="status-tabs"):
@@ -310,32 +253,38 @@ class EffortPane(VerticalScroll):
         inner = self.scrollable_content_region.width or width - 2
         self.inner = inner
         self.query_one("#goal", Static).update(Text(view.goal, style=colors["muted"]))
-        self.query_one("#stepper", Static).update(stepper_text(view, colors, inner, self.stepper_open))
-        found = current_phase(view)
-        self.query_one("#progress-label", Static).update(progress_label(view))
+        has_phases = bool(view.phases)
+        selector_widget = self.query_one("#stepper", Static)
+        waves_widget = self.query_one("#waves", Static)
+        selector_widget.display = has_phases
+        waves_widget.display = has_phases
+        selected = selection.resolve_selection(view, self.app.selections.get(self.effort, selection.PhaseSelection()))
+        if has_phases:
+            selector_widget.update(selection.selector_text(view, selected, colors, inner))
+            strip = selection.wave_strip(view, selected, inner) if selected is not None else Text()
+            waves_widget.update(strip)
+            waves_widget.display = bool(strip.plain)
+        self.query_one("#progress-label", Static).update(progress_label(view, selected))
         bar = self.query_one("#progress", ProgressBar)
-        bar.display = found is not None
-        self.query_one("#progress-label").display = found is not None
-        if found is not None:
-            done, total = effort_progress(view)
+        bar.display = has_phases
+        self.query_one("#progress-label").display = has_phases
+        if has_phases:
+            if selected is None:
+                done, total = effort_progress(view)
+            else:
+                done, total = phase_progress(view, selected)
             bar.update(total=max(total, 1), progress=done)
-        tally = counts(view)
-        selected = self.app.filters.get(self.effort, TaskFilter()).tab
+        scoped = selection.scoped(view, selected)
+        tally = counts(scoped)
+        selected_tab = self.app.filters.get(self.effort, TaskFilter()).tab
         tabs = list(self.query(StatusTab))
         for tab in tabs:
-            tab.show(tally[tab.tab_name], tab.tab_name == selected)
+            tab.show(tally[tab.tab_name], tab.tab_name == selected_tab)
         widths = [tab.label_width() for tab in tabs]
         self.query_one("#status-tabs").styles.grid_size_columns = tab_columns(widths, inner)
-        self.fill_tasks(view, now, width, inner, colors)
+        self.fill_tasks(scoped, view, now, width, inner, colors, selected)
         self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
-        self.fill_panel("#activity", activity_lines(view, now, colors, inner - 4))
-
-    def toggle_stepper(self) -> None:
-        self.stepper_open = not self.stepper_open
-        last = getattr(self, "last", None)
-        if last is not None:
-            view, now, width, colors = last
-            self.show(view, now, width, colors)
+        self.fill_panel("#activity", selection.activity_lines(view, now, colors, inner - 4))
 
     def mark_status_tab(self, selected: str) -> None:
         for tab in self.query(StatusTab):
@@ -362,10 +311,13 @@ class EffortPane(VerticalScroll):
             joined.append_text(line)
         panel.update(joined)
 
-    def fill_tasks(self, view: model.EffortView, now: datetime, width: int, room: int, colors: dict[str, str]) -> None:
+    def fill_tasks(
+        self, scoped: model.EffortView, full: model.EffortView, now: datetime, width: int, room: int,
+        colors: dict[str, str], selected_phase: str | None,
+    ) -> None:
         table = self.query_one("#tasks", DataTable)
         task_filter = self.app.filters.get(self.effort, TaskFilter())
-        pool = tab_tasks(view, task_filter.tab)
+        pool = tab_tasks(scoped, task_filter.tab)
         tasks = visible_tasks(pool, task_filter)
         title = tasks_title(len(tasks), len(pool), task_filter)
         table.display = bool(tasks)
@@ -373,7 +325,8 @@ class EffortPane(VerticalScroll):
         empty = self.query_one("#tasks-empty", Static)
         empty.display = not tasks
         empty.border_title = title
-        empty.update(empty_text(view, task_filter))
+        empty.update(empty_text(full, task_filter))
+        focused = table.has_focus
         keep = None
         if table.row_count:
             keep = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
@@ -384,15 +337,17 @@ class EffortPane(VerticalScroll):
         room = title_width(columns, room - 4, tasks, now)
         show_empty = task_filter.tab == "all" and not task_filter.text
         self.sections = {}
-        for row in section_rows(view, tasks, task_filter.sections, show_empty):
+        for row in section_rows(full, tasks, task_filter.sections, show_empty, selected_phase):
             self.sections[row.key] = row
             if row.task is None:
                 table.add_row(*section_cells(row, columns, room, colors), key=row.key)
             else:
-                grouped = row.task.phase in {phase.subject for phase in view.phases}
+                grouped = selected_phase is None and row.task.phase in {phase.subject for phase in full.phases}
                 table.add_row(*task_cells(row.task, columns, room, colors, now, "  " if grouped else ""), key=row.key)
         if keep is not None and keep in table.rows:
             table.move_cursor(row=table.get_row_index(keep))
+        if focused:
+            table.focus(scroll_visible=False)
 
 
 def tab_columns(widths: list[int], room: int) -> int:
@@ -778,9 +733,102 @@ class NeedsYouDetailScreen(Screen[None]):
         self.loaded = True
 
 
+class _PickerCancel:
+    pass
+
+
+PICKER_CANCEL = _PickerCancel()
+
+
+class KeyHelpScreen(Screen[None]):
+    BINDINGS = [
+        Binding("escape", "close", "close", show=False),
+        Binding("question_mark", "close", "close", show=False),
+    ]
+
+    def __init__(self, text: str) -> None:
+        super().__init__(name="_help")
+        self.help_text = text
+
+    def compose(self) -> ComposeResult:
+        yield Static(self.help_text, id="key-help", markup=False)
+
+    def action_close(self) -> None:
+        self.dismiss()
+
+
+class PhasePickerScreen(Screen[str | None]):
+    CSS = """
+    #picker-bar { height: 1; padding: 0 1; background: $panel; }
+    #picker-input { height: 1; margin-top: 1; }
+    #picker-options { height: 1fr; border: round $panel; }
+    """
+    BINDINGS = [
+        Binding("escape", "escape", "close", show=False),
+    ]
+
+    def __init__(self, effort: str) -> None:
+        super().__init__()
+        self.effort = effort
+
+    def compose(self) -> ComposeResult:
+        yield Static("Select phase", id="picker-bar")
+        yield Input(placeholder="filter phases", id="picker-input")
+        yield OptionList(id="picker-options")
+
+    def on_mount(self) -> None:
+        self._fill("")
+        self.query_one("#picker-input", Input).focus()
+
+    def _fill(self, needle: str) -> None:
+        options = self.query_one("#picker-options", OptionList)
+        options.clear_options()
+        view = self._view()
+        if view is None:
+            return
+        needle = needle.lower()
+        choices: list[tuple[str | None, str]] = [(None, "All phases")]
+        for phase in sorted(view.phases, key=lambda p: (p.ordinal, p.subject)):
+            line = f"{phase.ordinal} {PHASE_GLYPH[phase.state]} {phase.title or phase.subject} {phase.done}/{phase.total}"
+            if needle and needle not in line.lower() and needle not in phase.subject.lower():
+                continue
+            choices.append((phase.subject, line))
+        for subject, line in choices:
+            options.add_option(Option(line, id=subject if subject is not None else "__all__"))
+        if options.option_count:
+            options.highlighted = 0
+
+    def _view(self) -> model.EffortView | None:
+        app = self.app
+        if not isinstance(app, DashboardApp) or app.snapshot is None:
+            return None
+        return next((v for v in app.snapshot.efforts if v.effort == self.effort), None)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self._fill(event.value)
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        event.stop()
+        options = self.query_one("#picker-options", OptionList)
+        if options.highlighted is None or not options.option_count:
+            return
+        option = options.get_option_at_index(options.highlighted)
+        self.dismiss(None if option.id == "__all__" else option.id)
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        event.stop()
+        option = event.option
+        self.dismiss(None if option.id == "__all__" else option.id)
+
+    def action_escape(self) -> None:
+        self.dismiss(PICKER_CANCEL)
+
+
 class DashboardApp(App[None]):
     CSS = """
-    #header { height: 1; padding: 0 1; background: $panel; }
+    #header { height: 1; padding: 0 1; background: $panel; layout: horizontal; }
+    #header-path { width: 1fr; }
+    #header-finished { width: auto; color: $text-muted; }
     #error { height: auto; padding: 0 1; background: $error 20%; color: $error; display: none; }
     #empty { width: 100%; height: 1fr; content-align: center middle; color: $text-muted; display: none; }
     TabbedContent { height: 1fr; }
@@ -789,6 +837,7 @@ class DashboardApp(App[None]):
     .effort { padding: 0 1; }
     #goal { margin-top: 1; color: $text-muted; }
     #stepper { margin-top: 1; }
+    #waves { height: auto; margin-top: 1; color: $text-muted; }
     #progress-label { margin-top: 1; color: $text-muted; }
     #progress { height: 1; }
     #progress Bar { width: 1fr; }
@@ -822,6 +871,11 @@ class DashboardApp(App[None]):
         Binding("4", "status_tab('waiting')", "waiting", show=False),
         Binding("5", "status_tab('done')", "done", show=False),
         Binding("6", "status_tab('all')", "all", show=False),
+        Binding("[", "select_phase(-1)", "previous phase", show=False),
+        Binding("]", "select_phase(1)", "next phase", show=False),
+        Binding("P", "open_picker", "phase picker", show=False),
+        Binding("f", "toggle_finished", "toggle finished", show=False),
+        Binding("question_mark", "toggle_help", "help", show=False),
         Binding("escape", "clear_filter", "clear filter", show=False),
     ]
 
@@ -834,16 +888,20 @@ class DashboardApp(App[None]):
         self.loaded_at = 0.0
         self.panes: dict[str, EffortPane] = {}
         self.filters: dict[str, TaskFilter] = {}
+        self.selections: dict[str, selection.PhaseSelection] = {}
+        self.show_finished = False
 
     def compose(self) -> ComposeResult:
-        yield Static(id="header")
+        with Horizontal(id="header"):
+            yield Static(id="header-path")
+            yield Static(id="header-finished")
         yield Static(id="error")
         yield Static(id="empty")
         yield TabbedContent(id="efforts")
         yield Footer(compact=True)
 
     def on_mount(self) -> None:
-        self.query_one("#header", Static).update(header_text(self.target, None, palette_from(self.get_css_variables())))
+        self.query_one("#header-path", Static).update(header_text(self.target, None, palette_from(self.get_css_variables())))
         self.query_one("#empty", Static).update(f"No live efforts in {self.target.store}")
         for tabs in self.query(ContentTabs):
             tabs.can_focus = False
@@ -954,7 +1012,7 @@ class DashboardApp(App[None]):
         detail = isinstance(self.screen, (TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen))
         if detail and action in (
             "next_effort", "previous_effort", "open_task", "open_phase", "filter", "status_tab", "step_status_tab", "clear_filter",
-            "focus_needs", "leave_needs",
+            "focus_needs", "leave_needs", "select_phase", "open_picker", "toggle_finished",
         ):
             return False
         if action == "clear_filter":
@@ -969,12 +1027,29 @@ class DashboardApp(App[None]):
         pane = self.active_pane()
         return self.filters.get(pane.effort, TaskFilter()) if pane is not None else TaskFilter()
 
+    def show_effort(self, effort: str) -> None:
+        if self.snapshot is None:
+            return
+        pane = self.panes.get(effort)
+        view = next((item for item in self.snapshot.efforts if item.effort == effort), None)
+        if pane is None or view is None:
+            return
+        pane.show(view, self.snapshot.generated_at, self.size.width, palette_from(self.get_css_variables()))
+
     def repaint_pane(self, pane: EffortPane) -> None:
         if self.snapshot is None:
             return
         for view in self.snapshot.efforts:
             if view.effort == pane.effort:
-                pane.fill_tasks(view, self.snapshot.generated_at, self.size.width, pane.inner, palette_from(self.get_css_variables()))
+                selected = selection.resolve_selection(
+                    view, self.selections.get(pane.effort, selection.PhaseSelection()),
+                )
+                scoped = selection.scoped(view, selected)
+                pane.fill_tasks(
+                    scoped, view, self.snapshot.generated_at, self.size.width, pane.inner,
+                    palette_from(self.get_css_variables()), selected,
+                )
+                break
 
     def action_filter(self) -> None:
         pane = self.active_pane()
@@ -1022,12 +1097,16 @@ class DashboardApp(App[None]):
             pane.query_one("#tasks", DataTable).focus()
 
     def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id != "filter":
+            return
         pane = event.input.query_ancestor(EffortPane)
         if event.input.display and event.value != self.filters.get(pane.effort, TaskFilter()).text:
             self.filters.setdefault(pane.effort, TaskFilter()).text = event.value
             self.repaint_pane(pane)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id != "filter":
+            return
         pane = event.input.query_ancestor(EffortPane)
         event.input.display = False
         pane.query_one("#tasks", DataTable).focus()
@@ -1057,8 +1136,18 @@ class DashboardApp(App[None]):
 
     def action_open_phase(self) -> None:
         pane = self.active_pane()
+        if pane is None or self.snapshot is None:
+            return
+        view = next((v for v in self.snapshot.efforts if v.effort == pane.effort), None)
+        if view is None:
+            return
+        selected = selection.resolve_selection(view, self.selections.get(pane.effort, selection.PhaseSelection()))
+        if selected is not None:
+            if not isinstance(self.screen, DETAIL_SCREENS):
+                self.push_screen(PhaseDetailScreen(self.target, pane.effort, selected))
+            return
         key = self.cursor_key()
-        if pane is None or key is None or key == FOLD_KEY or self.snapshot is None:
+        if key is None or key == FOLD_KEY:
             return
         if key.startswith(PHASE_PREFIX):
             subject = key[len(PHASE_PREFIX):]
@@ -1066,6 +1155,71 @@ class DashboardApp(App[None]):
             subject = next((t.phase for v in self.snapshot.efforts for t in v.tasks if t.id == key), "")
         if subject and not isinstance(self.screen, DETAIL_SCREENS):
             self.push_screen(PhaseDetailScreen(self.target, pane.effort, subject))
+
+    def select_phase(self, effort: str, target: str | None) -> None:
+        pane = self.panes.get(effort)
+        if pane is None or self.snapshot is None:
+            return
+        view = next((v for v in self.snapshot.efforts if v.effort == effort), None)
+        if view is None or not view.phases:
+            return
+        self.selections[effort] = selection.pick(view, target)
+        self.show_effort(effort)
+
+    def action_select_phase(self, delta: int) -> None:
+        pane = self.active_pane()
+        if pane is None or self.snapshot is None:
+            return
+        view = next((v for v in self.snapshot.efforts if v.effort == pane.effort), None)
+        if view is None or not view.phases:
+            return
+        self.selections[pane.effort] = selection.step_selection(
+            view, self.selections.get(pane.effort, selection.PhaseSelection()), delta,
+        )
+        self.show_effort(pane.effort)
+
+    def action_open_picker(self) -> None:
+        pane = self.active_pane()
+        if pane is None:
+            return
+
+        def on_pick(target: str | None | _PickerCancel) -> None:
+            if isinstance(target, _PickerCancel):
+                return
+            self.select_phase(pane.effort, target)
+
+        self.push_screen(PhasePickerScreen(pane.effort), callback=on_pick)
+
+    async def action_toggle_finished(self) -> None:
+        self.show_finished = not self.show_finished
+        if self.snapshot is not None:
+            await self.apply(self.snapshot)
+
+    def _key_help(self) -> str:
+        focused = self.focused
+        blocks = ["Dashboard", *self._format_bindings(type(self))]
+        if focused is not None and type(focused) is not DashboardApp:
+            blocks.extend(["", type(focused).__name__, *self._format_bindings(type(focused))])
+        return "\n".join(blocks)
+
+    @staticmethod
+    def _format_bindings(cls: type) -> list[str]:
+        lines = []
+        for binding in getattr(cls, "BINDINGS", []):
+            if isinstance(binding, tuple):
+                key = binding[0]
+                description = binding[2] if len(binding) > 2 else binding[1]
+            else:
+                key = binding.key
+                description = binding.description
+            lines.append(f"{key}  {description}")
+        return lines
+
+    def action_toggle_help(self) -> None:
+        if isinstance(self.screen, KeyHelpScreen):
+            self.pop_screen()
+        else:
+            self.push_screen(KeyHelpScreen(self._key_help()))
 
     def open_task(self, task_id: str | None) -> None:
         if task_id and not isinstance(self.screen, TaskDetailScreen):
@@ -1111,15 +1265,16 @@ class DashboardApp(App[None]):
     async def apply(self, snapshot: model.Snapshot) -> None:
         self.snapshot = snapshot
         self.query_one("#error", Static).display = False
+        shown, hidden = selection.visible_efforts(snapshot, self.show_finished)
         tabs = self.query_one("#efforts", TabbedContent)
-        names = [view.effort for view in snapshot.efforts]
+        names = [view.effort for view in shown]
         active = tabs.active
         kept = [name for name in self.panes if name in names]
         moved = next((i for i, (old, new) in enumerate(zip(kept, names)) if old != new), len(kept))
         for name in [name for name in self.panes if name not in names] + kept[moved:]:
             await tabs.remove_pane(f"effort-{slug(name)}")
             del self.panes[name]
-        for view in snapshot.efforts:
+        for view in shown:
             if view.effort not in self.panes:
                 pane = EffortPane(view.effort)
                 self.panes[view.effort] = pane
@@ -1127,6 +1282,7 @@ class DashboardApp(App[None]):
         if kept[moved:] and active in [pane.id for pane in tabs.query(TabPane)]:
             self.set_focus(None)
             tabs.active = active
+        self.query_one("#header-finished", Static).update(Text(f"+{hidden} finished", style="dim") if hidden else Text())
         self.query_one("#empty", Static).display = not names
         tabs.display = bool(names)
         self.paint()
@@ -1144,8 +1300,10 @@ class DashboardApp(App[None]):
         width = width or self.size.width
         colors = palette_from(self.get_css_variables())
         tabs = self.query_one("#efforts", TabbedContent)
-        self.query_one("#header", Static).update(header_text(self.target, snapshot.generated_at, colors, width))
-        for view in snapshot.efforts:
+        shown, hidden = selection.visible_efforts(snapshot, self.show_finished)
+        self.query_one("#header-path", Static).update(header_text(self.target, snapshot.generated_at, colors, width))
+        self.query_one("#header-finished", Static).update(Text(f"+{hidden} finished", style="dim") if hidden else Text())
+        for view in shown:
             tab = tabs.get_tab(f"effort-{slug(view.effort)}")
             tab.label = Text(tab_label(view))
             tab.set_class(view.finished, "finished")
