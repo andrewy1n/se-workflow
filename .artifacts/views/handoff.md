@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:c62d84bda8a6cd32048040f85806ec9d66419b80ad3a6629fa060e7273ecaa4b
+> Store state: sha256:c6cb27c55e4b2959063224dcb467e8ee7cb71d5aba0fc5d9376d689abf5b7f86
 
 ## dashboard
 
@@ -38,5 +38,4 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **evidence-loop**: evidence-loop is in progress. Plan amended for evidence escalation, the verify/assess split, and two modes. Waiting on plan review.; phase _(id: [rec-a6ece343-bb6b-4f27-bf3f-c60902142e4c](.artifacts/records/project__current-position/rec-a6ece343-bb6b-4f27-bf3f-c60902142e4c.md))_
-- **workflow-loop**: evidence-loop is planned. The approach is settled. Tasks are not written.; effort _(id: [rec-e8b30aae-956a-4d62-b097-4cdbf4168bc0](.artifacts/records/project__current-position/rec-e8b30aae-956a-4d62-b097-4cdbf4168bc0.md))_
+- **workflow-loop**: evidence-loop done.; effort _(id: [rec-12df4b07-1639-47f7-a2b9-273059dd4e03](.artifacts/records/project__current-position/rec-12df4b07-1639-47f7-a2b9-273059dd4e03.md))_

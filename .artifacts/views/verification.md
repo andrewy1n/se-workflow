@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:e9c07431bacb66d70f1f6f38e3338ea0927dc18a2ede978d4978778289874387
+> Store state: sha256:490543efbad4897742e7949b31d335108ee4e5628cf0edcfd2712557a58454b4
 
 ## activity-failures
 
@@ -363,6 +363,9 @@
 ### Acceptance
 - **loop-scenarios**: test_evidence_loop.py drives adaptive-artifacts through the happy path to release ready, an implementation route, a no-new-evidence raise to design, a design route, a failed integration-report, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488](.artifacts/records/project__acceptance/rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488.md))_
 
+### Check
+- **loop-scenarios**: rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488; dirty; pass; check _(id: [rec-2d41627d-8465-47a4-8299-fcff74f9f375](.artifacts/records/project__check-run/rec-2d41627d-8465-47a4-8299-fcff74f9f375.md))_
+
 ## model-fixture-reuse
 
 ### Acceptance
@@ -485,6 +488,9 @@
 
 ### Acceptance
 - **readme-lifecycle**: The README states the two modes, the verify/assess split, the evidence escalation ladder, and that release ready is not deployed, and test_readme_lifecycle.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-61e95277-ed36-4e3f-9307-df5f8e946151](.artifacts/records/project__acceptance/rec-61e95277-ed36-4e3f-9307-df5f8e946151.md))_
+
+### Check
+- **readme-lifecycle**: rec-61e95277-ed36-4e3f-9307-df5f8e946151; dirty; pass; check _(id: [rec-522c9649-86e2-408e-b3e4-3effae133ab9](.artifacts/records/project__check-run/rec-522c9649-86e2-408e-b3e4-3effae133ab9.md))_
 
 ## readme-quickstart
 
@@ -863,6 +869,12 @@
 
 ### Acceptance
 - **verify-evidence-loop**: tests/test_evidence_loop.py drives adaptive-artifacts on a fresh store through release ready, a check-run with no level or next, a repeated implementation failure that routes to design, a design route, integration failure, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27](.artifacts/records/project__acceptance/rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27.md))_
+
+### Check
+- **verify-evidence-loop**: rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8; dirty; pass; check _(id: [rec-77720c61-994f-4b64-a26e-e8bfd14c8d46](.artifacts/records/project__check-run/rec-77720c61-994f-4b64-a26e-e8bfd14c8d46.md))_
+- **verify-evidence-loop**: rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f; dirty; pass; check _(id: [rec-b7fea9c3-cbe2-4442-976f-5714774f6bdd](.artifacts/records/project__check-run/rec-b7fea9c3-cbe2-4442-976f-5714774f6bdd.md))_
+- **verify-evidence-loop**: rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27; dirty; pass; check _(id: [rec-cfe8b022-b5b2-4c6a-91bd-8dfecf1b156e](.artifacts/records/project__check-run/rec-cfe8b022-b5b2-4c6a-91bd-8dfecf1b156e.md))_
+- **verify-evidence-loop**: rec-19a87492-4386-45cb-9b12-53cf66c22e09; dirty; pass; check _(id: [rec-dfb1b6e8-b07f-42b2-a6cc-671f86b19583](.artifacts/records/project__check-run/rec-dfb1b6e8-b07f-42b2-a6cc-671f86b19583.md))_
 
 ## verify-evidence-loop-contract
 

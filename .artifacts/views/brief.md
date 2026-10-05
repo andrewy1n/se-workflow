@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:5088b66078f1f736e081fba4d1237b6a15d016921cdd6774f73f544278080d1b
+> Store state: sha256:0658a70793c6c7376f277dba4a3bcd9c06bcdcabae9da450f8f605ffcaa16a9d
 
 ## activity-failures
 
@@ -213,11 +213,6 @@
 ### Acceptance
 - **effort-switch-focus**: Pilot test: with an effort-level question on a live effort, tab and shift+tab reach a finished effort and stay there; the test fails before the fix; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k switch _(id: [rec-768f3192-cdcf-45d9-9421-2282f78e8bef](.artifacts/records/project__acceptance/rec-768f3192-cdcf-45d9-9421-2282f78e8bef.md))_
 
-## evidence-loop
-
-### Position
-- **evidence-loop**: evidence-loop is in progress. Plan amended for evidence escalation, the verify/assess split, and two modes. Waiting on plan review.; phase _(id: [rec-a6ece343-bb6b-4f27-bf3f-c60902142e4c](.artifacts/records/project__current-position/rec-a6ece343-bb6b-4f27-bf3f-c60902142e4c.md))_
-
 ## execute-landing
 
 ### Acceptance
@@ -287,9 +282,6 @@
 - **label-view-fields**: A view with label_fields true renders field: value pairs; a view without it renders exactly as before; tdd; dashboard; cd ~/adaptive-artifacts && python3 -m pytest tools/runtime/tests -q _(id: [rec-0a970468-5d80-49a0-bf80-d5481a65814b](.artifacts/records/project__acceptance/rec-0a970468-5d80-49a0-bf80-d5481a65814b.md))_
 
 ## loop-scenarios
-
-### Work
-- **loop-scenarios**: Test the evidence loop through the CLI; evidence-loop; deliver; workflow-loop _(id: [rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba](.artifacts/records/project__work-item/rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba.md))_
 
 ### Acceptance
 - **loop-scenarios**: test_evidence_loop.py drives adaptive-artifacts through the happy path to release ready, an implementation route, a no-new-evidence raise to design, a design route, a failed integration-report, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488](.artifacts/records/project__acceptance/rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488.md))_
@@ -365,9 +357,6 @@
 - **plan-wave-rules**: plan-phase requires a recipe, one shared executor of inline or subagent per wave, and phase size, stops, and collision notes, and it does not open plan review until those are present; tdd; workflow-loop; python3 -m pytest tests/test_plan_wave_rules.py -q _(id: [rec-b1c39c5f-6758-426d-bdcf-0ff6c57bcbc5](.artifacts/records/project__acceptance/rec-b1c39c5f-6758-426d-bdcf-0ff6c57bcbc5.md))_
 
 ## readme-lifecycle
-
-### Work
-- **readme-lifecycle**: Document the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-0a346ce9-d543-40c6-bffd-977250e063c5](.artifacts/records/project__work-item/rec-0a346ce9-d543-40c6-bffd-977250e063c5.md))_
 
 ### Acceptance
 - **readme-lifecycle**: The README states the two modes, the verify/assess split, the evidence escalation ladder, and that release ready is not deployed, and test_readme_lifecycle.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-61e95277-ed36-4e3f-9307-df5f8e946151](.artifacts/records/project__acceptance/rec-61e95277-ed36-4e3f-9307-df5f8e946151.md))_
@@ -642,9 +631,6 @@
 
 ## verify-evidence-loop
 
-### Work
-- **verify-evidence-loop**: Verify the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-1ed5449a-0cff-4806-aea0-c527992f2e80](.artifacts/records/project__work-item/rec-1ed5449a-0cff-4806-aea0-c527992f2e80.md))_
-
 ### Acceptance
 - **verify-evidence-loop**: tests/test_evidence_loop.py drives adaptive-artifacts on a fresh store through release ready, a check-run with no level or next, a repeated implementation failure that routes to design, a design route, integration failure, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27](.artifacts/records/project__acceptance/rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27.md))_
 
@@ -844,4 +830,4 @@
 ## workflow-loop
 
 ### Position
-- **workflow-loop**: evidence-loop is planned. The approach is settled. Tasks are not written.; effort _(id: [rec-e8b30aae-956a-4d62-b097-4cdbf4168bc0](.artifacts/records/project__current-position/rec-e8b30aae-956a-4d62-b097-4cdbf4168bc0.md))_
+- **workflow-loop**: evidence-loop done.; effort _(id: [rec-12df4b07-1639-47f7-a2b9-273059dd4e03](.artifacts/records/project__current-position/rec-12df4b07-1639-47f7-a2b9-273059dd4e03.md))_
