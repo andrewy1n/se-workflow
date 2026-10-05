@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:3dd4e3dca2e42f2654e60447ef59db61a8c85d0cd42a62eb526b17391b6ef672
+> Store state: sha256:5088b66078f1f736e081fba4d1237b6a15d016921cdd6774f73f544278080d1b
 
 ## activity-failures
 
@@ -80,9 +80,6 @@
 - **as-targets**: targets.md has one section per target and each section lists at least one pattern whose metric field names all exist in the real aggregate output.; tdd; session-analysis; python3 -m pytest -q tests/test_analyze_sessions_targets.py _(id: [rec-9c15a1e4-c392-4ce0-8482-7bea7dd7f367](.artifacts/records/project__acceptance/rec-9c15a1e4-c392-4ce0-8482-7bea7dd7f367.md))_
 
 ## assess-route
-
-### Work
-- **assess-route**: Assess evidence and choose the next stage; evidence-loop; deliver; workflow-loop _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
 
 ### Acceptance
 - **assess-route**: verify-work keeps level and next off the check-run, raises implementation to design only when a repeat adds no evidence, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
@@ -273,9 +270,6 @@
 
 ## integrate-execute
 
-### Work
-- **integrate-execute**: Record semantic integration after parallel execution; evidence-loop; deliver; workflow-loop _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
-
 ### Acceptance
 - **integrate-execute**: execute-phase writes an integration-report that does not treat a git merge as pass, and test_integrate_rules.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_integrate_rules.py -q _(id: [rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84](.artifacts/records/project__acceptance/rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84.md))_
 
@@ -438,9 +432,6 @@
 
 ## specify-design
 
-### Work
-- **specify-design**: Write specification and design from discuss; evidence-loop; deliver; workflow-loop _(id: [rec-c38456f3-9e59-46f8-a9a4-5c05961544e8](.artifacts/records/project__work-item/rec-c38456f3-9e59-46f8-a9a4-5c05961544e8.md))_
-
 ### Acceptance
 - **specify-design**: discuss creates a specification and a design with the contract's required fields, and test_discuss_skill.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_discuss_skill.py -q _(id: [rec-7683d746-1d29-4de5-bc76-3bdcc678f158](.artifacts/records/project__acceptance/rec-7683d746-1d29-4de5-bc76-3bdcc678f158.md))_
 
@@ -580,9 +571,6 @@
 - **tmux-test-waits**: The six failing tmux and e2e tests pass, and each tmux popup test takes under 4s; check; test-suite-speed; python3 -m pytest tests/test_tmux_integration.py tests/test_e2e_dashboard.py -q --durations=6 _(id: [rec-572fa450-b4a2-45bb-b52e-b5198f0e9b91](.artifacts/records/project__acceptance/rec-572fa450-b4a2-45bb-b52e-b5198f0e9b91.md))_
 
 ## trace-plan
-
-### Work
-- **trace-plan**: Stamp tasks with requirements and decisions; evidence-loop; deliver; workflow-loop _(id: [rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c](.artifacts/records/project__work-item/rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c.md))_
 
 ### Acceptance
 - **trace-plan**: plan-phase stamps requirements and decisions on work-items and requirement on acceptances when a specification exists, and test_plan_trace.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_plan_trace.py -q _(id: [rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5](.artifacts/records/project__acceptance/rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5.md))_

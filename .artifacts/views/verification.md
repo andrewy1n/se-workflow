@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:2cdc909bbbbe76a55d4e12bc80d409751103a8a04afb0498590f96d0e7e168c9
+> Store state: sha256:e9c07431bacb66d70f1f6f38e3338ea0927dc18a2ede978d4978778289874387
 
 ## activity-failures
 
@@ -113,6 +113,9 @@
 
 ### Acceptance
 - **assess-route**: verify-work keeps level and next off the check-run, raises implementation to design only when a repeat adds no evidence, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
+
+### Check
+- **assess-route**: rec-fb7cdbf9-8de6-4066-a413-41f688ed3792; dirty; pass; check _(id: [rec-41c4aff8-877d-449c-8d7d-a9f99470d5ac](.artifacts/records/project__check-run/rec-41c4aff8-877d-449c-8d7d-a9f99470d5ac.md))_
 
 ## close-step-skill
 
@@ -333,6 +336,9 @@
 ### Acceptance
 - **integrate-execute**: execute-phase writes an integration-report that does not treat a git merge as pass, and test_integrate_rules.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_integrate_rules.py -q _(id: [rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84](.artifacts/records/project__acceptance/rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84.md))_
 
+### Check
+- **integrate-execute**: rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84; dirty; pass; check _(id: [rec-681e2bb6-166a-4807-b709-6831affb3963](.artifacts/records/project__check-run/rec-681e2bb6-166a-4807-b709-6831affb3963.md))_
+
 ## keyboard-focus
 
 ### Acceptance
@@ -538,6 +544,9 @@
 
 ### Acceptance
 - **specify-design**: discuss creates a specification and a design with the contract's required fields, and test_discuss_skill.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_discuss_skill.py -q _(id: [rec-7683d746-1d29-4de5-bc76-3bdcc678f158](.artifacts/records/project__acceptance/rec-7683d746-1d29-4de5-bc76-3bdcc678f158.md))_
+
+### Check
+- **specify-design**: rec-7683d746-1d29-4de5-bc76-3bdcc678f158; dirty; pass; check _(id: [rec-871a92d2-51c9-4d46-babe-ea58c9695e02](.artifacts/records/project__check-run/rec-871a92d2-51c9-4d46-babe-ea58c9695e02.md))_
 
 ## status-line-from-snapshot
 
@@ -749,6 +758,9 @@
 
 ### Acceptance
 - **trace-plan**: plan-phase stamps requirements and decisions on work-items and requirement on acceptances when a specification exists, and test_plan_trace.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_plan_trace.py -q _(id: [rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5](.artifacts/records/project__acceptance/rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5.md))_
+
+### Check
+- **trace-plan**: rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5; dirty; pass; check _(id: [rec-6288d5e3-7aed-4c8a-ad22-2e2fa716b9fc](.artifacts/records/project__check-run/rec-6288d5e3-7aed-4c8a-ad22-2e2fa716b9fc.md))_
 
 ## unsigned-check-label
 
