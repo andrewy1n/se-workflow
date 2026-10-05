@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:631dc06bf1c5004cbb40f31b041bb169f3e0eeb77f61b680c09259f4b2f2da8e
+> Store state: sha256:7eacac45081185ef0b774c3c7b92851eb7c2e57defcc76b5488cf03222338c66
 
 ## dashboard
 
@@ -9,8 +9,11 @@
 - **dashboard**: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; effort; deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
 ### Position
-- **dashboard**: Phases 1-18 done. quiet-header is on main at dccb4d1. No phase is planned.; effort _(id: [rec-c5404f0b-e8a8-4abc-8097-5b1640f585c8](.artifacts/records/project__current-position/rec-c5404f0b-e8a8-4abc-8097-5b1640f585c8.md))_
+- **dashboard**: run-facts done; next up: estimate-view; effort _(id: [rec-7a493e00-8c97-43eb-993d-1857392b05fc](.artifacts/records/project__current-position/rec-7a493e00-8c97-43eb-993d-1857392b05fc.md))_
 - **evidence-view**: evidence-view is planned with four waves. Waiting on plan review.; phase _(id: [rec-c9d286cc-950b-4eca-bc92-6f78e257b5d1](.artifacts/records/project__current-position/rec-c9d286cc-950b-4eca-bc92-6f78e257b5d1.md))_
+
+### In Progress
+- **verify-evidence-view**: Verify the evidence view; evidence-view; deliver; dashboard _(id: [rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e](.artifacts/records/project__work-item/rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e.md))_
 
 ## session-analysis
 

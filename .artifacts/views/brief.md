@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:0658a70793c6c7376f277dba4a3bcd9c06bcdcabae9da450f8f605ffcaa16a9d
+> Store state: sha256:d40a604106dfdb51f3f9dca6dfce08e3c92951f20477422d73ba4825ee2c59b5
 
 ## activity-failures
 
@@ -112,7 +112,7 @@
 ## dashboard
 
 ### Position
-- **dashboard**: Phases 1-18 done. quiet-header is on main at dccb4d1. No phase is planned.; effort _(id: [rec-c5404f0b-e8a8-4abc-8097-5b1640f585c8](.artifacts/records/project__current-position/rec-c5404f0b-e8a8-4abc-8097-5b1640f585c8.md))_
+- **dashboard**: run-facts done; next up: estimate-view; effort _(id: [rec-7a493e00-8c97-43eb-993d-1857392b05fc](.artifacts/records/project__current-position/rec-7a493e00-8c97-43eb-993d-1857392b05fc.md))_
 
 ## dashboard-app
 
@@ -212,6 +212,119 @@
 
 ### Acceptance
 - **effort-switch-focus**: Pilot test: with an effort-level question on a live effort, tab and shift+tab reach a finished effort and stay there; the test fails before the fix; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k switch _(id: [rec-768f3192-cdcf-45d9-9421-2282f78e8bef](.artifacts/records/project__acceptance/rec-768f3192-cdcf-45d9-9421-2282f78e8bef.md))_
+
+## estimate-contract
+
+### Acceptance
+- **estimate-contract**: contract/project-design.json lists optional size with enum XS, S, M, L, XL on project:work-item, and the phase record does not gain size.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_contract.py -q -k size _(id: [rec-1f969ece-cd7e-42c2-944a-899e5ff0f266](.artifacts/records/project__acceptance/rec-1f969ece-cd7e-42c2-944a-899e5ff0f266.md))_
+
+## estimate-contract-minutes
+
+### Acceptance
+- **estimate-contract-minutes**: estimate_minutes is an optional work-item field and is not an enum, and the work-item has no minutes or hours field.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_contract.py -q -k minutes _(id: [rec-5a0f9f85-407d-497d-b412-1e314d15e91d](.artifacts/records/project__acceptance/rec-5a0f9f85-407d-497d-b412-1e314d15e91d.md))_
+
+## estimate-skill
+
+### Acceptance
+- **estimate-skill**: Every new work-item example in plan-phase includes size and estimate_minutes, and the skill states the five size meanings and that the minutes belong to the executor.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_skill.py -q -k write _(id: [rec-0106101c-dc9b-4060-bef9-b1dd59a2bd68](.artifacts/records/project__acceptance/rec-0106101c-dc9b-4060-bef9-b1dd59a2bd68.md))_
+
+## estimate-skill-rollup
+
+### Acceptance
+- **estimate-skill-rollup**: The skill states that inline minutes in a wave add, a subagent wave uses the longest estimate_minutes, and phase elapsed time adds those wave figures in wave order, skipping blanks.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_skill.py -q -k rollup _(id: [rec-8ea82af0-405d-4dbb-bb7c-a73bdf063adf](.artifacts/records/project__acceptance/rec-8ea82af0-405d-4dbb-bb7c-a73bdf063adf.md))_
+
+## estimate-skill-sitting
+
+### Acceptance
+- **estimate-skill-sitting**: The skill still requires the phase body to record one sitting or more than one, and it says the phase record stores neither size nor estimate_minutes.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_skill.py -q -k sitting _(id: [rec-bd586f77-929c-45d7-882a-438a63414019](.artifacts/records/project__acceptance/rec-bd586f77-929c-45d7-882a-438a63414019.md))_
+
+## evidence-model
+
+### Acceptance
+- **evidence-model**: Requirement rows join by phase and id with text, traced task count, status from the latest assessment, and unassessed with the latest check result when no assessment exists; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and requirement' _(id: [rec-d9e2121e-cbda-488a-b93d-f162ca25e09d](.artifacts/records/project__acceptance/rec-d9e2121e-cbda-488a-b93d-f162ca25e09d.md))_
+
+### Amendment
+- **evidence-model**: evidence-model; dashboard _(id: [rec-57f0a62f-d115-4453-a551-1bb3e4f0713e](.artifacts/records/project__assignment-amendment/rec-57f0a62f-d115-4453-a551-1bb3e4f0713e.md))_
+
+## evidence-model-activity
+
+### Acceptance
+- **evidence-model-activity**: Activity lists assessments, integration-reports, and releases, marks upstream routes and level escalation, and flags fail or blocked as failed; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and activity' _(id: [rec-40275e71-0386-466c-9431-b6a06ea32cc4](.artifacts/records/project__acceptance/rec-40275e71-0386-466c-9431-b6a06ea32cc4.md))_
+
+## evidence-model-detail
+
+### Acceptance
+- **evidence-model-detail**: load_requirement_detail returns text, decisions, traced tasks, acceptances with latest check and evidence kind, and every assessment oldest first including superseded ones; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and requirement_detail' _(id: [rec-03a4156f-4505-4c4a-84f8-b2dbf28dbc76](.artifacts/records/project__acceptance/rec-03a4156f-4505-4c4a-84f8-b2dbf28dbc76.md))_
+
+## evidence-model-legacy
+
+### Acceptance
+- **evidence-model-legacy**: A store whose CLI rejects the evidence types loads a snapshot with no error; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and legacy' _(id: [rec-6d2b9680-5f62-4979-8450-8b3f99e1707b](.artifacts/records/project__acceptance/rec-6d2b9680-5f62-4979-8450-8b3f99e1707b.md))_
+
+## evidence-model-needs
+
+### Acceptance
+- **evidence-model-needs**: Needs you gains loop-route items for upstream, blocked, and low-confidence latest assessments and integration items for failed or blocked reports, and none for execute, verify, or insufficient routes; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and needs' _(id: [rec-b629a582-c0ce-42e7-a2c8-006bf618a411](.artifacts/records/project__acceptance/rec-b629a582-c0ce-42e7-a2c8-006bf618a411.md))_
+
+## evidence-model-release
+
+### Acceptance
+- **evidence-model-release**: A ready release sets release_ready on the effort and the phase, and finished is unchanged; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and release' _(id: [rec-0ebb72a4-a992-4c0d-804f-e4b659df3ff1](.artifacts/records/project__acceptance/rec-0ebb72a4-a992-4c0d-804f-e4b659df3ff1.md))_
+
+## evidence-model-simple
+
+### Acceptance
+- **evidence-model-simple**: A phase with no specification has evidence None and adds no Needs-you or activity item; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and simple' _(id: [rec-5cd3b306-dec8-422d-adcd-d051b9748117](.artifacts/records/project__acceptance/rec-5cd3b306-dec8-422d-adcd-d051b9748117.md))_
+
+## evidence-model-stage
+
+### Acceptance
+- **evidence-model-stage**: Stage derivation returns each stage for a store built to hit each rule, and release when the latest release is ready; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and stage' _(id: [rec-0efed917-d236-4ffc-893e-994b77883d20](.artifacts/records/project__acceptance/rec-0efed917-d236-4ffc-893e-994b77883d20.md))_
+
+## evidence-surfaces
+
+### Acceptance
+- **evidence-surfaces**: A structured phase header row shows R n/m verified at 60 and 120 columns; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and tally' _(id: [rec-af8be786-2f56-46ed-95a4-4b0e2f42cfcc](.artifacts/records/project__acceptance/rec-af8be786-2f56-46ed-95a4-4b0e2f42cfcc.md))_
+
+## evidence-surfaces-activity
+
+### Acceptance
+- **evidence-surfaces-activity**: Activity shows assessment, integration, and release lines, with failed or blocked ones in the error colour; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and activity' _(id: [rec-f0de4074-6f9b-4db2-96b2-64768ae46a3f](.artifacts/records/project__acceptance/rec-f0de4074-6f9b-4db2-96b2-64768ae46a3f.md))_
+
+## evidence-surfaces-needs
+
+### Acceptance
+- **evidence-surfaces-needs**: Needs you shows readable loop-route and integration lines at 60 columns; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and needs' _(id: [rec-af74e732-3147-46e6-959b-9de2d204d9f8](.artifacts/records/project__acceptance/rec-af74e732-3147-46e6-959b-9de2d204d9f8.md))_
+
+## evidence-surfaces-phase
+
+### Acceptance
+- **evidence-surfaces-phase**: Phase detail shows the stage strip with the current stage marked, the specification weight and non-goals, the design decisions, and the integration result with conflicts, with no line wider than the pane at 60 columns; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and strip' _(id: [rec-11264441-69a2-49e7-bc6f-61337f037af7](.artifacts/records/project__acceptance/rec-11264441-69a2-49e7-bc6f-61337f037af7.md))_
+
+## evidence-surfaces-release
+
+### Acceptance
+- **evidence-surfaces-release**: A ready release shows Release ready on the effort tab and the phase row; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and release' _(id: [rec-1e0e0e59-dc14-4393-96b8-8b865ab34368](.artifacts/records/project__acceptance/rec-1e0e0e59-dc14-4393-96b8-8b865ab34368.md))_
+
+## evidence-surfaces-requirements
+
+### Acceptance
+- **evidence-surfaces-requirements**: Phase detail lists each requirement with id, status, next, and task count, and an unassessed row shows the latest check result dimmed; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and requirement_list' _(id: [rec-4e3b28bd-22b8-4af2-8798-0bc134ff47ab](.artifacts/records/project__acceptance/rec-4e3b28bd-22b8-4af2-8798-0bc134ff47ab.md))_
+
+## evidence-surfaces-simple
+
+### Acceptance
+- **evidence-surfaces-simple**: A store with only simple phases renders the same header, stepper, phase detail, and --once output as before; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and simple' _(id: [rec-6d5d3021-1e7d-4938-9385-d0112fce7aa8](.artifacts/records/project__acceptance/rec-6d5d3021-1e7d-4938-9385-d0112fce7aa8.md))_
+
+## evidence-surfaces-stepper
+
+### Acceptance
+- **evidence-surfaces-stepper**: The stepper's current phase shows its stage word and stays within 60 columns; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and stepper' _(id: [rec-dea24b5b-9884-4880-a246-013ea423d317](.artifacts/records/project__acceptance/rec-dea24b5b-9884-4880-a246-013ea423d317.md))_
+
+## evidence-view
+
+### Position
+- **evidence-view**: evidence-view is planned with four waves. Waiting on plan review.; phase _(id: [rec-c9d286cc-950b-4eca-bc92-6f78e257b5d1](.artifacts/records/project__current-position/rec-c9d286cc-950b-4eca-bc92-6f78e257b5d1.md))_
 
 ## execute-landing
 
@@ -370,6 +483,26 @@
 
 ### Acceptance
 - **recency-selection**: A role with a 24h recorded_at window selects a record recorded 1h ago and skips one recorded 48h ago; a malformed window fails contract resolution; tdd; dashboard; cd ~/adaptive-artifacts && python3 -m pytest tools/runtime/tests -q _(id: [rec-d854ca7d-767b-4729-92e1-18ef8853d92c](.artifacts/records/project__acceptance/rec-d854ca7d-767b-4729-92e1-18ef8853d92c.md))_
+
+## requirement-links
+
+### Acceptance
+- **requirement-links**: Task detail lists the task's requirements and decisions, and enter on a requirement opens its requirement detail; esc returns; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and link and task' _(id: [rec-ceea1aa8-71eb-4308-925b-d17ce2d31253](.artifacts/records/project__acceptance/rec-ceea1aa8-71eb-4308-925b-d17ce2d31253.md))_
+
+## requirement-links-needs
+
+### Acceptance
+- **requirement-links-needs**: Enter on a loop-route Needs-you item opens the requirement detail; enter on an integration item opens the Needs-you detail; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and link and needs' _(id: [rec-b6a074dd-62de-4eea-85d1-100bd193b1bc](.artifacts/records/project__acceptance/rec-b6a074dd-62de-4eea-85d1-100bd193b1bc.md))_
+
+## requirement-links-phase
+
+### Acceptance
+- **requirement-links-phase**: Enter on a requirement in phase detail opens its requirement detail, and esc returns to the phase detail; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'evidence and link and phase' _(id: [rec-61730bf8-c287-4b79-a619-f974d0bef93d](.artifacts/records/project__acceptance/rec-61730bf8-c287-4b79-a619-f974d0bef93d.md))_
+
+## requirement-screen
+
+### Acceptance
+- **requirement-screen**: Pilot tests at 60 and 120 columns show the text, status, decisions, traced tasks, acceptances with latest check and evidence kind, and history oldest first; enter on a task opens its detail and esc returns; the screen redraws after a store change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_requirement.py -q _(id: [rec-fe7cbd3d-6b76-4bf1-b258-e4fa9361b6d8](.artifacts/records/project__acceptance/rec-fe7cbd3d-6b76-4bf1-b258-e4fa9361b6d8.md))_
 
 ## rj-join
 
@@ -649,6 +782,39 @@
 ### Acceptance
 - **verify-evidence-loop-skills**: The six skills document only contract-legal writes for specification, design, trace fields, integration-report, and assessment routing.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py tests/test_plan_trace.py tests/test_integrate_rules.py tests/test_assess_routing.py -q _(id: [rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f](.artifacts/records/project__acceptance/rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f.md))_
 
+## verify-evidence-view
+
+### Work
+- **verify-evidence-view**: Verify the evidence view; evidence-view; deliver; dashboard _(id: [rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e](.artifacts/records/project__work-item/rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e.md))_
+
+### Acceptance
+- **verify-evidence-view**: Through the real tmux entry point a structured phase shows unassessed, an upstream route under Needs you, then R n/m verified, the stage word, Release ready, and a requirement detail opened by keys; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_e2e_dashboard.py -q -m tmux -k evidence _(id: [rec-7ed13ebd-7b0a-436b-9c12-dfd4ef8cefcd](.artifacts/records/project__acceptance/rec-7ed13ebd-7b0a-436b-9c12-dfd4ef8cefcd.md))_
+
+## verify-evidence-view-app
+
+### Acceptance
+- **verify-evidence-view-app**: Exit criterion 2: the app and requirement screen pilot tests pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_requirement.py -q _(id: [rec-08b630d4-2e32-4b18-a674-8d21a0733158](.artifacts/records/project__acceptance/rec-08b630d4-2e32-4b18-a674-8d21a0733158.md))_
+
+## verify-evidence-view-legacy
+
+### Acceptance
+- **verify-evidence-view-legacy**: Exit criterion 3: a store whose contract lacks the evidence types loads with no error; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and legacy' _(id: [rec-04bc526a-2703-4f22-8c56-9b068bc7869b](.artifacts/records/project__acceptance/rec-04bc526a-2703-4f22-8c56-9b068bc7869b.md))_
+
+## verify-evidence-view-model
+
+### Acceptance
+- **verify-evidence-view-model**: Exit criterion 1: the evidence model tests pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k evidence _(id: [rec-ab6549b4-827c-4cb8-9fd1-4adcc54de77d](.artifacts/records/project__acceptance/rec-ab6549b4-827c-4cb8-9fd1-4adcc54de77d.md))_
+
+## verify-evidence-view-readme
+
+### Acceptance
+- **verify-evidence-view-readme**: Exit criterion 4: the README documents the requirement detail, the tally, the stage strip and word, Release ready, and the new Needs-you items; check; dashboard; grep -qi 'requirement detail' README.md && grep -q 'verified' README.md && grep -qi 'release ready' README.md && grep -qi 'stage' README.md _(id: [rec-338cf500-251e-4741-8168-ea67b1147ccc](.artifacts/records/project__acceptance/rec-338cf500-251e-4741-8168-ea67b1147ccc.md))_
+
+## verify-evidence-view-suite
+
+### Acceptance
+- **verify-evidence-view-suite**: Exit criterion 4: the full suite passes, including the tmux tests; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m 'not tmux' && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-ffb67717-3553-4bc6-9497-fb877731866f](.artifacts/records/project__acceptance/rec-ffb67717-3553-4bc6-9497-fb877731866f.md))_
+
 ## verify-layout-phase
 
 ### Acceptance
@@ -726,6 +892,31 @@
 
 ### Acceptance
 - **verify-readable-layout-phase-signoff**: The user views the dashboard in the popup and the side pane and signs off that it is readable and clean; manual; dashboard _(id: [rec-83820e9f-6ff5-407c-aa8f-deb4e441d5a5](.artifacts/records/project__acceptance/rec-83820e9f-6ff5-407c-aa8f-deb4e441d5a5.md))_
+
+## verify-run-facts
+
+### Acceptance
+- **verify-run-facts**: Through the adaptive-artifacts CLI, a fresh store accepts a work-item with size L and estimate_minutes 25, accepts estimate_minutes 0, accepts a work-item that omits both, and rejects size XXL.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_estimate_cli.py -q _(id: [rec-421c70cd-39cf-4be7-8247-8e651bd0617d](.artifacts/records/project__acceptance/rec-421c70cd-39cf-4be7-8247-8e651bd0617d.md))_
+
+## verify-run-facts-contract
+
+### Acceptance
+- **verify-run-facts-contract**: contract/project-design.json allows optional size (XS, S, M, L, XL) and optional estimate_minutes on project:work-item, and the phase record does not gain either field.; check; dashboard; uv run --with pytest python -m pytest tests/test_estimate_contract.py -q _(id: [rec-559ae6f2-7bcd-483a-b04a-47312542235e](.artifacts/records/project__acceptance/rec-559ae6f2-7bcd-483a-b04a-47312542235e.md))_
+
+## verify-run-facts-dashboard
+
+### Acceptance
+- **verify-run-facts-dashboard**: The phase diff does not change dashboard/.; check; dashboard; test -z "$(git diff --name-only main -- dashboard/)" _(id: [rec-3a8cb50a-c1bf-4698-8b25-1a91d9ad70a2](.artifacts/records/project__acceptance/rec-3a8cb50a-c1bf-4698-8b25-1a91d9ad70a2.md))_
+
+## verify-run-facts-skill
+
+### Acceptance
+- **verify-run-facts-skill**: plan-phase requires size and estimate_minutes on each new work-item, and states the five size meanings, the inline sum, the subagent-wave maximum, the phase elapsed time, and the sitting line.; check; dashboard; uv run --with pytest python -m pytest tests/test_estimate_skill.py tests/test_skill_contract_consistency.py tests/test_plan_wave_rules.py tests/test_plan_trace.py -q _(id: [rec-a7ce611e-022e-44b3-a49b-512336cf04a6](.artifacts/records/project__acceptance/rec-a7ce611e-022e-44b3-a49b-512336cf04a6.md))_
+
+## verify-run-facts-suite
+
+### Acceptance
+- **verify-run-facts-suite**: The full suite passes, including the tmux tests.; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-b43db00d-52de-4ffe-ba39-07011280cbbb](.artifacts/records/project__acceptance/rec-b43db00d-52de-4ffe-ba39-07011280cbbb.md))_
 
 ## verify-status-line-phase
 

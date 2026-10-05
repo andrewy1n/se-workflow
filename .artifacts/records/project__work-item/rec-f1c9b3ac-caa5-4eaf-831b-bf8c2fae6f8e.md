@@ -3,9 +3,9 @@
   "base_kind": "task",
   "id": "rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e",
   "identity": "unknown",
-  "lifecycle_state": "planned",
+  "lifecycle_state": "in_progress",
   "payload": {
-    "assignee": "",
+    "assignee": "verify",
     "decisions": "evidence-under-phase,evidence-view-scope,unassessed-requirement-status,loop-needs-you-triggers,release-ready-badge,stage-strip-placement",
     "effort": "dashboard",
     "executor": "subagent",
@@ -15,7 +15,7 @@
     "title": "Verify the evidence view"
   },
   "record_type": "project:work-item",
-  "recorded_at": "2026-10-05T04:07:30+00:00",
+  "recorded_at": "2026-10-05T05:24:28+00:00",
   "relationships": {
     "depends_on": [
       "rec-cd9dccf6-ffc0-4aaa-a157-b54aa7d10fa7",
@@ -24,7 +24,7 @@
       "rec-53721903-e653-4295-a5fa-aa6d774d9442"
     ]
   },
-  "revision": "sha256:19467451f14d3eecb6f0073d5b619023f097203f7cc0d9b2ccfb950c15645c92",
+  "revision": "sha256:ddc381ce987c082352136e5314e005583127ff0947d63181bdfeaf0601482db0",
   "stewardship": {
     "steward": "agent"
   },

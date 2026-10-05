@@ -3,9 +3,9 @@
   "base_kind": "task",
   "id": "rec-cd9dccf6-ffc0-4aaa-a157-b54aa7d10fa7",
   "identity": "unknown",
-  "lifecycle_state": "planned",
+  "lifecycle_state": "done",
   "payload": {
-    "assignee": "",
+    "assignee": "model",
     "decisions": "evidence-under-phase,evidence-view-scope,unassessed-requirement-status,loop-needs-you-triggers,release-ready-badge,stage-strip-placement",
     "effort": "dashboard",
     "executor": "subagent",
@@ -15,9 +15,9 @@
     "title": "Load evidence-loop records into the dashboard model"
   },
   "record_type": "project:work-item",
-  "recorded_at": "2026-10-05T04:07:28+00:00",
+  "recorded_at": "2026-10-05T04:34:53+00:00",
   "relationships": {},
-  "revision": "sha256:0c36ce94406bc5c51505e74ecb999fb3f25336c2cc45c719681cbc089a1d00f3",
+  "revision": "sha256:bb51647a689a4e08ea41de832c76bdf61f48ca2ca328731f7389ab1f98fd6195",
   "stewardship": {
     "steward": "agent"
   },

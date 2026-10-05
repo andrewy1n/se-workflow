@@ -1,12 +1,27 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:da19fbba460ccaf0702cf94146c9169df67f2cd1ad2168ef0f02bb4665338b8d
+> Store state: sha256:5390ef767f78d96079338c31874b80aafc153487758045d7783d8822e96e2192
 
 ## dashboard
 
 ### Goal
 - **dashboard**: goal: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; scope: effort; kind: deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
+
+### Phase
+- **evidence-view**: title: Show the evidence loop: requirements, stages, routes, and release; ordinal: 19 _(id: [rec-5f502387-8537-4a43-8f87-53e211d39ebc](.artifacts/records/project__phase/rec-5f502387-8537-4a43-8f87-53e211d39ebc.md))_
+
+### Running
+- **verify-evidence-view**: title: Verify the evidence view; phase: evidence-view; assignee: verify _(id: [rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e](.artifacts/records/project__work-item/rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e.md))_
+
+### Done Recent
+- **estimate-contract**: title: Allow size and estimate_minutes on work-items; phase: run-facts _(id: [rec-06631dac-f66b-4c00-bc9f-f0fcd3d9b071](.artifacts/records/project__work-item/rec-06631dac-f66b-4c00-bc9f-f0fcd3d9b071.md))_
+- **estimate-skill**: title: Require plan-phase to record size and estimate_minutes; phase: run-facts _(id: [rec-035c4162-7907-4319-9655-154cdbbe7062](.artifacts/records/project__work-item/rec-035c4162-7907-4319-9655-154cdbbe7062.md))_
+- **evidence-model**: title: Load evidence-loop records into the dashboard model; phase: evidence-view _(id: [rec-cd9dccf6-ffc0-4aaa-a157-b54aa7d10fa7](.artifacts/records/project__work-item/rec-cd9dccf6-ffc0-4aaa-a157-b54aa7d10fa7.md))_
+- **evidence-surfaces**: title: Show evidence on the main pane, phase detail, Needs you, and activity; phase: evidence-view _(id: [rec-eae64d17-f10b-415e-b311-d01de72be53c](.artifacts/records/project__work-item/rec-eae64d17-f10b-415e-b311-d01de72be53c.md))_
+- **requirement-links**: title: Open the requirement screen from phase detail, Needs you, and task detail; phase: evidence-view _(id: [rec-53721903-e653-4295-a5fa-aa6d774d9442](.artifacts/records/project__work-item/rec-53721903-e653-4295-a5fa-aa6d774d9442.md))_
+- **requirement-screen**: title: Requirement detail screen; phase: evidence-view _(id: [rec-84297b1d-931b-4155-a7db-defae8356207](.artifacts/records/project__work-item/rec-84297b1d-931b-4155-a7db-defae8356207.md))_
+- **verify-run-facts**: title: Verify run-facts; phase: run-facts _(id: [rec-1644993c-06a8-4178-9ca9-ea39b522dce4](.artifacts/records/project__work-item/rec-1644993c-06a8-4178-9ca9-ea39b522dce4.md))_
 
 ## session-analysis
 

@@ -7,7 +7,7 @@
     "resolved_contract_format": "0.3.0",
     "traits_version": "0.4.0",
     "backends_version": "0.4.0",
-    "design_digest": "sha256:9245187ff124beaa5c5bc582839c82a7d43bf7bbeb83aab567371bf19a09a8be",
+    "design_digest": "sha256:ec85bbf7e95ca9569116fe271064d8439f22acd3fb6805375345b96f6118df74",
     "source_lock": {
       "catalog_version": "0.7.0",
       "catalog": "sha256:d7f0f1d05f8c67f638c0ff1b4ad738161f43c1ec970729709f8f2afc1d8c1eb1",
@@ -292,7 +292,9 @@
         "effort",
         "executor",
         "requirements",
-        "decisions"
+        "decisions",
+        "size",
+        "estimate_minutes"
       ],
       "lifecycle": {
         "initial": "planned",
@@ -341,12 +343,21 @@
       "optional_payload": [
         "executor",
         "requirements",
-        "decisions"
+        "decisions",
+        "size",
+        "estimate_minutes"
       ],
       "payload_enum": {
         "executor": [
           "inline",
           "subagent"
+        ],
+        "size": [
+          "XS",
+          "S",
+          "M",
+          "L",
+          "XL"
         ]
       },
       "pattern": "task",
