@@ -74,7 +74,19 @@ kind/focus are unset).
 - Each new work-item body includes `## Approach`, the implementation
   recipe, and payload `executor` is `inline` or `subagent`. Every task
   in a wave uses the same executor. Missing `executor` means
-  `subagent`.
+  `subagent`. Every new work-item payload includes `size` and
+  `estimate_minutes`. `size` is `XS` a trivial or local change, `S` a
+  small change, `M` a moderate change, `L` a substantial or multi-file
+  change, or `XL` a large or high-risk change. `estimate_minutes` is a
+  non-negative integer for that task's executor. Absent means unset.
+  Zero is a real estimate. A missing executor means the minutes are
+  for a subagent. `size` and `estimate_minutes` are not derived from
+  each other. The phase record stores neither field. Inline minutes
+  in a wave add. A subagent wave's elapsed estimate is the longest
+  `estimate_minutes` among its tasks. Phase elapsed time adds those
+  wave figures in wave order. Blank estimates are skipped. A wave
+  whose estimates are all blank has no elapsed estimate. The phase
+  body still records session shape as `one sitting` or `more than one`.
 - The phase body records size as `one sitting` or `more than one`,
   the human stops, and the areas parallel tasks share (collision
   notes). Do not open the plan-review question until the recipe, the
@@ -200,6 +212,8 @@ adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'E
       "assignee": "",
       "effort": "<effort-slug>",
       "executor": "subagent",
+      "size": "M",
+      "estimate_minutes": 25,
       "requirements": "R1,R2",
       "decisions": "<decision-a>,<decision-b>"
     },
@@ -240,7 +254,8 @@ EOF
 
    Set `kind` and `phase` from the effort (`phase` is `""` when
    incidental). Set `executor` to `inline` or `subagent`. Every task
-   in a wave uses the same executor. `method` is `tdd`, `check`, or
+   in a wave uses the same executor. Every new work-item payload
+   includes `size` and `estimate_minutes`. `method` is `tdd`, `check`, or
    `manual`; `verify_command`
    is the literal command (empty string for `manual` with no script).
 
@@ -259,7 +274,7 @@ EOF
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "<task-slug>" \
-  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","requirements":"R1,R2","decisions":"<decision-a>,<decision-b>"}' \
+  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","size":"M","estimate_minutes":25,"requirements":"R1,R2","decisions":"<decision-a>,<decision-b>"}' \
   --body "## Description
 
 <what this task builds/fixes, and why it waits>
@@ -283,7 +298,7 @@ adaptive-artifacts create --type project:acceptance \
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "verify-<phase-slug>" \
-  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","requirements":"R1,R2","decisions":"<decision-a>,<decision-b>"}' \
+  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","size":"M","estimate_minutes":25,"requirements":"R1,R2","decisions":"<decision-a>,<decision-b>"}' \
   --body "## Description
 
 Prove the phase exit criteria hold together: run the integration
