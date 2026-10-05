@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:ed40a799af5a4af0d9da17f4fe4dc714d8b24d7d9ad02210bbdd074a2967423e
+> Store state: sha256:c0ba9f09492a3851b1de7c0e217ded25fb2b12275df757697d817fc9ad8b799c
 
 ## dashboard
 
@@ -9,7 +9,7 @@
 - **dashboard**: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; effort; deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
 ### Position
-- **dashboard**: estimate-view done; next up: phase-selector; effort _(id: [rec-946de64d-9d2d-40c1-90c2-94c2569368ed](.artifacts/records/project__current-position/rec-946de64d-9d2d-40c1-90c2-94c2569368ed.md))_
+- **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
 
 ## session-analysis
 

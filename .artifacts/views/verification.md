@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:1715523d2cf5058f4dd8fb6dae93422b153335d04c3f3964c4dc9e9429b65f17
+> Store state: sha256:0a142aec706c8c184c38083fef7ba653e7bc067b987b5f30e57704c8882dca2e
 
 ## activity-failures
 
@@ -725,6 +725,40 @@
 ### Observation
 - **phase-detail-tasks**: Cherry-pick onto task-detail-links conflicted only where both added a list class (LinkList, PhaseTaskList); parent kept both; the combined app tests pass (190).; dashboard-features _(id: [rec-31107cb0-d8f3-457b-acd6-e04ed4f3508f](.artifacts/records/project__investigation-observation/rec-31107cb0-d8f3-457b-acd6-e04ed4f3508f.md))_
 
+## phase-model-selection
+
+### Acceptance
+- **phase-model-selection**: Default phase follows most-recent activity and falls back to lowest planned or All phases; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'default or selection' _(id: [rec-02c57648-41cf-4d1c-858e-45109cf1514f](.artifacts/records/project__acceptance/rec-02c57648-41cf-4d1c-858e-45109cf1514f.md))_
+
+### Check
+- **phase-model-selection**: rec-adb086d3-8dbf-4818-9b58-2c5838a1e177; dirty; pass; tdd _(id: [rec-492e9a12-7648-4645-9172-c34fa07ecca5](.artifacts/records/project__check-run/rec-492e9a12-7648-4645-9172-c34fa07ecca5.md))_
+- **phase-model-selection**: rec-02c57648-41cf-4d1c-858e-45109cf1514f; dirty; pass; tdd _(id: [rec-4e8eb412-6a6c-4406-bf19-d3179cb04cd6](.artifacts/records/project__check-run/rec-4e8eb412-6a6c-4406-bf19-d3179cb04cd6.md))_
+- **phase-model-selection**: rec-20aa09a5-4b31-4a35-b9c1-c6c1847d6d81; dirty; pass; tdd _(id: [rec-c5cfe635-9a9b-4497-8f2b-5c5bfb4588e3](.artifacts/records/project__check-run/rec-c5cfe635-9a9b-4497-8f2b-5c5bfb4588e3.md))_
+- **phase-model-selection**: rec-345b233d-d1c8-4b73-9dd3-8ac45c2fd412; dirty; pass; tdd _(id: [rec-d7076287-a59e-4b85-96ba-303818121b0a](.artifacts/records/project__check-run/rec-d7076287-a59e-4b85-96ba-303818121b0a.md))_
+
+## phase-model-selection-activity
+
+### Acceptance
+- **phase-model-selection-activity**: Consecutive same-kind activity items merge into one line naming their subjects; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'activity' _(id: [rec-adb086d3-8dbf-4818-9b58-2c5838a1e177](.artifacts/records/project__acceptance/rec-adb086d3-8dbf-4818-9b58-2c5838a1e177.md))_
+
+## phase-model-selection-follow
+
+### Acceptance
+- **phase-model-selection-follow**: Selection follows the current phase until pinned and resumes following when the current default is re-selected; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'follow or pin' _(id: [rec-20aa09a5-4b31-4a35-b9c1-c6c1847d6d81](.artifacts/records/project__acceptance/rec-20aa09a5-4b31-4a35-b9c1-c6c1847d6d81.md))_
+
+## phase-model-selection-nophase
+
+### Acceptance
+- **phase-model-selection-nophase**: Effort with no phase records shows no selector state; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'nophase or no_phase' _(id: [rec-345b233d-d1c8-4b73-9dd3-8ac45c2fd412](.artifacts/records/project__acceptance/rec-345b233d-d1c8-4b73-9dd3-8ac45c2fd412.md))_
+
+## phase-once-render
+
+### Acceptance
+- **phase-once-render**: dashboard/bin/dashboard --once prints selector line and wave strip for the default selection; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_integration.py -q -k 'once' _(id: [rec-65f00d59-aaa4-48e0-8f70-271787545434](.artifacts/records/project__acceptance/rec-65f00d59-aaa4-48e0-8f70-271787545434.md))_
+
+### Check
+- **phase-once-render**: rec-65f00d59-aaa4-48e0-8f70-271787545434; dirty; pass; check _(id: [rec-9dda60c8-bb7d-47e0-992b-245575ec5f5a](.artifacts/records/project__check-run/rec-9dda60c8-bb7d-47e0-992b-245575ec5f5a.md))_
+
 ## phase-position-skills
 
 ### Acceptance
@@ -740,6 +774,64 @@
 
 ### Check
 - **phase-sections**: rec-611e26b5-b891-4e71-8951-3ebf07ecc715; 78548daa0ea66a4347d31d675b3f6fbd8c3b86f1; pass; tdd _(id: [rec-d0d98c8c-7d91-4cde-ac81-547b807803e4](.artifacts/records/project__check-run/rec-d0d98c8c-7d91-4cde-ac81-547b807803e4.md))_
+
+## phase-selector-ui
+
+### Acceptance
+- **phase-selector-ui**: Selector line shows done count, selected phase, in-progress phases, next phase, and All phases; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'selector or stepper' _(id: [rec-39f567da-de81-428f-91b0-131cded1ec16](.artifacts/records/project__acceptance/rec-39f567da-de81-428f-91b0-131cded1ec16.md))_
+
+### Check
+- **phase-selector-ui**: rec-bc7d46e2-0d5a-4792-882a-c2afecb5d2aa; dirty; pass; tdd _(id: [rec-6967f540-a927-465b-9c37-ac1e4332e470](.artifacts/records/project__check-run/rec-6967f540-a927-465b-9c37-ac1e4332e470.md))_
+- **phase-selector-ui**: rec-c0a861da-d41b-4855-b6f9-44219c1f8343; dirty; pass; tdd _(id: [rec-80c77c92-de0b-4a05-881a-2aa137bfc366](.artifacts/records/project__check-run/rec-80c77c92-de0b-4a05-881a-2aa137bfc366.md))_
+- **phase-selector-ui**: rec-39f567da-de81-428f-91b0-131cded1ec16; dirty; pass; tdd _(id: [rec-a7c8ebae-b28a-4560-8fc9-8e5d5b8c338a](.artifacts/records/project__check-run/rec-a7c8ebae-b28a-4560-8fc9-8e5d5b8c338a.md))_
+- **phase-selector-ui**: rec-42fa4dd1-20c6-46e2-9809-1554757d18aa; dirty; pass; tdd _(id: [rec-b5fff2fe-47da-4626-9f2b-a673f58b4d89](.artifacts/records/project__check-run/rec-b5fff2fe-47da-4626-9f2b-a673f58b4d89.md))_
+- **phase-selector-ui**: rec-1c86657d-12b9-4d8f-a50b-0f751e9410ad; dirty; pass; tdd _(id: [rec-e0dcb23a-fdc2-4672-a0a1-6fb3fed9201c](.artifacts/records/project__check-run/rec-e0dcb23a-fdc2-4672-a0a1-6fb3fed9201c.md))_
+- **phase-selector-ui**: rec-eb4361b5-7a63-4383-980b-e9c14c7ea07a; dirty; pass; tdd _(id: [rec-ebd4715c-321c-4a4a-9fff-473b17f03734](.artifacts/records/project__check-run/rec-ebd4715c-321c-4a4a-9fff-473b17f03734.md))_
+- **phase-selector-ui**: rec-551d6d24-2144-40d6-9686-91c183e78094; dirty; pass; tdd _(id: [rec-f2398b8d-43c8-4dc8-a030-e80949839060](.artifacts/records/project__check-run/rec-f2398b8d-43c8-4dc8-a030-e80949839060.md))_
+
+## phase-selector-ui-finished
+
+### Acceptance
+- **phase-selector-ui-finished**: f toggles finished efforts and +N finished appears; finished efforts with Needs you stay visible; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'finished or toggle' _(id: [rec-551d6d24-2144-40d6-9686-91c183e78094](.artifacts/records/project__acceptance/rec-551d6d24-2144-40d6-9686-91c183e78094.md))_
+
+## phase-selector-ui-help
+
+### Acceptance
+- **phase-selector-ui-help**: ? shows the keys available on the current screen and focused widget; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'help or question' _(id: [rec-bc7d46e2-0d5a-4792-882a-c2afecb5d2aa](.artifacts/records/project__acceptance/rec-bc7d46e2-0d5a-4792-882a-c2afecb5d2aa.md))_
+
+## phase-selector-ui-nav
+
+### Acceptance
+- **phase-selector-ui-nav**: [ ], ], P, and clicks select phases; picker filters and closes with Esc; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'picker or navigate or step' _(id: [rec-42fa4dd1-20c6-46e2-9809-1554757d18aa](.artifacts/records/project__acceptance/rec-42fa4dd1-20c6-46e2-9809-1554757d18aa.md))_
+
+## phase-selector-ui-phase
+
+### Acceptance
+- **phase-selector-ui-phase**: p opens the selected phase detail, and in All phases it opens the cursor row's phase; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'phase_detail or open_phase' _(id: [rec-eb4361b5-7a63-4383-980b-e9c14c7ea07a](.artifacts/records/project__acceptance/rec-eb4361b5-7a63-4383-980b-e9c14c7ea07a.md))_
+
+## phase-selector-ui-scope
+
+### Acceptance
+- **phase-selector-ui-scope**: Needs you and Activity stay effort-wide whatever phase is selected; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'needs or activity' _(id: [rec-c0a861da-d41b-4855-b6f9-44219c1f8343](.artifacts/records/project__acceptance/rec-c0a861da-d41b-4855-b6f9-44219c1f8343.md))_
+
+## phase-selector-ui-wave
+
+### Acceptance
+- **phase-selector-ui-wave**: Selected phase renders a wave strip with one glyph per task per wave; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'wave_strip or wave' _(id: [rec-1c86657d-12b9-4d8f-a50b-0f751e9410ad](.artifacts/records/project__acceptance/rec-1c86657d-12b9-4d8f-a50b-0f751e9410ad.md))_
+
+## phase-table-scope
+
+### Acceptance
+- **phase-table-scope**: Selected phase scopes task table, status counts, and progress; All phases keeps grouped sections; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_tasks.py -q -k 'scope or selected or all_phases' _(id: [rec-a6cc79a2-1384-4e47-92ba-975717a38e99](.artifacts/records/project__acceptance/rec-a6cc79a2-1384-4e47-92ba-975717a38e99.md))_
+
+### Check
+- **phase-table-scope**: rec-36bb77d4-81a1-4fcd-b04a-e0b22bf49f14; dirty; pass; tdd _(id: [rec-04c64e66-0d38-4b90-a7d5-df898eaa5c5f](.artifacts/records/project__check-run/rec-04c64e66-0d38-4b90-a7d5-df898eaa5c5f.md))_
+- **phase-table-scope**: rec-a6cc79a2-1384-4e47-92ba-975717a38e99; dirty; pass; tdd _(id: [rec-846ca2ef-d789-4ccb-aad7-a5fafe8f821b](.artifacts/records/project__check-run/rec-846ca2ef-d789-4ccb-aad7-a5fafe8f821b.md))_
+
+## phase-table-scope-sections
+
+### Acceptance
+- **phase-table-scope-sections**: All phases still folds older done phases and expands in-progress ones by default; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_tasks.py -q -k 'section' _(id: [rec-36bb77d4-81a1-4fcd-b04a-e0b22bf49f14](.artifacts/records/project__acceptance/rec-36bb77d4-81a1-4fcd-b04a-e0b22bf49f14.md))_
 
 ## plan-landing-rules
 
@@ -1358,6 +1450,33 @@
 
 ### Acceptance
 - **verify-phase-landing-plan**: plan-phase requires a Landing section before plan review, and incidental work skips it; tdd; workflow-loop; python3 -m pytest tests/test_plan_landing.py -q _(id: [rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54](.artifacts/records/project__acceptance/rec-58522d3a-4f28-4cd8-bcf8-4f8ab951dd54.md))_
+
+## verify-phase-selector
+
+### Acceptance
+- **verify-phase-selector**: dashboard/bin/dashboard --once prints the selector line and wave strip at the default selection; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_integration.py -q -k once _(id: [rec-a14d5cc4-9daf-4279-9625-b803a75d93cb](.artifacts/records/project__acceptance/rec-a14d5cc4-9daf-4279-9625-b803a75d93cb.md))_
+
+### Check
+- **verify-phase-selector**: rec-c559dd9b-03f5-4cb5-8d62-8dff85a9ad2e; dirty; pass; check _(id: [rec-0ed70697-b26d-4565-ac2b-aa9667183cb7](.artifacts/records/project__check-run/rec-0ed70697-b26d-4565-ac2b-aa9667183cb7.md))_
+- **verify-phase-selector**: rec-a11805b7-bc3c-4f57-bcb4-db7d8ffa9ed9; dirty; fail; check _(id: [rec-2e3ddfae-c775-4b2e-8497-05064b8042fa](.artifacts/records/project__check-run/rec-2e3ddfae-c775-4b2e-8497-05064b8042fa.md))_
+- **verify-phase-selector**: rec-2924db08-5149-4136-bbd9-b6deb59a93b8; dirty; pass; check _(id: [rec-9b7a3ab5-4d12-4e39-ae0a-c64d2dc14669](.artifacts/records/project__check-run/rec-9b7a3ab5-4d12-4e39-ae0a-c64d2dc14669.md))_
+- **verify-phase-selector**: rec-a14d5cc4-9daf-4279-9625-b803a75d93cb; dirty; pass; check _(id: [rec-f836b11f-ee98-4e95-a264-3ea7f5f761bb](.artifacts/records/project__check-run/rec-f836b11f-ee98-4e95-a264-3ea7f5f761bb.md))_
+- **verify-phase-selector**: rec-a11805b7-bc3c-4f57-bcb4-db7d8ffa9ed9; dirty; pass; check _(id: [rec-fe8dbe67-529a-4306-a1d4-9fcf5698bd41](.artifacts/records/project__check-run/rec-fe8dbe67-529a-4306-a1d4-9fcf5698bd41.md))_
+
+## verify-phase-selector-app
+
+### Acceptance
+- **verify-phase-selector-app**: Textual pilot tests for selector, picker, keys, wave strip, finished toggle, and key help pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q _(id: [rec-2924db08-5149-4136-bbd9-b6deb59a93b8](.artifacts/records/project__acceptance/rec-2924db08-5149-4136-bbd9-b6deb59a93b8.md))_
+
+## verify-phase-selector-model
+
+### Acceptance
+- **verify-phase-selector-model**: Model and task tests for default selection, follow/pin, merged activity, scoped counts, and All-phases grouping pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_tasks.py -q _(id: [rec-c559dd9b-03f5-4cb5-8d62-8dff85a9ad2e](.artifacts/records/project__acceptance/rec-c559dd9b-03f5-4cb5-8d62-8dff85a9ad2e.md))_
+
+## verify-phase-selector-suite
+
+### Acceptance
+- **verify-phase-selector-suite**: Full non-tmux and tmux test suites pass; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m not tmux && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-a11805b7-bc3c-4f57-bcb4-db7d8ffa9ed9](.artifacts/records/project__acceptance/rec-a11805b7-bc3c-4f57-bcb4-db7d8ffa9ed9.md))_
 
 ## verify-quiet-header
 
