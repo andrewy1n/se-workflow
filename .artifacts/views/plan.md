@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:98b1bb05611d4f4ba72e877917f687e95c5580786f4b19478333ec1b417fbb50
+> Store state: sha256:9cd9feb05f0fff2b7f9e14fc99cac486ef87998cd9385fa886cee486adc73c91
 
 ## dashboard-view
 
@@ -153,7 +153,30 @@
 ## evidence-loop
 
 ### Phase
-- **evidence-loop**: Record specification, integration, and evidence; 9; workflow-loop _(id: [rec-292167f8-cd32-4ade-8ac5-cdd7942a05e4](.artifacts/records/project__phase/rec-292167f8-cd32-4ade-8ac5-cdd7942a05e4.md))_
+- **evidence-loop**: Assess evidence and route the loop; 9; workflow-loop _(id: [rec-292167f8-cd32-4ade-8ac5-cdd7942a05e4](.artifacts/records/project__phase/rec-292167f8-cd32-4ade-8ac5-cdd7942a05e4.md))_
+
+### Work
+- **assess-route**: Assess evidence and choose the next stage; evidence-loop; deliver; workflow-loop _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
+- **contract-loop**: Add evidence-loop record types; evidence-loop; deliver; workflow-loop _(id: [rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6](.artifacts/records/project__work-item/rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6.md))_
+- **integrate-execute**: Record semantic integration after parallel execution; evidence-loop; deliver; workflow-loop _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
+- **loop-scenarios**: Test the evidence loop through the CLI; evidence-loop; deliver; workflow-loop _(id: [rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba](.artifacts/records/project__work-item/rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba.md))_
+- **readme-lifecycle**: Document the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-0a346ce9-d543-40c6-bffd-977250e063c5](.artifacts/records/project__work-item/rec-0a346ce9-d543-40c6-bffd-977250e063c5.md))_
+- **specify-design**: Write specification and design from discuss; evidence-loop; deliver; workflow-loop _(id: [rec-c38456f3-9e59-46f8-a9a4-5c05961544e8](.artifacts/records/project__work-item/rec-c38456f3-9e59-46f8-a9a4-5c05961544e8.md))_
+- **trace-plan**: Stamp tasks with requirements and decisions; evidence-loop; deliver; workflow-loop _(id: [rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c](.artifacts/records/project__work-item/rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c.md))_
+- **verify-evidence-loop**: Verify the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-1ed5449a-0cff-4806-aea0-c527992f2e80](.artifacts/records/project__work-item/rec-1ed5449a-0cff-4806-aea0-c527992f2e80.md))_
+
+### Acceptance
+- **assess-route**: verify-work writes an assessment whose next routes by level, escalates at three failures, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
+- **contract-loop**: The bundled contract resolves specification, design, integration-report, assessment, release, and feedback, and a check-run result of pass still validates.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-6d715e64-501c-42c0-b057-42d81bbb01b8](.artifacts/records/project__acceptance/rec-6d715e64-501c-42c0-b057-42d81bbb01b8.md))_
+- **integrate-execute**: execute-phase writes an integration-report that does not treat a git merge as pass, and test_integrate_rules.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_integrate_rules.py -q _(id: [rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84](.artifacts/records/project__acceptance/rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84.md))_
+- **loop-scenarios**: test_evidence_loop.py drives adaptive-artifacts through the happy path, implementation and design routes, a third-failure escalation, a failed integration-report, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488](.artifacts/records/project__acceptance/rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488.md))_
+- **readme-lifecycle**: The README names specify, design, plan, execute, integrate, verify, assess, and release, and the assessment routes, and test_readme_lifecycle.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-61e95277-ed36-4e3f-9307-df5f8e946151](.artifacts/records/project__acceptance/rec-61e95277-ed36-4e3f-9307-df5f8e946151.md))_
+- **specify-design**: discuss creates a specification and a design with the contract's required fields, and test_discuss_skill.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_discuss_skill.py -q _(id: [rec-7683d746-1d29-4de5-bc76-3bdcc678f158](.artifacts/records/project__acceptance/rec-7683d746-1d29-4de5-bc76-3bdcc678f158.md))_
+- **trace-plan**: plan-phase stamps requirements and decisions on work-items and requirement on acceptances when a specification exists, and test_plan_trace.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_plan_trace.py -q _(id: [rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5](.artifacts/records/project__acceptance/rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5.md))_
+- **verify-evidence-loop**: tests/test_evidence_loop.py drives adaptive-artifacts on a fresh store through release, the execute and design routes, escalation, integration failure, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27](.artifacts/records/project__acceptance/rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27.md))_
+- **verify-evidence-loop-contract**: The bundled contract resolves specification, design, integration-report, assessment, release, and feedback, and check-run accepts pass, fail, blocked, and insufficient.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-19a87492-4386-45cb-9b12-53cf66c22e09](.artifacts/records/project__acceptance/rec-19a87492-4386-45cb-9b12-53cf66c22e09.md))_
+- **verify-evidence-loop-readme**: The README describes specify, design, plan, execute, integrate, verify, assess, and release as the skills perform them, and describes feedback as a record with no collector.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8](.artifacts/records/project__acceptance/rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8.md))_
+- **verify-evidence-loop-skills**: The six skills document only contract-legal writes for specification, design, trace fields, integration-report, and assessment routing.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py tests/test_plan_trace.py tests/test_integrate_rules.py tests/test_assess_routing.py -q _(id: [rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f](.artifacts/records/project__acceptance/rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f.md))_
 
 ## bugfix-needs-you-data
 

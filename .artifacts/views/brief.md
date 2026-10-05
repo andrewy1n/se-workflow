@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:2bf85f8a54219ed8f0f36f6e7e57f8de2fc03cd11ea8b2ec9aa1f8e4faebf4f0
+> Store state: sha256:9dad70d86a5a55ee4d16603c2785c338b043c2d2e93da148f213be1914fd0c75
 
 ## activity-failures
 
@@ -79,6 +79,14 @@
 ### Acceptance
 - **as-targets**: targets.md has one section per target and each section lists at least one pattern whose metric field names all exist in the real aggregate output.; tdd; session-analysis; python3 -m pytest -q tests/test_analyze_sessions_targets.py _(id: [rec-9c15a1e4-c392-4ce0-8482-7bea7dd7f367](.artifacts/records/project__acceptance/rec-9c15a1e4-c392-4ce0-8482-7bea7dd7f367.md))_
 
+## assess-route
+
+### Work
+- **assess-route**: Assess evidence and choose the next stage; evidence-loop; deliver; workflow-loop _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
+
+### Acceptance
+- **assess-route**: verify-work writes an assessment whose next routes by level, escalates at three failures, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
+
 ## close-step-skill
 
 ### Acceptance
@@ -93,6 +101,14 @@
 
 ### Acceptance
 - **commit-stat-width**: A pilot test at 60 and 80 columns shows every stat line of a commit with a long path on one line; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q _(id: [rec-de68bee3-9f99-4495-8545-8aa7b453e373](.artifacts/records/project__acceptance/rec-de68bee3-9f99-4495-8545-8aa7b453e373.md))_
+
+## contract-loop
+
+### Work
+- **contract-loop**: Add evidence-loop record types; evidence-loop; deliver; workflow-loop _(id: [rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6](.artifacts/records/project__work-item/rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6.md))_
+
+### Acceptance
+- **contract-loop**: The bundled contract resolves specification, design, integration-report, assessment, release, and feedback, and a check-run result of pass still validates.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-6d715e64-501c-42c0-b057-42d81bbb01b8](.artifacts/records/project__acceptance/rec-6d715e64-501c-42c0-b057-42d81bbb01b8.md))_
 
 ## copy-and-commit-actions
 
@@ -203,6 +219,11 @@
 ### Acceptance
 - **effort-switch-focus**: Pilot test: with an effort-level question on a live effort, tab and shift+tab reach a finished effort and stay there; the test fails before the fix; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k switch _(id: [rec-768f3192-cdcf-45d9-9421-2282f78e8bef](.artifacts/records/project__acceptance/rec-768f3192-cdcf-45d9-9421-2282f78e8bef.md))_
 
+## evidence-loop
+
+### Position
+- **evidence-loop**: evidence-loop is in progress. Tasks are written. Waiting on plan review.; phase _(id: [rec-94e60052-a1b2-41a9-93e7-e254602dacf0](.artifacts/records/project__current-position/rec-94e60052-a1b2-41a9-93e7-e254602dacf0.md))_
+
 ## execute-landing
 
 ### Acceptance
@@ -253,6 +274,14 @@
 ### Acceptance
 - **heading-spacing**: Pilot test: in phase detail the line above each body heading is not blank (except the first line of the panel); the test fails before the change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k heading _(id: [rec-e3cb339f-2f12-42bd-9dab-4439494334aa](.artifacts/records/project__acceptance/rec-e3cb339f-2f12-42bd-9dab-4439494334aa.md))_
 
+## integrate-execute
+
+### Work
+- **integrate-execute**: Record semantic integration after parallel execution; evidence-loop; deliver; workflow-loop _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
+
+### Acceptance
+- **integrate-execute**: execute-phase writes an integration-report that does not treat a git merge as pass, and test_integrate_rules.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_integrate_rules.py -q _(id: [rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84](.artifacts/records/project__acceptance/rec-bea1bd88-8f1c-41ef-8afe-fe7f17154d84.md))_
+
 ## keyboard-focus
 
 ### Acceptance
@@ -265,6 +294,14 @@
 
 ### Acceptance
 - **label-view-fields**: A view with label_fields true renders field: value pairs; a view without it renders exactly as before; tdd; dashboard; cd ~/adaptive-artifacts && python3 -m pytest tools/runtime/tests -q _(id: [rec-0a970468-5d80-49a0-bf80-d5481a65814b](.artifacts/records/project__acceptance/rec-0a970468-5d80-49a0-bf80-d5481a65814b.md))_
+
+## loop-scenarios
+
+### Work
+- **loop-scenarios**: Test the evidence loop through the CLI; evidence-loop; deliver; workflow-loop _(id: [rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba](.artifacts/records/project__work-item/rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba.md))_
+
+### Acceptance
+- **loop-scenarios**: test_evidence_loop.py drives adaptive-artifacts through the happy path, implementation and design routes, a third-failure escalation, a failed integration-report, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488](.artifacts/records/project__acceptance/rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488.md))_
 
 ## model-fixture-reuse
 
@@ -336,6 +373,14 @@
 ### Acceptance
 - **plan-wave-rules**: plan-phase requires a recipe, one shared executor of inline or subagent per wave, and phase size, stops, and collision notes, and it does not open plan review until those are present; tdd; workflow-loop; python3 -m pytest tests/test_plan_wave_rules.py -q _(id: [rec-b1c39c5f-6758-426d-bdcf-0ff6c57bcbc5](.artifacts/records/project__acceptance/rec-b1c39c5f-6758-426d-bdcf-0ff6c57bcbc5.md))_
 
+## readme-lifecycle
+
+### Work
+- **readme-lifecycle**: Document the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-0a346ce9-d543-40c6-bffd-977250e063c5](.artifacts/records/project__work-item/rec-0a346ce9-d543-40c6-bffd-977250e063c5.md))_
+
+### Acceptance
+- **readme-lifecycle**: The README names specify, design, plan, execute, integrate, verify, assess, and release, and the assessment routes, and test_readme_lifecycle.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-61e95277-ed36-4e3f-9307-df5f8e946151](.artifacts/records/project__acceptance/rec-61e95277-ed36-4e3f-9307-df5f8e946151.md))_
+
 ## readme-quickstart
 
 ### Acceptance
@@ -393,6 +438,14 @@
 
 ### Position
 - **session-analysis**: All four phases done. Run the analyze-sessions skill to review sessions. Code and skill are uncommitted. Two findings are open: the join is approximate, and the skill has minor judgment gaps.; repo _(id: [rec-428082e4-c07e-4c73-81c0-ffcb6c5e876c](.artifacts/records/project__current-position/rec-428082e4-c07e-4c73-81c0-ffcb6c5e876c.md))_
+
+## specify-design
+
+### Work
+- **specify-design**: Write specification and design from discuss; evidence-loop; deliver; workflow-loop _(id: [rec-c38456f3-9e59-46f8-a9a4-5c05961544e8](.artifacts/records/project__work-item/rec-c38456f3-9e59-46f8-a9a4-5c05961544e8.md))_
+
+### Acceptance
+- **specify-design**: discuss creates a specification and a design with the contract's required fields, and test_discuss_skill.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_discuss_skill.py -q _(id: [rec-7683d746-1d29-4de5-bc76-3bdcc678f158](.artifacts/records/project__acceptance/rec-7683d746-1d29-4de5-bc76-3bdcc678f158.md))_
 
 ## status-line-from-snapshot
 
@@ -529,6 +582,14 @@
 ### Acceptance
 - **tmux-test-waits**: The six failing tmux and e2e tests pass, and each tmux popup test takes under 4s; check; test-suite-speed; python3 -m pytest tests/test_tmux_integration.py tests/test_e2e_dashboard.py -q --durations=6 _(id: [rec-572fa450-b4a2-45bb-b52e-b5198f0e9b91](.artifacts/records/project__acceptance/rec-572fa450-b4a2-45bb-b52e-b5198f0e9b91.md))_
 
+## trace-plan
+
+### Work
+- **trace-plan**: Stamp tasks with requirements and decisions; evidence-loop; deliver; workflow-loop _(id: [rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c](.artifacts/records/project__work-item/rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c.md))_
+
+### Acceptance
+- **trace-plan**: plan-phase stamps requirements and decisions on work-items and requirement on acceptances when a specification exists, and test_plan_trace.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_plan_trace.py -q _(id: [rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5](.artifacts/records/project__acceptance/rec-6aa2fdc3-4b8f-4d53-a585-a4405107bef5.md))_
+
 ## unsigned-check-label
 
 ### Acceptance
@@ -593,6 +654,29 @@
 
 ### Acceptance
 - **verify-end-to-end-phase-clear**: The watch-dashboard dashboard shows no Open Question, Needs Human, or Unsigned Manual Check; check; dashboard; ~/se-workflow/scripts/dashboard-status ~/se-workflow _(id: [rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85](.artifacts/records/project__acceptance/rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85.md))_
+
+## verify-evidence-loop
+
+### Work
+- **verify-evidence-loop**: Verify the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-1ed5449a-0cff-4806-aea0-c527992f2e80](.artifacts/records/project__work-item/rec-1ed5449a-0cff-4806-aea0-c527992f2e80.md))_
+
+### Acceptance
+- **verify-evidence-loop**: tests/test_evidence_loop.py drives adaptive-artifacts on a fresh store through release, the execute and design routes, escalation, integration failure, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27](.artifacts/records/project__acceptance/rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27.md))_
+
+## verify-evidence-loop-contract
+
+### Acceptance
+- **verify-evidence-loop-contract**: The bundled contract resolves specification, design, integration-report, assessment, release, and feedback, and check-run accepts pass, fail, blocked, and insufficient.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-19a87492-4386-45cb-9b12-53cf66c22e09](.artifacts/records/project__acceptance/rec-19a87492-4386-45cb-9b12-53cf66c22e09.md))_
+
+## verify-evidence-loop-readme
+
+### Acceptance
+- **verify-evidence-loop-readme**: The README describes specify, design, plan, execute, integrate, verify, assess, and release as the skills perform them, and describes feedback as a record with no collector.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8](.artifacts/records/project__acceptance/rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8.md))_
+
+## verify-evidence-loop-skills
+
+### Acceptance
+- **verify-evidence-loop-skills**: The six skills document only contract-legal writes for specification, design, trace fields, integration-report, and assessment routing.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py tests/test_plan_trace.py tests/test_integrate_rules.py tests/test_assess_routing.py -q _(id: [rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f](.artifacts/records/project__acceptance/rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f.md))_
 
 ## verify-layout-phase
 
