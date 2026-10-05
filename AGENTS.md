@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Plugin **0.2.0**. Agent skills for a software-engineering loop on
+Plugin **0.3.0**. Agent skills for a software-engineering loop on
 adaptive-artifacts: classify the ask, plan only the focused effort,
 execute independent tasks with parallel subagents, verify with TDD,
 checks, or findings. Install this repo as a plugin. It is not a
@@ -47,12 +47,18 @@ phase positions, and closing an effort: [skills/kinds-and-focus.md](skills/kinds
 
 | Skill | When |
 |---|---|
-| `engage` | Classify kind + focus, then hand off. Do not implement inside it. |
+| `engage` | Classify kind, focus, and depth, then hand off. Do not implement inside it. |
 | `init` | First time on a repo, or a new effort subject. Goal and phase titles only. |
+| `specify` | Specification and acceptance criteria before design. Skip when depth is trivial. |
 | `discuss` | Settle the approach with the user before planning. |
+| `design` | Record the approach, or an explicit skip, before planning. |
 | `plan-phase` | Approach settled. Write this phase's tasks, then wait for plan review. |
 | `execute-phase` | Dispatch ready work in waves. |
-| `verify-work` | Show a task is done (check-run and/or finding). |
+| `integrate` | Semantic integration checkpoint. A git merge is not this pass. |
+| `verify-work` | Evidence for the specification (`pass`, `fail`, `blocked`, `unknown`). |
+| `diagnose` | Separate the failure from its cause. Escalate unresolved, repeated, or over-limit repairs. |
+| `release` | Record release posture after sufficient evidence. Does not deploy. |
+| `feedback` | Record a runtime or user signal and return it to intent. |
 | `analyze-sessions` | User-invoked. Propose edits; write nothing until the user picks. |
 
 Shared rules live in `skills/kinds-and-focus.md` and

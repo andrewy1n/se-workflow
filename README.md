@@ -13,6 +13,82 @@ The plan is a derived view over records. Only the **focused effort**
 is written; for delivery-shaped work, only the **current phase** is
 materialized as `work-item` + `acceptance`.
 
+## Lifecycle
+
+Depth chooses how much of the loop runs. `trivial` (incidental work,
+or a change the user calls trivial) stays on the short path. `standard`
+is the default for deliver, repair, and evaluate. `full` always
+specifies, designs, and integrates. The transition rules are
+[skills/lifecycle.md](skills/lifecycle.md), and the checked model is
+`lifecycle/loop.py`.
+
+```text
+intent → specify → design → plan → execute → integrate → verify
+                                                         │
+                         ┌─ pass, evidence sufficient ───┤
+                         │                               │
+                         ▼                               └─ fail
+                      release                                  │
+                         │                                     ▼
+                         ▼                                 diagnose
+                      deploy (status only)                     │
+                         │                                     ▼
+                         ▼                                  repair
+                      monitor (status only)                    │
+                         │                                     ▼
+                         ▼                                integrate
+                      feedback → new intent                   │
+                                                               ▼
+                                                            verify
+```
+
+`trivial` skips specify, design, plan, and integrate:
+intent → execute → verify → release. `standard` skips integrate
+unless a wave runs more than one task. A skipped design is a
+`project:design` record with `weight` `skipped`, not a missing record.
+
+| Stage | What it settles | Record |
+|---|---|---|
+| intent | Kind, focus, depth | `active-goal` |
+| specify | Required behavior, constraints, success, out of scope, acceptance criteria | `specification`, `acceptance` |
+| design | Approach, interfaces, invariants, alternatives, risks | `design`, `decision` |
+| plan | Tasks, dependencies, who satisfies which criterion, verification layers | `phase`, `work-item` |
+| execute | The change, with the specification and design in the executor brief | `assignment`, `execution-report` |
+| integrate | Whether parallel results agree. A clean git merge is not this pass | `integration-report` |
+| verify | Evidence per criterion: `pass`, `fail`, `blocked`, or `unknown` | `check-run`, `uncertainty` |
+| diagnose | The cause, which is not the same fact as the failure | `investigation-observation`, `finding` |
+| repair | A change for that cause, then integrate and verify again | repair `work-item`, `repair-attempt` |
+| release | Ready to merge, and later merge or deploy facts a human reports | `release` |
+| feedback | A runtime or user signal that re-enters at intent | `feedback` |
+
+Verification answers whether the evidence covers the specification.
+`unknown` means it does not. An open `uncertainty` blocks release
+until the user accepts it. Repair stops at 3 attempts
+(`MAX_REPAIRS`), on a repeated failure signature, or when the
+diagnosis is `unresolved`. Those escalate to the user.
+
+Release does not deploy. `release.status` can record
+`ready_to_merge`, `merged`, `artifact_produced`,
+`deployment_initiated`, `deployment_succeeded`, or
+`deployment_failed`. Deploy and monitor are stage names for that
+status. There is no deployer and no metrics pipeline. `feedback`
+is how a later signal becomes a new phase.
+
+Traceability is payload fields: acceptance `specification`, decision
+`serves`, work-item `satisfies` and `design`, check-run
+`criterion_id`, repair-attempt `diagnosis`. The `project:lifecycle`
+view lists the live chain.
+
+The parent session is the orchestrator. It does not spawn an agent
+per stage. `execute-phase` still dispatches one executor per task in
+a wave. Specify, design, integrate, diagnose, and release stay in
+the parent unless the work is already a planned task.
+
+Older stores are unchanged until a human accepts the contract
+replace in [skills/ensure-store.md](skills/ensure-store.md). New
+fields are optional. `plan-phase` still runs when no specification
+exists.
+
 ## Quick start
 
 1. Install the **adaptive-artifacts** and **se-workflow** plugins (see Install).
@@ -96,10 +172,13 @@ Or install from the repository URL in the Cursor plugin flow.
 #### Codex / other Agent Skills hosts
 
 Copy or symlink `skills/init`, `skills/plan-phase`, `skills/execute-phase`,
-`skills/verify-work`, and `skills/engage` into the host's skills
-directory. Keep `contract/project-design.json` and
-`skills/kinds-and-focus.md` / `skills/ensure-store.md` next to
-`skills/` as in this repo (two levels above each `SKILL.md`).
+`skills/verify-work`, `skills/engage`, `skills/specify`, `skills/design`,
+`skills/integrate`, `skills/diagnose`, `skills/release`, and
+`skills/feedback` into the host's skills directory. Keep
+`contract/project-design.json`, `lifecycle/`, and
+`skills/kinds-and-focus.md` / `skills/ensure-store.md` /
+`skills/lifecycle.md` next to `skills/` as in this repo (two levels
+above each `SKILL.md`).
 
 ## Use
 
@@ -107,12 +186,18 @@ In whatever repo you are building:
 
 | Skill | When |
 |---|---|
-| `engage` | Classify kind + focus, then hand off |
+| `engage` | Classify kind, focus, and depth, then hand off |
 | `init` | First time on a repo, or a new effort subject |
+| `specify` | Specification and acceptance criteria. Skipped when depth is trivial |
 | `discuss` | Settle the approach for a phase with the user before planning |
+| `design` | Record the approach. Skipped design is an explicit record |
 | `plan-phase` | Approach settled; write tasks, then wait for plan review |
 | `execute-phase` | Dispatch ready work in waves to subagents |
-| `verify-work` | Show a task is done (check-run and/or finding) |
+| `integrate` | Semantic integration after execute, before the phase gate |
+| `verify-work` | Evidence that a criterion holds (check-run and/or finding) |
+| `diagnose` | Cause of a failure, or escalation. Repair goes back through execute |
+| `release` | Record release posture. Does not deploy |
+| `feedback` | Record a runtime or user signal and return to engage |
 
 On first use, `init`, `plan-phase`, or `engage` writes the bundled
 contract into that repo's `.artifacts/` and inits the store. Skills
@@ -157,10 +242,16 @@ contract replace (`ensure-store.md`).
 
 - `engage`
 - `init`
+- `specify`
 - `discuss`
+- `design`
 - `plan-phase`
 - `execute-phase`
+- `integrate`
 - `verify-work`
+- `diagnose`
+- `release`
+- `feedback`
 
 Shared rules: [skills/kinds-and-focus.md](skills/kinds-and-focus.md).
 Shared first-run steps: [skills/ensure-store.md](skills/ensure-store.md).

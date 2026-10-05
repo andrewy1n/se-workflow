@@ -24,16 +24,23 @@
         "scope",
         "kind",
         "status",
-        "merged_from"
+        "merged_from",
+        "depth"
       ],
       "optional_payload": [
         "status",
-        "merged_from"
+        "merged_from",
+        "depth"
       ],
       "payload_enum": {
         "status": [
           "open",
           "closed"
+        ],
+        "depth": [
+          "trivial",
+          "standard",
+          "full"
         ]
       }
     },
@@ -49,11 +56,13 @@
         "scope",
         "effort",
         "phase",
-        "status"
+        "status",
+        "stage"
       ],
       "optional_payload": [
         "phase",
-        "status"
+        "status",
+        "stage"
       ],
       "payload_references": {
         "phase": "project:phase"
@@ -62,6 +71,21 @@
         "status": [
           "open",
           "closed"
+        ],
+        "stage": [
+          "intent",
+          "specify",
+          "design",
+          "plan",
+          "execute",
+          "integrate",
+          "verify",
+          "diagnose",
+          "repair",
+          "release",
+          "deploy",
+          "monitor",
+          "feedback"
         ]
       }
     },
@@ -96,16 +120,21 @@
         "kind",
         "assignee",
         "effort",
-        "executor"
+        "executor",
+        "satisfies",
+        "design"
       ],
       "optional_payload": [
-        "executor"
+        "executor",
+        "satisfies",
+        "design"
       ],
       "required_sections": [
         "Description"
       ],
       "payload_references": {
-        "phase": "project:phase"
+        "phase": "project:phase",
+        "design": "project:design"
       },
       "payload_enum": {
         "executor": [
@@ -126,11 +155,16 @@
         "method",
         "phase",
         "effort",
-        "verify_command"
+        "verify_command",
+        "specification"
       ],
       "payload_references": {
-        "phase": "project:phase"
-      }
+        "phase": "project:phase",
+        "specification": "project:specification"
+      },
+      "optional_payload": [
+        "specification"
+      ]
     },
     {
       "name": "constraint",
@@ -161,8 +195,36 @@
         "result",
         "effort",
         "method",
-        "signed_by"
-      ]
+        "signed_by",
+        "verdict",
+        "layer",
+        "uncertainty"
+      ],
+      "optional_payload": [
+        "verdict",
+        "layer",
+        "uncertainty"
+      ],
+      "payload_enum": {
+        "verdict": [
+          "pass",
+          "fail",
+          "blocked",
+          "unknown"
+        ],
+        "layer": [
+          "build",
+          "unit",
+          "integration",
+          "acceptance",
+          "static",
+          "types",
+          "security",
+          "regression",
+          "design",
+          "behavior"
+        ]
+      }
     },
     {
       "name": "decision",
@@ -175,7 +237,8 @@
         "choice",
         "alternatives",
         "phase",
-        "effort"
+        "effort",
+        "serves"
       ],
       "required_sections": [
         "Rationale",
@@ -183,7 +246,10 @@
       ],
       "payload_references": {
         "phase": "project:phase"
-      }
+      },
+      "optional_payload": [
+        "serves"
+      ]
     },
     {
       "name": "continuity-question",
@@ -301,6 +367,224 @@
         "work_item": "project:work-item",
         "assignment": "project:assignment"
       }
+    },
+    {
+      "name": "specification",
+      "pattern": "definition",
+      "purpose": "Required behavior, constraints, success, and out-of-scope bounds for a phase",
+      "canonical_for": "the specification for this phase",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": [
+        "summary",
+        "weight",
+        "phase",
+        "effort"
+      ],
+      "payload_enum": {
+        "weight": [
+          "light",
+          "full"
+        ]
+      },
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "required_sections": [
+        "Problem",
+        "Required behavior",
+        "Constraints",
+        "Success",
+        "Out of scope"
+      ]
+    },
+    {
+      "name": "design",
+      "pattern": "definition",
+      "purpose": "Architectural approach for a phase, separate from the implementation plan",
+      "canonical_for": "the design for this phase",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": [
+        "summary",
+        "weight",
+        "phase",
+        "effort",
+        "specification"
+      ],
+      "optional_payload": [
+        "specification"
+      ],
+      "payload_enum": {
+        "weight": [
+          "light",
+          "full",
+          "skipped"
+        ]
+      },
+      "payload_references": {
+        "phase": "project:phase",
+        "specification": "project:specification"
+      },
+      "required_sections": [
+        "Approach",
+        "Decisions",
+        "Interfaces",
+        "Invariants",
+        "Alternatives",
+        "Risks",
+        "Consequences"
+      ]
+    },
+    {
+      "name": "integration-report",
+      "pattern": "observation",
+      "purpose": "Semantic integration checkpoint after parallel or cross-cutting execution",
+      "canonical_for": "the integration verdict for this phase revision",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "phase",
+        "effort",
+        "verdict",
+        "revision",
+        "summary"
+      ],
+      "payload_enum": {
+        "verdict": [
+          "pass",
+          "fail",
+          "blocked",
+          "unknown"
+        ]
+      },
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "required_sections": [
+        "Merged work",
+        "Conflicts",
+        "Invariants",
+        "Assumptions"
+      ]
+    },
+    {
+      "name": "uncertainty",
+      "pattern": "current-status",
+      "purpose": "An open gap between recorded checks and the specification. Accept or resolve it by supersede.",
+      "canonical_for": "this unresolved uncertainty",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "statement",
+        "effort",
+        "status",
+        "criterion_id"
+      ],
+      "optional_payload": [
+        "criterion_id"
+      ],
+      "payload_enum": {
+        "status": [
+          "open",
+          "accepted",
+          "resolved"
+        ]
+      },
+      "required_sections": [
+        "Evidence"
+      ]
+    },
+    {
+      "name": "repair-attempt",
+      "pattern": "event",
+      "purpose": "One completed diagnose-repair cycle and why it stopped or what it changed",
+      "canonical_for": "this repair attempt for this work item",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "work_item",
+        "effort",
+        "attempt",
+        "failure_signature",
+        "outcome",
+        "diagnosis",
+        "finding"
+      ],
+      "optional_payload": [
+        "diagnosis",
+        "finding"
+      ],
+      "payload_enum": {
+        "outcome": [
+          "repaired",
+          "failed_again",
+          "unresolved",
+          "escalated"
+        ]
+      },
+      "payload_references": {
+        "work_item": "project:work-item",
+        "finding": "project:finding"
+      }
+    },
+    {
+      "name": "release",
+      "pattern": "current-status",
+      "purpose": "Release posture of a verified phase. Verified is not deployed.",
+      "canonical_for": "the release posture of this phase",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "phase",
+        "effort",
+        "status",
+        "note"
+      ],
+      "payload_enum": {
+        "status": [
+          "ready_to_merge",
+          "merged",
+          "artifact_produced",
+          "deployment_initiated",
+          "deployment_succeeded",
+          "deployment_failed"
+        ]
+      },
+      "payload_references": {
+        "phase": "project:phase"
+      }
+    },
+    {
+      "name": "feedback",
+      "pattern": "observation",
+      "purpose": "A runtime or user signal that can become new work at intent",
+      "canonical_for": "this feedback signal",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "source",
+        "kind",
+        "summary",
+        "effort"
+      ],
+      "optional_payload": [
+        "effort"
+      ],
+      "payload_enum": {
+        "kind": [
+          "error",
+          "performance",
+          "security",
+          "user_report",
+          "anomaly",
+          "edge_case"
+        ]
+      },
+      "required_sections": [
+        "Signal",
+        "Suggested intake"
+      ]
     }
   ],
   "views": [
@@ -437,6 +721,27 @@
               {
                 "field": "derived.corrected",
                 "not_equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "open-uncertainty",
+          "occupant": "uncertainty",
+          "requires_payload": [
+            "statement",
+            "status",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "equals": "open"
               }
             ]
           }
@@ -580,6 +885,39 @@
                 "equals": "asserted"
               }
             ]
+          }
+        },
+        {
+          "name": "uncertainty",
+          "occupant": "uncertainty",
+          "requires_payload": [
+            "statement",
+            "status",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "equals": "open"
+              }
+            ]
+          }
+        },
+        {
+          "name": "integration",
+          "occupant": "integration-report",
+          "requires_payload": [
+            "phase",
+            "verdict",
+            "summary"
+          ],
+          "selection": {
+            "all": []
           }
         }
       ]
@@ -941,6 +1279,130 @@
           }
         }
       ]
+    },
+    {
+      "name": "lifecycle",
+      "owns_facts": false,
+      "freshness": "on_demand",
+      "parameters": [
+        "group_by"
+      ],
+      "roles": [
+        {
+          "name": "specification",
+          "occupant": "specification",
+          "requires_payload": [
+            "summary",
+            "weight",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "design",
+          "occupant": "design",
+          "requires_payload": [
+            "summary",
+            "weight",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "acceptance",
+          "occupant": "acceptance",
+          "requires_payload": [
+            "criterion",
+            "method",
+            "effort",
+            "verify_command"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "integration",
+          "occupant": "integration-report",
+          "requires_payload": [
+            "phase",
+            "verdict",
+            "summary"
+          ],
+          "selection": {
+            "all": []
+          }
+        },
+        {
+          "name": "uncertainty",
+          "occupant": "uncertainty",
+          "requires_payload": [
+            "statement",
+            "status",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "equals": "open"
+              }
+            ]
+          }
+        },
+        {
+          "name": "release",
+          "occupant": "release",
+          "requires_payload": [
+            "phase",
+            "status",
+            "effort"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              }
+            ]
+          }
+        },
+        {
+          "name": "feedback",
+          "occupant": "feedback",
+          "requires_payload": [
+            "source",
+            "kind",
+            "summary"
+          ],
+          "selection": {
+            "all": []
+          }
+        }
+      ]
     }
   ],
   "bundles": [
@@ -949,6 +1411,19 @@
       "optional": true,
       "records": [
         "work-item",
+        "acceptance"
+      ],
+      "capture": {
+        "trigger": [
+          "explicit_request"
+        ]
+      }
+    },
+    {
+      "name": "lifecycle-spec",
+      "optional": true,
+      "records": [
+        "specification",
         "acceptance"
       ],
       "capture": {
@@ -994,6 +1469,9 @@
     "project:dashboard": {
       "group_by": "effort",
       "label_fields": true
+    },
+    "project:lifecycle": {
+      "group_by": "effort"
     }
   },
   "source_revisions": {

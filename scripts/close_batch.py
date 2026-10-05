@@ -13,7 +13,9 @@ deferred close is legitimate) is made by whatever builds the close-request
 -- this script does not second-guess it. What it does enforce: closing to
 `done` while a criterion is unmet or was never checked requires a
 `finding` in the same request, or the batch is refused outright rather
-than silently written without one.
+than silently written without one. A criterion with `result` `pass` and
+`verdict` `fail`, `blocked`, or `unknown` is unmet. Omitting `verdict`
+keeps the older meaning: `result` `pass` is met.
 """
 
 from __future__ import annotations
@@ -30,6 +32,18 @@ class CloseRequestError(Exception):
 
 class CloseRefused(Exception):
     """Policy refusal -- exit 2, distinct from a malformed request."""
+
+
+def _criterion_met(entry: dict[str, Any]) -> bool:
+    """A pass result is not met when the evidence verdict says otherwise.
+
+    Requests that omit `verdict` stay met on `result=pass`, so older
+    close requests keep their meaning.
+    """
+    if entry.get("result") != "pass":
+        return False
+    verdict = entry.get("verdict")
+    return verdict in (None, "", "pass")
 
 
 def build_batch(request: dict[str, Any]) -> list[dict[str, Any]]:
@@ -54,7 +68,7 @@ def build_batch(request: dict[str, Any]) -> list[dict[str, Any]]:
             )
 
     passed_ids = {
-        entry["criterion_id"] for entry in criteria if entry.get("result") == "pass"
+        entry["criterion_id"] for entry in criteria if _criterion_met(entry)
     }
     unmet = [aid for aid in acceptance_ids if aid not in passed_ids]
 
@@ -79,6 +93,9 @@ def build_batch(request: dict[str, Any]) -> list[dict[str, Any]]:
             }
         except KeyError as exc:
             raise CloseRequestError(f"criteria entry missing field: {exc}") from exc
+        for field in ("verdict", "layer", "uncertainty"):
+            if entry.get(field):
+                payload[field] = entry[field]
         rels = [f"informed_by:{entry['criterion_id']}"]
         if execution_report_id:
             rels.append(f"informed_by:{execution_report_id}")

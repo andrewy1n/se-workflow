@@ -80,6 +80,45 @@ def test_all_pass_batch_is_one_check_run_then_the_transition():
     }
 
 
+def test_refuses_done_when_result_passes_but_verdict_is_unknown():
+    request = _request(
+        criteria=[
+            {
+                "criterion_id": "rec-ac1",
+                "result": "pass",
+                "verdict": "unknown",
+                "layer": "unit",
+                "method": "tdd",
+                "revision": "abc123",
+                "signed_by": "",
+            }
+        ]
+    )
+    with pytest.raises(close_batch.CloseRefused):
+        close_batch.build_batch(request)
+
+
+def test_check_run_payload_carries_verdict_and_layer():
+    request = _request(
+        criteria=[
+            {
+                "criterion_id": "rec-ac1",
+                "result": "pass",
+                "verdict": "pass",
+                "layer": "acceptance",
+                "uncertainty": "provider outage is untested",
+                "method": "tdd",
+                "revision": "abc123",
+                "signed_by": "",
+            }
+        ]
+    )
+    payload = close_batch.build_batch(request)[0]["payload"]
+    assert payload["verdict"] == "pass"
+    assert payload["layer"] == "acceptance"
+    assert payload["uncertainty"] == "provider outage is untested"
+
+
 def test_refuses_done_with_failing_criterion_and_no_finding():
     request = _request(
         criteria=[

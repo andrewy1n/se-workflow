@@ -282,17 +282,23 @@ def test_activity_marks_failed_check_runs_and_failed_reports_only(store, cli, de
             cli, defs, "project:execution-report", subject=subject,
             extra_payload={"work_item": item["id"], "result": result, "verdict": verdict},
         )
-    for subject, result in (("a-check-pass", "pass"), ("a-check-fail", "fail")):
+    for subject, result, verdict in (
+        ("a-check-pass", "pass", None),
+        ("a-check-fail", "fail", None),
+        ("a-check-unknown", "pass", "unknown"),
+    ):
+        extra = {"method": "check", "signed_by": "", "result": result, "effort": "alpha"}
+        if verdict is not None:
+            extra["verdict"] = verdict
         h.create_generic_record(
-            cli, defs, "project:check-run", subject=subject,
-            extra_payload={"method": "check", "signed_by": "", "result": result, "effort": "alpha"},
+            cli, defs, "project:check-run", subject=subject, extra_payload=extra,
         )
 
     activity = _effort(model.load_snapshot(_target(store)), "alpha").activity
     assert sorted(a.subject for a in activity if a.failed) == [
-        "a-check-fail", "a-report-result-fail", "a-report-verdict-fail",
+        "a-check-fail", "a-check-unknown", "a-report-result-fail", "a-report-verdict-fail",
     ]
-    assert len(activity) == 6
+    assert len(activity) == 7
 
 
 def test_activity_window_follows_the_supplied_clock(store, cli, defs):

@@ -24,6 +24,16 @@ kind/focus are unset).
 ## Rules
 
 - Records plus the derived `project:plan` view are the plan authority.
+- Follow [lifecycle.md](../lifecycle.md). When a `project:specification`
+  exists for this phase, every acceptance it names is satisfied by
+  some work-item `satisfies` list (comma-separated acceptance
+  subjects), including the verification task. Do not invent a
+  criterion that contradicts the specification. When no specification
+  exists, omit `satisfies` and plan as before.
+- When a `project:design` exists and its `weight` is not `skipped`,
+  set work-item `design` to that subject and keep the plan inside
+  its interfaces and invariants. Omit `design` when the record is
+  absent.
 - Materialize **this focus** only. For `deliver` / `repair` /
   `evaluate`, materialize **this phase only**. Future phases stay
   `project:phase` records with placeholder bodies (from `init`) — no
@@ -129,7 +139,12 @@ adaptive-artifacts update --type project:phase --id <phase-id> \
 
    `<phase-plan.md>` has real `## Problem`, `## Approach`, `## Exit
    criteria`, and `## Landing` sections now — this body is the phase's
-   plan of record. In that body, record size as `one sitting` or
+   plan of record. Under Exit criteria, name the verification
+   strategy: which layers from [lifecycle.md](../lifecycle.md)
+   (`build`, `unit`, `integration`, `acceptance`, `static`, `types`,
+   `security`, `regression`, `design`, `behavior`) this phase will
+   record, and which it will not. Do not list a layer the phase will
+   not run. In that body, record size as `one sitting` or
    `more than one`, the human stops, and the areas parallel tasks
    share (collision notes). The `## Landing` section names branch
    `phase/<phase-slug>`, worktree
@@ -176,7 +191,8 @@ adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'E
       "kind": "deliver",
       "assignee": "",
       "effort": "<effort-slug>",
-      "executor": "subagent"
+      "executor": "subagent",
+      "satisfies": "spec-<phase-slug>-<criterion>"
     },
     "body": "## Description\n\n<what this task builds/fixes>\n\n## Approach\n\n<implementation recipe>"
   },
@@ -232,7 +248,7 @@ EOF
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "<task-slug>" \
-  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent"}' \
+  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","satisfies":"spec-<phase-slug>-<criterion>"}' \
   --body "## Description
 
 <what this task builds/fixes, and why it waits>
@@ -256,7 +272,7 @@ adaptive-artifacts create --type project:acceptance \
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "verify-<phase-slug>" \
-  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent"}' \
+  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","satisfies":"spec-<phase-slug>-<criterion>"}' \
   --body "## Description
 
 Prove the phase exit criteria hold together: run the integration

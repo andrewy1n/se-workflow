@@ -315,10 +315,14 @@ def _activity(
             "fail" in (payload.get("result"), payload.get("verdict")))
     for record in checks:
         payload = _payload(record)
-        outcome = CHECK_RESULT.get(payload.get("result", ""), payload.get("result", ""))
+        raw = payload.get("result", "")
+        if payload.get("verdict") in ("fail", "blocked", "unknown"):
+            raw = payload["verdict"]
+        outcome = CHECK_RESULT.get(raw, raw)
         method = payload.get("method", "").replace("check", "").strip()
         label = " ".join(part for part in (record["subject"], method, "check", outcome) if part)
-        add(payload.get("effort"), "check-run", record, label, payload.get("result") == "fail")
+        failed = payload.get("result") == "fail" or payload.get("verdict") in ("fail", "blocked", "unknown")
+        add(payload.get("effort"), "check-run", record, label, failed)
     for items in by_effort.values():
         items.sort(key=lambda item: item.recorded_at, reverse=True)
     return by_effort

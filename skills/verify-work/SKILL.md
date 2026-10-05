@@ -11,9 +11,18 @@ description: >-
 
 Requires `artifact-runtime` and a live se-workflow store. If missing,
 follow [ensure-store.md](../ensure-store.md). Follow
-[kinds-and-focus.md](../kinds-and-focus.md). Parent session writes
+[kinds-and-focus.md](../kinds-and-focus.md) and
+[lifecycle.md](../lifecycle.md). Parent session writes
 records. Git/tests own the code; this skill owns the occurrence that
 a criterion was tested and any diagnose/eval conclusion.
+
+`verdict` is `pass` | `fail` | `blocked` | `unknown`. Set it on the
+check-run next to `result`. `pass` means the layers named for this
+criterion passed and nothing material is missing. `unknown` means
+the commands that ran do not cover the criterion. Do not record
+`verdict` `pass` for a layer the strategy did not require and then
+treat a missing required layer as done. Set `layer` to the layer
+this check-run actually exercised.
 
 `method` on `project:acceptance`/`project:check-run`: `tdd` | `check`
 | `manual`. `kind` on the work-item: `deliver` | `repair` | `evaluate`
@@ -113,9 +122,22 @@ adaptive-artifacts create --type project:finding \
 ```bash
 adaptive-artifacts create --type project:check-run \
   --subject "<task-slug>" \
-  --payload '{"criterion_id":"<acceptance-record-id>","revision":"<git sha or dirty>","result":"pass","effort":"<effort-slug>","method":"tdd","signed_by":""}' \
+  --payload '{"criterion_id":"<acceptance-record-id>","revision":"<git sha or dirty>","result":"pass","effort":"<effort-slug>","method":"tdd","signed_by":"","verdict":"pass","layer":"acceptance"}' \
   --rel informed_by:<acceptance-record-id> \
   --rel informed_by:<execution-report-id>
+```
+
+   When the criterion is not covered, `result` stays a description of
+   the command and `verdict` is `unknown` or `blocked`. Record the
+   gap:
+
+```bash
+adaptive-artifacts create --type project:uncertainty \
+  --subject "<task-slug>-<gap>" \
+  --payload '{"statement":"<what remains unverified>","effort":"<effort-slug>","status":"open","criterion_id":"<acceptance-record-id>"}' \
+  --body "## Evidence
+
+<which layers ran, and which the strategy required but did not>"
 ```
 
    Prefer `git rev-parse HEAD` after a commit. `dirty` is allowed for
@@ -169,7 +191,10 @@ adaptive-artifacts create --type project:finding \
    This surfaces under `handoff`'s Needs Human role so the gap is
    visible without anyone having to already suspect it.
 6. On **fail** (not the intentional TDD red you will fix next): leave
-   the work-item `in_progress`. Optionally create
+   the work-item `in_progress` and run `diagnose`. Do not repair in
+   this skill. The failure observation is not the cause. On
+   `unknown`, leave the work-item `in_progress`, keep the uncertainty
+   open, and do not call the criterion done. Optionally create
    `project:continuity-question` on the **focus** subject with
    `blocking=true` if dispatch must stop.
 7. On **abandoned** approach: `create --type project:failed-attempt`

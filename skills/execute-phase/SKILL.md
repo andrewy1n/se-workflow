@@ -161,6 +161,10 @@ adaptive-artifacts create --type project:assignment \
    - the `## <task-slug>` section of `views/brief.md` (work-item body,
      acceptance, findings, constraints, position, and any prior
      amendments) — verbatim, not retyped
+   - when a specification exists, its body and the acceptance
+     subjects in this task's `satisfies` field — verbatim
+   - when a design exists and its weight is not `skipped`, its
+     interfaces, invariants, and constraints — verbatim
    - the assignment's `## Orientation` body from step 4
    - kind-specific instruction:
      - `deliver` / `incidental` — implement the change
@@ -263,6 +267,13 @@ adaptive-artifacts list --type project:check-run \
    - Every active phase acceptance has a check-run, and the latest
      check-run per `criterion_id` has a passing `result`.
    - Every `method=manual` latest check-run has `signed_by` set.
+   - When depth is `full`, or a wave ran more than one task, the
+     latest `project:integration-report` for the phase has `verdict`
+     `pass`. Run `integrate` before this check. A git merge that
+     succeeds is not that verdict. `trivial` depth and a serial
+     `standard` phase skip the report.
+   - No `project:uncertainty` for this effort has `status` `open`.
+     A check-run `verdict` of `unknown` is not a passing result.
 
    If the gate does not hold, leave the phase `in_progress`. Tell the
    user which criterion has no check-run, a failing latest check-run,

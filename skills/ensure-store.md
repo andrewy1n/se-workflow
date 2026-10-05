@@ -22,16 +22,21 @@ Resolve `<plugin>` in order:
 
 If `.artifacts/project-design.json` exists and `"project"` is
 `se-workflow`, check that the design lists a `phase` record, a
-`constraint` record, an `assignment` record, and an `execution-report`
+`constraint` record, an `assignment` record, an `execution-report`
+record, a `specification` record, a `design` record, an
+`integration-report` record, an `uncertainty` record, a
+`repair-attempt` record, a `release` record, and a `feedback`
 record, and that `work-item` has `required_sections`. If those are
 missing, the bundled contract is newer (it predates staged task
-lifecycle, phase records, dependency edges, or the assignment/
-execution-report dispatch loop): show the user and replace
-`.artifacts/project-design.json` only if they approve, then
-`adaptive-artifacts resolve`. Do not replace on a no. This is a
-one-time upgrade check at first touch, not a standing gate — once the
-design is current, nothing in the other skills re-checks it before
-dispatching.
+lifecycle, phase records, dependency edges, the assignment/
+execution-report dispatch loop, or the specification-through-release
+records): show the user and replace `.artifacts/project-design.json`
+only if they approve, then `adaptive-artifacts resolve`. Do not
+replace on a no. This is a one-time upgrade check at first touch,
+not a standing gate — once the design is current, nothing in the
+other skills re-checks it before dispatching. Old stores keep
+working until that replace: new payload fields are optional, and
+`plan-phase` still runs when no specification exists.
 
 If `.artifacts/project-design.json` exists and `"project"` is something
 else, **stop**. Do not overlay a foreign contract.

@@ -1,7 +1,9 @@
 # Kinds and focus
 
 Shared rules for every se-workflow skill. Do not invent extra skills for
-bugs, one-offs, or evals.
+bugs, one-offs, or evals. Depth and stage order live in
+[lifecycle.md](lifecycle.md): trivial work skips specification,
+design, and integration; standard and full work do not.
 
 ## Kinds
 

@@ -87,10 +87,14 @@ If the user already has this focus's tasks, use `plan-phase`.
 ```bash
 adaptive-artifacts create --type project:active-goal \
   --subject "<effort-slug>" \
-  --payload '{"goal":"<live outcome>","scope":"<effort or repo>","kind":"deliver"}'
+  --payload '{"goal":"<live outcome>","scope":"<effort or repo>","kind":"deliver","depth":"standard"}'
 ```
 
-   `kind` is the effort kind from step 5.
+   `kind` is the effort kind from step 5. `depth` is `trivial`,
+   `standard`, or `full` ([lifecycle.md](../lifecycle.md)). Use
+   `trivial` for incidental, `full` only when the user asked for
+   the full lifecycle, otherwise `standard`. Do not write a
+   specification here; `specify` does that after init.
 
 7. For each phase in step 5's list (skip entirely for incidental),
    `create --type project:phase`, `ordinal` starting at 1. Give a

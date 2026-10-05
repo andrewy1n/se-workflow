@@ -1,7 +1,7 @@
 {
   "name": "se-workflow",
-  "version": "0.2.0",
-  "description": "Software-engineering skills: classify work (deliver/repair/evaluate/incidental), plan a focused effort as records, execute with parallel subagents, verify with checks or findings. Requires the adaptive-artifacts plugin.",
+  "version": "0.3.0",
+  "description": "Software-engineering skills: classify work, specify, design, plan, execute with parallel subagents, integrate, verify with evidence, diagnose, and record release posture. Requires the adaptive-artifacts plugin.",
   "author": {
     "name": "andrewy1n",
     "email": "andrewyingo@gmail.com"
