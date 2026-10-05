@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:dbd0126d14a86a9623e29d4a4a99bec936a0ea74515326ef45526dbfe7d79d7a
+> Store state: sha256:b608945bb2e823a4a2eea0b508487a8318301f5bd506f431e666127d511f7599
 
 ## activity-failures
 
@@ -257,6 +257,11 @@
 ### Check
 - **effort-switch-focus**: rec-768f3192-cdcf-45d9-9421-2282f78e8bef; 9da847f3ed9909af06213792ab542bdd582422a3; pass; tdd _(id: [rec-f46731c5-7318-4e68-8d68-c07a955c4d00](.artifacts/records/project__check-run/rec-f46731c5-7318-4e68-8d68-c07a955c4d00.md))_
 
+## estimate-chips
+
+### Acceptance
+- **estimate-chips**: test_estimate_view_chips fails before the change and passes after: at 60 columns the opened task shows chips for size when set, minutes when set including 0m, and executor inline or executor subagent.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_estimate.py -q -k estimate_view_chips _(id: [rec-9151bd53-c190-48d4-a538-e887e6f192bd](.artifacts/records/project__acceptance/rec-9151bd53-c190-48d4-a538-e887e6f192bd.md))_
+
 ## estimate-contract
 
 ### Acceptance
@@ -274,6 +279,31 @@
 ### Check
 - **estimate-contract-minutes**: rec-5a0f9f85-407d-497d-b412-1e314d15e91d; dirty; pass; tdd _(id: [rec-81470571-0061-44e4-8e84-2e21746a65bd](.artifacts/records/project__check-run/rec-81470571-0061-44e4-8e84-2e21746a65bd.md))_
 - **estimate-contract-minutes**: rec-5a0f9f85-407d-497d-b412-1e314d15e91d; dirty; fail; tdd _(id: [rec-fb3ae873-822c-4528-87f2-c10c122aa0b0](.artifacts/records/project__check-run/rec-fb3ae873-822c-4528-87f2-c10c122aa0b0.md))_
+
+## estimate-model
+
+### Acceptance
+- **estimate-model**: test_estimate_view_sitting_phrase fails before the change and passes after: Size: more than one sitting returns more than one, Size: one sitting returns one sitting, and a body with no Size line returns empty.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_sitting_phrase _(id: [rec-7eabd5f4-5519-4834-b2f5-2330ed0ff75e](.artifacts/records/project__acceptance/rec-7eabd5f4-5519-4834-b2f5-2330ed0ff75e.md))_
+
+## estimate-model-blank
+
+### Acceptance
+- **estimate-model-blank**: test_estimate_view_blank_executor fails before the change and passes after: a task with no size and no estimate_minutes still has executor subagent, an empty size, and no minutes.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_blank_executor _(id: [rec-910eed74-aa0f-4d5f-af8b-aa7323cf0f9a](.artifacts/records/project__acceptance/rec-910eed74-aa0f-4d5f-af8b-aa7323cf0f9a.md))_
+
+## estimate-model-row
+
+### Acceptance
+- **estimate-model-row**: test_estimate_view_row_fields fails before the change and passes after: a phase row carries the sitting phrase and elapsed minutes, and a task row carries size, estimate_minutes, and executor from the work-item.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_row_fields _(id: [rec-18fd0fc9-9da2-4cc0-a5e1-a968d60dac73](.artifacts/records/project__acceptance/rec-18fd0fc9-9da2-4cc0-a5e1-a968d60dac73.md))_
+
+## estimate-model-unset
+
+### Acceptance
+- **estimate-model-unset**: test_estimate_view_unset_count fails before the change and passes after: two counted tasks with no estimate_minutes yield an unset count of 2 beside a partial total, and a phase with no estimates returns no elapsed total.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_unset_count _(id: [rec-12a895aa-399e-41fb-9955-825515f54673](.artifacts/records/project__acceptance/rec-12a895aa-399e-41fb-9955-825515f54673.md))_
+
+## estimate-model-wave
+
+### Acceptance
+- **estimate-model-wave**: test_estimate_view_wave_rule fails before the change and passes after: inline minutes in a wave add, a subagent wave contributes its longest estimate_minutes, blanks are skipped, zero counts, and those wave figures add.; tdd; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_wave_rule _(id: [rec-70638ad0-75c0-4b42-8827-77ec817e3cfd](.artifacts/records/project__acceptance/rec-70638ad0-75c0-4b42-8827-77ec817e3cfd.md))_
 
 ## estimate-skill
 
@@ -301,6 +331,31 @@
 ### Check
 - **estimate-skill-sitting**: rec-bd586f77-929c-45d7-882a-438a63414019; dirty; fail; tdd _(id: [rec-084cd0fd-376d-43d7-8e5d-85c170d463db](.artifacts/records/project__check-run/rec-084cd0fd-376d-43d7-8e5d-85c170d463db.md))_
 - **estimate-skill-sitting**: rec-bd586f77-929c-45d7-882a-438a63414019; dirty; pass; tdd _(id: [rec-4b54f00b-37ee-4871-b92a-3cef04ef3f51](.artifacts/records/project__check-run/rec-4b54f00b-37ee-4871-b92a-3cef04ef3f51.md))_
+
+## estimate-table
+
+### Acceptance
+- **estimate-table**: test_estimate_view_header_sitting fails before the change and passes after: at 60 columns a phase header shows more than one after the done/total count when the body says Size: more than one sitting, and a phase with no Size line shows no sitting phrase.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_sitting _(id: [rec-0334ff65-b695-433e-97e4-feed4a633233](.artifacts/records/project__acceptance/rec-0334ff65-b695-433e-97e4-feed4a633233.md))_
+
+## estimate-table-clip
+
+### Acceptance
+- **estimate-table-clip**: test_estimate_view_clip fails before the change and passes after: a long phase title and a long task title are shortened, and the sitting phrase, elapsed minutes, unset count, and task suffix stay whole.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_clip _(id: [rec-3c8dcd3a-d259-4881-b1d2-d5c39548776a](.artifacts/records/project__acceptance/rec-3c8dcd3a-d259-4881-b1d2-d5c39548776a.md))_
+
+## estimate-table-elapsed
+
+### Acceptance
+- **estimate-table-elapsed**: test_estimate_view_header_elapsed fails before the change and passes after: a subagent wave of 10 and 40 shows 40m on the header, and an inline wave of 10 and 15 shows 25m.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_elapsed _(id: [rec-d4eb4fe3-27e9-44aa-ac89-9138f8666348](.artifacts/records/project__acceptance/rec-d4eb4fe3-27e9-44aa-ac89-9138f8666348.md))_
+
+## estimate-table-partial
+
+### Acceptance
+- **estimate-table-partial**: test_estimate_view_header_partial fails before the change and passes after: two counted tasks with no estimate show the partial total and 2 unset, and a phase with no estimates shows no minute suffix.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_partial _(id: [rec-f4e5899d-ba88-4a58-ad18-718a28db0e16](.artifacts/records/project__acceptance/rec-f4e5899d-ba88-4a58-ad18-718a28db0e16.md))_
+
+## estimate-table-suffix
+
+### Acceptance
+- **estimate-table-suffix**: test_estimate_view_title_suffix fails before the change and passes after: the task title shows size, minutes, and executor before a waits-on note; a missing size is omitted; 0 shows as 0m; a missing executor shows as subagent.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_title_suffix _(id: [rec-c823c876-890c-4582-b8ac-0b8e804b6de6](.artifacts/records/project__acceptance/rec-c823c876-890c-4582-b8ac-0b8e804b6de6.md))_
 
 ## evidence-model
 
@@ -1074,6 +1129,41 @@
 ### Acceptance
 - **verify-end-to-end-phase-clear**: The watch-dashboard dashboard shows no Open Question, Needs Human, or Unsigned Manual Check; check; dashboard; ~/se-workflow/scripts/dashboard-status ~/se-workflow _(id: [rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85](.artifacts/records/project__acceptance/rec-9dce7bb8-9cc7-4a4d-9ebd-48a749f7cc85.md))_
 
+## verify-estimate-view
+
+### Acceptance
+- **verify-estimate-view**: A 60-column pilot shows one sitting or more than one and the derived elapsed minutes on the phase header, and the full suite passes.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_header_sitting && uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-9b9d3ec2-b413-4471-8991-8546a7f1c82b](.artifacts/records/project__acceptance/rec-9b9d3ec2-b413-4471-8991-8546a7f1c82b.md))_
+
+## verify-estimate-view-chips
+
+### Acceptance
+- **verify-estimate-view-chips**: Task detail at 60 columns shows chips for size, minutes, and executor.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_estimate.py -q -k estimate_view_chips _(id: [rec-eae79ebb-8d5c-4378-b484-8ce816861f28](.artifacts/records/project__acceptance/rec-eae79ebb-8d5c-4378-b484-8ce816861f28.md))_
+
+## verify-estimate-view-clip
+
+### Acceptance
+- **verify-estimate-view-clip**: Clipping shortens the title and keeps the sitting phrase, the elapsed minutes, the unset count, and the task suffix.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_clip _(id: [rec-e58b5f93-f9e3-4650-9853-ddcd0d0a0470](.artifacts/records/project__acceptance/rec-e58b5f93-f9e3-4650-9853-ddcd0d0a0470.md))_
+
+## verify-estimate-view-contract
+
+### Acceptance
+- **verify-estimate-view-contract**: The phase diff does not change contract/project-design.json, and a task with neither field still shows executor subagent.; check; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_blank_executor && test -z "$(git diff --name-only main -- contract/project-design.json)" _(id: [rec-7303a69d-1a5e-4661-b5c4-228c5b3dc28d](.artifacts/records/project__acceptance/rec-7303a69d-1a5e-4661-b5c4-228c5b3dc28d.md))_
+
+## verify-estimate-view-suffix
+
+### Acceptance
+- **verify-estimate-view-suffix**: Each task title shows its size, minutes, and executor. A missing size is omitted, 0 shows as 0m, and a missing executor shows as subagent.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_title_suffix _(id: [rec-f812f0d8-f363-4ec3-b7c8-32463a0d9d0b](.artifacts/records/project__acceptance/rec-f812f0d8-f363-4ec3-b7c8-32463a0d9d0b.md))_
+
+## verify-estimate-view-unset
+
+### Acceptance
+- **verify-estimate-view-unset**: A phase where some counted tasks have no estimate_minutes shows the partial total and the unset count. A phase where none have an estimate shows no minute suffix.; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_app.py -q -k 'estimate_view_unset_count or estimate_view_header_partial' _(id: [rec-8b8345bb-5686-47dc-869d-39897b52c173](.artifacts/records/project__acceptance/rec-8b8345bb-5686-47dc-869d-39897b52c173.md))_
+
+## verify-estimate-view-wave
+
+### Acceptance
+- **verify-estimate-view-wave**: The header minute figure matches the wave rule, including a parallel subagent wave that contributes its longest task.; check; dashboard; uv run --with pytest python -m pytest tests/test_dashboard_model.py -q -k estimate_view_wave_rule _(id: [rec-29ba3627-46df-4308-bae9-8939ff93b2f1](.artifacts/records/project__acceptance/rec-29ba3627-46df-4308-bae9-8939ff93b2f1.md))_
+
 ## verify-evidence-loop
 
 ### Acceptance
@@ -1105,30 +1195,48 @@
 ### Acceptance
 - **verify-evidence-view**: Through the real tmux entry point a structured phase shows unassessed, an upstream route under Needs you, then R n/m verified, the stage word, Release ready, and a requirement detail opened by keys; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_e2e_dashboard.py -q -m tmux -k evidence _(id: [rec-7ed13ebd-7b0a-436b-9c12-dfd4ef8cefcd](.artifacts/records/project__acceptance/rec-7ed13ebd-7b0a-436b-9c12-dfd4ef8cefcd.md))_
 
+### Check
+- **verify-evidence-view**: rec-7ed13ebd-7b0a-436b-9c12-dfd4ef8cefcd; dirty; pass; tdd _(id: [rec-e9556130-ae13-4c2f-9877-8be6e9aed7b5](.artifacts/records/project__check-run/rec-e9556130-ae13-4c2f-9877-8be6e9aed7b5.md))_
+
 ## verify-evidence-view-app
 
 ### Acceptance
 - **verify-evidence-view-app**: Exit criterion 2: the app and requirement screen pilot tests pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_requirement.py -q _(id: [rec-08b630d4-2e32-4b18-a674-8d21a0733158](.artifacts/records/project__acceptance/rec-08b630d4-2e32-4b18-a674-8d21a0733158.md))_
+
+### Check
+- **verify-evidence-view-app**: rec-08b630d4-2e32-4b18-a674-8d21a0733158; dirty; pass; check _(id: [rec-c3d8c774-9eba-446a-851a-c14513e7f9f7](.artifacts/records/project__check-run/rec-c3d8c774-9eba-446a-851a-c14513e7f9f7.md))_
 
 ## verify-evidence-view-legacy
 
 ### Acceptance
 - **verify-evidence-view-legacy**: Exit criterion 3: a store whose contract lacks the evidence types loads with no error; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'evidence and legacy' _(id: [rec-04bc526a-2703-4f22-8c56-9b068bc7869b](.artifacts/records/project__acceptance/rec-04bc526a-2703-4f22-8c56-9b068bc7869b.md))_
 
+### Check
+- **verify-evidence-view-legacy**: rec-04bc526a-2703-4f22-8c56-9b068bc7869b; dirty; pass; check _(id: [rec-16ef55d5-c4c5-42dd-9dc3-f12f8ed4711c](.artifacts/records/project__check-run/rec-16ef55d5-c4c5-42dd-9dc3-f12f8ed4711c.md))_
+
 ## verify-evidence-view-model
 
 ### Acceptance
 - **verify-evidence-view-model**: Exit criterion 1: the evidence model tests pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k evidence _(id: [rec-ab6549b4-827c-4cb8-9fd1-4adcc54de77d](.artifacts/records/project__acceptance/rec-ab6549b4-827c-4cb8-9fd1-4adcc54de77d.md))_
+
+### Check
+- **verify-evidence-view-model**: rec-ab6549b4-827c-4cb8-9fd1-4adcc54de77d; dirty; pass; check _(id: [rec-571ad7b4-d991-4250-8066-99335077a868](.artifacts/records/project__check-run/rec-571ad7b4-d991-4250-8066-99335077a868.md))_
 
 ## verify-evidence-view-readme
 
 ### Acceptance
 - **verify-evidence-view-readme**: Exit criterion 4: the README documents the requirement detail, the tally, the stage strip and word, Release ready, and the new Needs-you items; check; dashboard; grep -qi 'requirement detail' README.md && grep -q 'verified' README.md && grep -qi 'release ready' README.md && grep -qi 'stage' README.md _(id: [rec-338cf500-251e-4741-8168-ea67b1147ccc](.artifacts/records/project__acceptance/rec-338cf500-251e-4741-8168-ea67b1147ccc.md))_
 
+### Check
+- **verify-evidence-view-readme**: rec-338cf500-251e-4741-8168-ea67b1147ccc; dirty; pass; check _(id: [rec-869ea489-1127-4ac8-b27d-f003336f11d3](.artifacts/records/project__check-run/rec-869ea489-1127-4ac8-b27d-f003336f11d3.md))_
+
 ## verify-evidence-view-suite
 
 ### Acceptance
 - **verify-evidence-view-suite**: Exit criterion 4: the full suite passes, including the tmux tests; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m 'not tmux' && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-ffb67717-3553-4bc6-9497-fb877731866f](.artifacts/records/project__acceptance/rec-ffb67717-3553-4bc6-9497-fb877731866f.md))_
+
+### Check
+- **verify-evidence-view-suite**: rec-ffb67717-3553-4bc6-9497-fb877731866f; dirty; pass; check _(id: [rec-546ad19a-e086-4be8-ad6d-39ff6135a78f](.artifacts/records/project__check-run/rec-546ad19a-e086-4be8-ad6d-39ff6135a78f.md))_
 
 ## verify-layout-phase
 

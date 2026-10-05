@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:5390ef767f78d96079338c31874b80aafc153487758045d7783d8822e96e2192
+> Store state: sha256:09845f7963a088c5c73a6527bd9a1f624dfb4553475aba3a434bf0d71fb01308
 
 ## dashboard
 
@@ -9,10 +9,15 @@
 - **dashboard**: goal: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; scope: effort; kind: deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
 ### Phase
-- **evidence-view**: title: Show the evidence loop: requirements, stages, routes, and release; ordinal: 19 _(id: [rec-5f502387-8537-4a43-8f87-53e211d39ebc](.artifacts/records/project__phase/rec-5f502387-8537-4a43-8f87-53e211d39ebc.md))_
+- **estimate-view**: title: Show size and time estimates on the task table; ordinal: 21 _(id: [rec-5ba99c40-4b06-4a9f-a6c9-7aa755e22eb4](.artifacts/records/project__phase/rec-5ba99c40-4b06-4a9f-a6c9-7aa755e22eb4.md))_
 
-### Running
-- **verify-evidence-view**: title: Verify the evidence view; phase: evidence-view; assignee: verify _(id: [rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e](.artifacts/records/project__work-item/rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e.md))_
+### Ready
+- **estimate-model**: title: Load size and estimate minutes into the dashboard model; phase: estimate-view _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
+
+### Waiting
+- **estimate-chips**: title: Show size, minutes, and executor as task detail chips; phase: estimate-view _(id: [rec-a5afd59d-ced8-4b93-a273-77482086696d](.artifacts/records/project__work-item/rec-a5afd59d-ced8-4b93-a273-77482086696d.md))_
+- **estimate-table**: title: Show estimates on the phase header and task title; phase: estimate-view _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
+- **verify-estimate-view**: title: Verify size and time estimates on the task table; phase: estimate-view _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
 
 ### Done Recent
 - **estimate-contract**: title: Allow size and estimate_minutes on work-items; phase: run-facts _(id: [rec-06631dac-f66b-4c00-bc9f-f0fcd3d9b071](.artifacts/records/project__work-item/rec-06631dac-f66b-4c00-bc9f-f0fcd3d9b071.md))_
@@ -21,6 +26,7 @@
 - **evidence-surfaces**: title: Show evidence on the main pane, phase detail, Needs you, and activity; phase: evidence-view _(id: [rec-eae64d17-f10b-415e-b311-d01de72be53c](.artifacts/records/project__work-item/rec-eae64d17-f10b-415e-b311-d01de72be53c.md))_
 - **requirement-links**: title: Open the requirement screen from phase detail, Needs you, and task detail; phase: evidence-view _(id: [rec-53721903-e653-4295-a5fa-aa6d774d9442](.artifacts/records/project__work-item/rec-53721903-e653-4295-a5fa-aa6d774d9442.md))_
 - **requirement-screen**: title: Requirement detail screen; phase: evidence-view _(id: [rec-84297b1d-931b-4155-a7db-defae8356207](.artifacts/records/project__work-item/rec-84297b1d-931b-4155-a7db-defae8356207.md))_
+- **verify-evidence-view**: title: Verify the evidence view; phase: evidence-view _(id: [rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e](.artifacts/records/project__work-item/rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e.md))_
 - **verify-run-facts**: title: Verify run-facts; phase: run-facts _(id: [rec-1644993c-06a8-4178-9ca9-ea39b522dce4](.artifacts/records/project__work-item/rec-1644993c-06a8-4178-9ca9-ea39b522dce4.md))_
 
 ## session-analysis
