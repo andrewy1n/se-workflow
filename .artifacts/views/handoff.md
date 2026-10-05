@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:c6cb27c55e4b2959063224dcb467e8ee7cb71d5aba0fc5d9376d689abf5b7f86
+> Store state: sha256:631dc06bf1c5004cbb40f31b041bb169f3e0eeb77f61b680c09259f4b2f2da8e
 
 ## dashboard
 
@@ -10,6 +10,7 @@
 
 ### Position
 - **dashboard**: Phases 1-18 done. quiet-header is on main at dccb4d1. No phase is planned.; effort _(id: [rec-c5404f0b-e8a8-4abc-8097-5b1640f585c8](.artifacts/records/project__current-position/rec-c5404f0b-e8a8-4abc-8097-5b1640f585c8.md))_
+- **evidence-view**: evidence-view is planned with four waves. Waiting on plan review.; phase _(id: [rec-c9d286cc-950b-4eca-bc92-6f78e257b5d1](.artifacts/records/project__current-position/rec-c9d286cc-950b-4eca-bc92-6f78e257b5d1.md))_
 
 ## session-analysis
 

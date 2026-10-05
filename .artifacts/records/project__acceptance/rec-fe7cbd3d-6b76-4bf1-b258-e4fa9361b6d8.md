@@ -1,0 +1,29 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-fe7cbd3d-6b76-4bf1-b258-e4fa9361b6d8",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "criterion": "Pilot tests at 60 and 120 columns show the text, status, decisions, traced tasks, acceptances with latest check and evidence kind, and history oldest first; enter on a task opens its detail and esc returns; the screen redraws after a store change",
+    "effort": "dashboard",
+    "method": "tdd",
+    "phase": "evidence-view",
+    "requirement": "R3",
+    "verify_command": "uv run --with textual --with pytest python -m pytest tests/test_dashboard_requirement.py -q"
+  },
+  "record_type": "project:acceptance",
+  "recorded_at": "2026-10-05T04:07:28+00:00",
+  "relationships": {},
+  "revision": "sha256:6b374a414d1410f268f4bb4a5345a718fe62eee9c84d873dbedc6242c431c060",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "requirement-screen",
+  "time": {
+    "as_of": "2026-10-05T04:07:28+00:00"
+  }
+}
+---
+
