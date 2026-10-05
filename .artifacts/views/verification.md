@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:760fe98c1aa71868e1130c415b710d95b8acc1b99cc0ce76de116999b2ba22dc
+> Store state: sha256:f5143982b5c920e189a8338ad08dd56787efed746fba889a260709afc85e48b9
 
 ## activity-failures
 
@@ -112,7 +112,7 @@
 ## assess-route
 
 ### Acceptance
-- **assess-route**: verify-work writes an assessment whose next routes by level, escalates at three failures, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
+- **assess-route**: verify-work keeps level and next off the check-run, raises implementation to design only when a repeat adds no evidence, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
 
 ## close-step-skill
 
@@ -352,7 +352,7 @@
 ## loop-scenarios
 
 ### Acceptance
-- **loop-scenarios**: test_evidence_loop.py drives adaptive-artifacts through the happy path, implementation and design routes, a third-failure escalation, a failed integration-report, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488](.artifacts/records/project__acceptance/rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488.md))_
+- **loop-scenarios**: test_evidence_loop.py drives adaptive-artifacts through the happy path to release ready, an implementation route, a no-new-evidence raise to design, a design route, a failed integration-report, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488](.artifacts/records/project__acceptance/rec-17e1c5a7-2e32-40d4-9df1-6d7d4f8bb488.md))_
 
 ## model-fixture-reuse
 
@@ -475,7 +475,7 @@
 ## readme-lifecycle
 
 ### Acceptance
-- **readme-lifecycle**: The README names specify, design, plan, execute, integrate, verify, assess, and release, and the assessment routes, and test_readme_lifecycle.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-61e95277-ed36-4e3f-9307-df5f8e946151](.artifacts/records/project__acceptance/rec-61e95277-ed36-4e3f-9307-df5f8e946151.md))_
+- **readme-lifecycle**: The README states the two modes, the verify/assess split, the evidence escalation ladder, and that release ready is not deployed, and test_readme_lifecycle.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-61e95277-ed36-4e3f-9307-df5f8e946151](.artifacts/records/project__acceptance/rec-61e95277-ed36-4e3f-9307-df5f8e946151.md))_
 
 ## readme-quickstart
 
@@ -847,7 +847,7 @@
 ## verify-evidence-loop
 
 ### Acceptance
-- **verify-evidence-loop**: tests/test_evidence_loop.py drives adaptive-artifacts on a fresh store through release, the execute and design routes, escalation, integration failure, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27](.artifacts/records/project__acceptance/rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27.md))_
+- **verify-evidence-loop**: tests/test_evidence_loop.py drives adaptive-artifacts on a fresh store through release ready, a check-run with no level or next, a repeated implementation failure that routes to design, a design route, integration failure, insufficient evidence, and a legacy pass check-run.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_evidence_loop.py -q _(id: [rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27](.artifacts/records/project__acceptance/rec-c6f57f2f-cef8-4daf-b8f1-7899cd1a7e27.md))_
 
 ## verify-evidence-loop-contract
 
@@ -857,7 +857,7 @@
 ## verify-evidence-loop-readme
 
 ### Acceptance
-- **verify-evidence-loop-readme**: The README describes specify, design, plan, execute, integrate, verify, assess, and release as the skills perform them, and describes feedback as a record with no collector.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8](.artifacts/records/project__acceptance/rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8.md))_
+- **verify-evidence-loop-readme**: The README states the two modes, the verify/assess split, the evidence escalation ladder, and that release ready is not deployed.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_readme_lifecycle.py -q _(id: [rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8](.artifacts/records/project__acceptance/rec-a072e603-a6d5-4e9c-9f0d-2b55f6543af8.md))_
 
 ## verify-evidence-loop-skills
 

@@ -13,13 +13,13 @@
     "title": "Assess evidence and choose the next stage"
   },
   "record_type": "project:work-item",
-  "recorded_at": "2026-10-05T01:56:37+00:00",
+  "recorded_at": "2026-10-05T02:04:02+00:00",
   "relationships": {
     "depends_on": [
       "rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6"
     ]
   },
-  "revision": "sha256:cde84bde1adf869391ff7734e217534f5ce3501d1aac8ff16b7f365d11d15285",
+  "revision": "sha256:3bb4f6aacbe72e191285586d36710ef2b88ee57f54ddac9a964e4a0038ea824b",
   "stewardship": {
     "steward": "agent"
   },
@@ -29,15 +29,17 @@
 
 ## Description
 
-Turn verification into evidence plus an assessment that picks the stage to revisit.
+Turn verification into evidence, then a separate assessment that picks the stage to revisit.
 
 ## Approach
 
-In `skills/verify-work/SKILL.md`, when the acceptance has `requirement`, the check-run payload includes that `requirement` and an `evidence_kind` from the contract enum. `result` `insufficient` means the criterion was not exercised. `pass` is evidence for that requirement only.
+In `skills/verify-work/SKILL.md`, keep verify and assess as two steps.
 
-After the check-runs, write one `project:assessment` per requirement. Subject is `<phase-slug>-<requirement-id>`. Supersede the active assessment with that subject. Payload: `requirement`, `status`, `level` (omit only when `status` is `verified`), `next`, `confidence` (`high` when `verified`, otherwise `low`), `phase`, `effort`, `missing` (what evidence is absent, or empty).
+Verify asks what happened. When the acceptance has `requirement`, the check-run payload includes that `requirement` and an `evidence_kind` from the contract enum. `result` is `pass`, `fail`, `blocked`, or `insufficient`. `insufficient` means the criterion was not exercised. `pass` is evidence for that requirement only. A check-run has no `level` and no `next`. A failing concurrency test does not itself claim the design is wrong.
 
-Choose `next` as follows. Do not send every failure to execute.
+Assess asks what that evidence means and what happens next. After the check-runs, write one `project:assessment` per requirement. Subject is `<phase-slug>-<requirement-id>`. Supersede the active assessment with that subject. Payload: `requirement`, `status`, `level` (omit only when `status` is `verified`), `next`, `confidence` (`high` when `verified`, otherwise `low`), `phase`, `effort`, `missing` (what evidence is absent, or empty). The Reason section names the cause in words. The check-run does not.
+
+Choose the first `next` from the evidence. Do not send every failure to execute.
 
 - `failed` and the cause is the task's code: `level` `implementation`, `next` `execute`. Leave the work-item `in_progress`.
 - `failed` and the design cannot satisfy the requirement: `level` `design`, `next` `design`.
@@ -47,12 +49,14 @@ Choose `next` as follows. Do not send every failure to execute.
 - `insufficient`: `level` `verification`, `next` `verify`. Set `missing` to the absent check. Prefer the first missing kind in this order: acceptance, integration, unit, property, fuzz, review.
 - `level` `environment` or `unknown`: open a blocking `project:continuity-question` and a finding with `needs` `human`. Do not set `next` to `execute`.
 
-Count failed assessments for that requirement, including superseded ones. At three, open a blocking continuity-question and a finding with `needs` `human`, and do not set `next` to `execute`.
+Escalation is decision evidence-escalation. Compare this assessment with the previous one for the same requirement. Stay at the same `level` only when the new check-runs add evidence (a new `evidence_kind`, a narrower failing case, or a cause that was unnamed and is now named) or the previous cause is resolved. Otherwise raise one step on `implementation` → `design` → `specification`, set `next` to that stage, and say in Reason that the evidence did not increase. Do not use a failure count. `plan` and `integration` are chosen only when the evidence says so. They are not inserted under a repeated implementation failure. When `specification` repeats and the evidence still did not increase, open a blocking continuity-question and a finding with `needs` `human`.
 
-When every assessment for the phase is `verified`, create `project:release` with `state` `ready`. Do not deploy. A phase with no specification skips assessment and release. Incidental work skips them too.
+When every assessment for the phase is `verified`, create `project:release` with `state` `ready`. Decision release-ready: `ready` means the evidence is sufficient. Do not write `merged`, `deployed`, or any other state in this skill. Do not deploy.
+
+Decision two-modes: a phase with no specification, and incidental work, skip assessment and release and keep pass/fail check-runs.
 
 In `skills/engage/SKILL.md`, a `project:feedback` record is new intent for the effort it names. Route it through `discuss` (specify). Do not collect feedback. Document a `list --type project:feedback` invocation.
 
-Add `tests/test_assess_routing.py`. It asserts the routing table, the three-failure escalation, the release `ready` write, and that the documented invocations are contract-legal.
+Add `tests/test_assess_routing.py`. It asserts the verify/assess split, the routing table, the evidence-escalation ladder, the release `ready` write, the two-modes skip, and that the documented invocations are contract-legal.
 
 Do not edit `scripts/close_batch.py`. A result other than `pass` is already unmet there.
