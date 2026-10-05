@@ -36,9 +36,11 @@ for what an executor was handed, an optional `project:assignment-amendment`
 for any mid-flight correction, and a `project:execution-report` for
 what came back, verbatim. The `project:brief` view — not the
 assignment body — is what tells an executor its acceptance criteria,
-findings, constraints, and position; an assignment carries only what
-that view cannot: territory splits, concurrency warnings, and
-operational orientation.
+findings, constraints, and position. An assignment carries territory
+splits, concurrency warnings, and operational orientation, and it
+quotes the requirement texts for the work-item's `requirements`, the
+design Invariants and Assumptions, and the named decisions. Subagents
+return evidence and do not call `adaptive-artifacts`.
 
 ## Steps
 
@@ -129,13 +131,37 @@ adaptive-artifacts update --type project:work-item --id <id> \
 ```
 
    Regenerate the brief so it is current for this dispatch, then
-   record the assignment. Its `## Orientation` body carries only what
-   `project:brief` does not already say for this subject — territory
-   splits between concurrent executors, concurrency warnings,
-   operational orientation (paths, sandbox, tooling quirks). Do not
-   restate `criterion`, `verify_command`, or finding text in it — that
-   is what the brief view is for, and copying it in creates a second,
+   record the assignment. Its `## Orientation` body carries territory
+   splits between concurrent executors, concurrency warnings, and
+   operational orientation (paths, sandbox, tooling quirks). It also
+   quotes the requirement texts for the work-item's `requirements`,
+   the phase design's Invariants and Assumptions, and the named
+   decisions in the work-item's `decisions`. Read those records and
+   copy the text into the orientation. The executor receives that
+   body and does not call `adaptive-artifacts`.
+
+   When `requirements` is set, quote each listed requirement's text
+   from the phase `project:specification` `## Requirements` section.
+   When a `project:design` exists for the phase, quote its
+   `## Invariants` and `## Assumptions`. When `decisions` is set,
+   quote each named decision's subject and `choice`. When those
+   records or fields are absent, omit the quotes. Do not restate
+   `criterion`, `verify_command`, or finding text — that is what the
+   brief view is for, and copying it in creates a second,
    staleness-prone copy of the same fact:
+
+```bash
+adaptive-artifacts list --type project:specification \
+  --where payload.effort=<focus> --where payload.phase=<current-phase-slug> \
+  --state active --full
+
+adaptive-artifacts list --type project:design \
+  --where payload.effort=<focus> --where payload.phase=<current-phase-slug> \
+  --state active --full
+
+adaptive-artifacts list --type project:decision \
+  --where payload.effort=<focus> --state active --full
+```
 
 ```bash
 adaptive-artifacts view --id project:brief --out views/brief.md
@@ -145,7 +171,13 @@ adaptive-artifacts create --type project:assignment \
   --payload '{"work_item":"<task-slug>","executor":"<assignee>","effort":"<focus>"}' \
   --body "## Orientation
 
-<territory split / concurrency warning / operational context only>"
+<territory split / concurrency warning / operational context>
+
+<quoted requirement texts for this work-item's requirements>
+
+<quoted design Invariants and Assumptions>
+
+<quoted named decisions>"
 ```
 
 5. Dispatch the wave by that shared `payload.executor`.
@@ -170,9 +202,10 @@ adaptive-artifacts create --type project:assignment \
        do not "fix" the system unless the criterion says so
    - follow `## Approach` in the work-item body; do not ask the user
      for an implementation recipe when that section is present
-   - do **not** run `adaptive-artifacts` in any form that writes — that
-     holds even once a `--read-only` mode exists for executors; do
-     **not** edit `.artifacts/`; return the evidence block below
+   - subagents return evidence and do not call `adaptive-artifacts`.
+     That holds for any form that writes, and it still holds once a
+     `--read-only` mode exists for executors; do **not** edit
+     `.artifacts/`; return the evidence block below
 
    `inline` does not spawn a subagent. This session implements the
    task, then still writes the execution-report and runs
@@ -241,7 +274,51 @@ adaptive-artifacts create --type project:execution-report \
    `true` automatically the moment its dependency's lifecycle reaches
    its terminal success state; the next wave's `list` in step 3 will
    see it.
-8. Next wave. When no `planned`/`in_progress` same-focus work-items
+8. Next wave. After the last implementation wave and before
+   dispatching the verification task, record semantic integration.
+
+   The verification task is the work-item that `depends_on` every
+   other phase work-item. An implementation wave is a dispatch wave
+   of the other work-items. After that last implementation wave's
+   execution-reports are recorded, and before the verification task
+   is dispatched:
+
+   Skip the report when incidental, or when no implementation wave
+   has more than one task. When the report is skipped, return to
+   step 3 and dispatch the verification task.
+
+   Otherwise create one `project:integration-report` for the phase.
+   Check interfaces, shared assumptions, cross-task invariants, and
+   integration behavior. `result` is `pass`, `fail`, or `blocked`.
+   Write `pass` only after those checks hold. A clean git merge does
+   not by itself write `pass`.
+
+```bash
+adaptive-artifacts create --type project:integration-report \
+  --subject "<phase-slug>" \
+  --payload '{"phase":"<phase-slug>","effort":"<focus>","result":"<pass|fail|blocked>","revision":"<git sha or dirty>"}' \
+  --body "## Interfaces
+
+<interfaces checked across the tasks>
+
+## Assumptions
+
+<shared assumptions that still hold>
+
+## Invariants
+
+<cross-task invariants>
+
+## Conflicts
+
+<conflicts, or none>"
+```
+
+   On `fail` or `blocked`, do not dispatch the verification task.
+   Leave it `planned` and stop. On `pass`, return to step 3 and
+   dispatch the verification task.
+
+   When no `planned`/`in_progress` same-focus work-items
    remain in this phase (or the incidental task is closed), check the
    phase gate before closing anything. An empty task list is not proof
    the phase is done:
@@ -366,6 +443,10 @@ adaptive-artifacts supersede --type project:current-position --id <position-id> 
 - Write or recompute `ready`/`wave` — they are derived; re-query them
 - Load the whole store; route by focus, then phase
 - Close a phase whose gate in step 8 does not hold
+- Write `pass` on `project:integration-report` because a git merge was
+  clean. A clean git merge does not by itself write `pass`
+- Dispatch the verification task when the integration-report `result`
+  is `fail` or `blocked`
 - Create a branch or worktree when the phase body has no Landing section
 - Let code writes leave the worktree when `## Landing` is present
 - Write `.artifacts` anywhere but the primary checkout, or include

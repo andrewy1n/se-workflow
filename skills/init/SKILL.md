@@ -3,7 +3,8 @@ name: init
 description: >-
   Adopts the current git repo into the se-workflow store: contract,
   live goal, and a project:phase record for every phase you can
-  currently name. Does not write work-items or a plan document. Use
+  currently name. Does not write work-items or a plan document.
+  Specification and design are written by `discuss`, not `init`. Use
   when starting this workflow on an existing or empty project, when
   adding a new effort subject, or when handoff has no goal or
   position.
@@ -24,6 +25,7 @@ If the user already has this focus's tasks, use `plan-phase`.
 
 - Records plus derived views are the authority. Do not write a plan
   or roadmap file as authority.
+- Specification and design are written by `discuss`, not `init`.
 - Interview for orientation, not an executable multi-phase plan. A
   phase record's body must have real content in every required
   section, but "not yet scoped" is real content for a phase that
@@ -167,7 +169,9 @@ adaptive-artifacts create --type project:constraint \
 
 10. For each confirmed blocker: `create --type project:continuity-question`
     with `subject` = focus, `owner`, `blocking` true/false, `scope`.
-11. Do **not** capture `work-item` or `acceptance`.
+11. Do **not** capture `work-item`, `acceptance`, `specification`, or
+    `design`. Specification and design are written by `discuss`, not
+    `init`.
 12. Regenerate views; validate:
 
 ```bash
@@ -184,6 +188,8 @@ adaptive-artifacts validate
 
 - Materialize future phases as work-items or full plans — a
   placeholder Problem/Approach/Exit-criteria body is enough
+- Write `project:specification` or `project:design` — `discuss` writes
+  those
 - Write a roadmap document
 - Run research or planner subagents
 - Overlay a foreign `.artifacts/` contract

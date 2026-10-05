@@ -40,6 +40,15 @@ kind/focus are unset).
   avoids the collision while `list --subject <task-slug>` (exact-or-
   prefix match) still finds the whole family. Do not pick a task slug
   that is itself a prefix of another task's slug in the same phase.
+- When a `project:specification` exists for the phase, set work-item
+  payload `requirements` to the comma-separated requirement ids that
+  task implements and `decisions` to the comma-separated decision
+  subjects it follows. Set each acceptance payload `requirement` to
+  one of those ids. Several acceptances keep the subject-suffix rule
+  above. When no specification exists, omit `requirements`,
+  `decisions`, and `requirement`.
+- Do not write `project:assessment` or `project:integration-report`
+  from this skill.
 - Task state is the work-item's **lifecycle** — `planned` (default) ->
   `in_progress` -> `done`, or `withdrawn`. Never write `stage`, `live`,
   `ready`, or `wave` — they don't exist in this contract.
@@ -162,7 +171,21 @@ adaptive-artifacts create --type project:current-position \
    task), capture work-item + acceptance(s) together — bodies inline
    since `capture` takes JSON, not a file flag; keep the Description
    short here and use plain `create --body-file` instead if it needs
-   more than a few lines:
+   more than a few lines.
+
+   List this phase's specification first. The capture and `create`
+   payloads below include `requirements`, `decisions`, and
+   `requirement` when a `project:specification` exists for the phase.
+   `requirements` is the comma-separated requirement ids that task
+   implements, `decisions` is the comma-separated decision subjects it
+   follows, and each acceptance `requirement` is one of those ids.
+   Several acceptances keep the `<task-slug>-<short suffix>` subject.
+   When no specification exists, omit `requirements`, `decisions`, and
+   `requirement` from these same payloads and keep every other field.
+
+```bash
+adaptive-artifacts list --type project:specification --where payload.phase=<current-phase-slug> --state active
+```
 
 ```bash
 adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'EOF'
@@ -176,7 +199,9 @@ adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'E
       "kind": "deliver",
       "assignee": "",
       "effort": "<effort-slug>",
-      "executor": "subagent"
+      "executor": "subagent",
+      "requirements": "R1,R2",
+      "decisions": "<decision-a>,<decision-b>"
     },
     "body": "## Description\n\n<what this task builds/fixes>\n\n## Approach\n\n<implementation recipe>"
   },
@@ -188,7 +213,8 @@ adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'E
       "method": "tdd",
       "phase": "<current-phase-slug>",
       "effort": "<effort-slug>",
-      "verify_command": "<command that proves it>"
+      "verify_command": "<command that proves it>",
+      "requirement": "R1"
     }
   },
   {
@@ -199,7 +225,8 @@ adaptive-artifacts capture --bundle project:specified-work --records "$(cat <<'E
       "method": "check",
       "phase": "<current-phase-slug>",
       "effort": "<effort-slug>",
-      "verify_command": "<command that proves it>"
+      "verify_command": "<command that proves it>",
+      "requirement": "R2"
     }
   }
 ]
@@ -232,7 +259,7 @@ EOF
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "<task-slug>" \
-  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent"}' \
+  --payload '{"title":"<short title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","requirements":"R1,R2","decisions":"<decision-a>,<decision-b>"}' \
   --body "## Description
 
 <what this task builds/fixes, and why it waits>
@@ -244,7 +271,7 @@ adaptive-artifacts create --type project:work-item \
 
 adaptive-artifacts create --type project:acceptance \
   --subject "<task-slug>" \
-  --payload '{"criterion":"<observable done-check>","method":"tdd","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<command>"}'
+  --payload '{"criterion":"<observable done-check>","method":"tdd","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<command>","requirement":"R1"}'
 ```
 
 7. For a `deliver` or `repair` phase, create the verification task
@@ -256,7 +283,7 @@ adaptive-artifacts create --type project:acceptance \
 ```bash
 adaptive-artifacts create --type project:work-item \
   --subject "verify-<phase-slug>" \
-  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent"}' \
+  --payload '{"title":"Verify <phase title>","phase":"<current-phase-slug>","kind":"deliver","assignee":"","effort":"<effort-slug>","executor":"subagent","requirements":"R1,R2","decisions":"<decision-a>,<decision-b>"}' \
   --body "## Description
 
 Prove the phase exit criteria hold together: run the integration
@@ -270,11 +297,11 @@ check through the real entry point, then every other phase check.
 
 adaptive-artifacts create --type project:acceptance \
   --subject "verify-<phase-slug>" \
-  --payload '{"criterion":"<exit criterion 1, observed through the real entry point>","method":"tdd","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<integration test command>"}'
+  --payload '{"criterion":"<exit criterion 1, observed through the real entry point>","method":"tdd","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<integration test command>","requirement":"R1"}'
 
 adaptive-artifacts create --type project:acceptance \
   --subject "verify-<phase-slug>-<criterion-suffix>" \
-  --payload '{"criterion":"<exit criterion 2>","method":"check","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<command>"}'
+  --payload '{"criterion":"<exit criterion 2>","method":"check","phase":"<current-phase-slug>","effort":"<effort-slug>","verify_command":"<command>","requirement":"R2"}'
 ```
 
    Add a task that later joins the phase as a `depends_on` edge on the

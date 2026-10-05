@@ -3,9 +3,10 @@ name: engage
 description: >-
   Classifies a software-engineering ask as deliver, repair, evaluate,
   or incidental, names the focus subject, and hands off to init,
-  plan-phase, execute-phase, or verify-work. Use when the user has
-  work but has not named a phase skill, or when the work is a bug,
-  one-off, integration test, or metric comparison.
+  discuss, plan-phase, execute-phase, or verify-work. Use when the
+  user has work but has not named a phase skill, when the work is a
+  bug, one-off, integration test, or metric comparison, or when a
+  project:feedback record names an effort to specify.
 ---
 
 # Engage
@@ -53,6 +54,15 @@ Do not plan, implement, or verify in this skill.
    Do not rename another effort’s subject to steal its goal.
 4. Records?
 
+   A `project:feedback` record is new intent for the effort it names
+   (`payload.effort`). Route it through `discuss` (specify), even when
+   tasks for that effort already exist. Do not collect feedback. Do
+   not create `project:feedback`.
+
+```bash
+adaptive-artifacts list --type project:feedback
+```
+
    - `incidental` + fits this chat + not interrupting another live
      phase → **no records**. Tell the user to do it in this chat.
      Stop.
@@ -87,3 +97,4 @@ Do not plan, implement, or verify in this skill.
 - Supersede another subject’s goal or position
 - Write work-items here
 - Add a fifth kind
+- Collect feedback or create `project:feedback`

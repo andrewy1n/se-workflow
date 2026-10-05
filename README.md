@@ -153,6 +153,66 @@ Existing se-workflow stores created before staged task lifecycle,
 phase records, and dependency edges existed need a human-approved
 contract replace (`ensure-store.md`).
 
+## Lifecycle
+
+Decision two-modes is the rule. Structured work is a phase with a
+specification. It runs specify, design, plan, execute, integrate when a
+wave is parallel, verify, assess, and release `ready`. Simple work is
+incidental, or a phase with no specification. It runs execute, then
+verify as pass or fail. `discuss` writes a specification and a design
+only for structured work; simple work skips both. A phase with no
+specification, and incidental work, skip assessment and release and
+keep pass/fail check-runs. `kind` `incidental` stays on that path even
+when a specification exists for some other phase.
+
+Verify and assess are two steps. Verify asks what happened. A check-run
+records what happened and which requirement it bears on. It has no
+`level` and no `next`. When the acceptance has `requirement`, the
+check-run includes that requirement; simple work omits it. Assess asks
+what that evidence means and which stage is next. An assessment records
+what that evidence means and which stage is next. A failing test does
+not itself choose the stage. A failing concurrency test does not itself
+claim the design is wrong. Do not send every failure to execute.
+
+The routes are implementation to execute, design to design, plan to
+plan, specification to specify, integration to integrate or execute,
+and insufficient evidence to verify.
+
+| Evidence | Next |
+|---|---|
+| implementation: the cause is the task's code | `execute` |
+| design: the design cannot satisfy the requirement | `design` |
+| plan: no task covers the requirement | `plan` |
+| specification: the requirement is ambiguous or contradicted | `specify` |
+| integration: an integration-report `fail`, and a task must change | `execute` |
+| integration: an integration-report `fail`, otherwise | `integrate` |
+| insufficient evidence: the criterion was not exercised | `verify` |
+
+Decision evidence-escalation. The same level repeats only when evidence
+increased or the cause was resolved. Evidence increased means a new
+`evidence_kind`, a narrower failing case, or a cause that was unnamed
+and is now named. Otherwise the ladder is implementation, then design,
+then specification. Do not use a failure count. `plan` and `integration`
+are direct diagnoses. They are chosen only when the evidence says so.
+They are not inserted under a repeated implementation failure.
+
+Decision release-ready. Release state `ready` means every requirement
+is verified. `ready` means the evidence is sufficient. It does not mean
+merged or deployed. Do not write `merged`, `deployed`, or any other
+state. Do not deploy.
+
+A `project:feedback` record is new intent `engage` can route, with no
+collector. Route it through `discuss` (specify), even when tasks for
+that effort already exist. Do not collect feedback. Do not create
+`project:feedback`.
+
+A git merge is not integration success. A clean git merge does not by
+itself write `pass`. Write `pass` only after interfaces, shared
+assumptions, cross-task invariants, and integration behavior hold.
+Skip the integration report when incidental, or when no implementation
+wave has more than one task. That multi-task wave is the parallel case
+the structured path integrates.
+
 ## Skills in this pack
 
 - `engage`
