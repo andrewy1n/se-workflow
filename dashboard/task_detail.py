@@ -61,7 +61,19 @@ def link_options(detail: model.TaskDetail, colors: dict[str, str]) -> list[Optio
         text = Text("Phase: ", no_wrap=True, overflow="ellipsis")
         text.append(detail.phase, style=colors["muted"])
         options.append(Option(text, id=f"{PHASE_PREFIX}{detail.phase}"))
+    for requirement in _csv(detail.requirements):
+        text = Text("Requirement: ", no_wrap=True, overflow="ellipsis")
+        text.append(requirement, style=colors["muted"])
+        options.append(Option(text, id=f"req:{detail.phase}:{requirement}"))
+    for decision in _csv(detail.decisions):
+        text = Text("Decision: ", no_wrap=True, overflow="ellipsis")
+        text.append(decision, style=colors["muted"])
+        options.append(Option(text, id=f"decision:{decision}"))
     return options
+
+
+def _csv(value: str) -> list[str]:
+    return [part.strip() for part in value.split(",") if part.strip()]
 
 
 def description_source(body: str) -> str:
@@ -250,6 +262,14 @@ class TaskDetailScreen(Screen[None]):
             self.app.push_screen(PhaseDetailScreen(self.target, self.detail.effort, key[len(PHASE_PREFIX):]))
         elif key.startswith("task:"):
             self.app.push_screen(TaskDetailScreen(self.target, key[len("task:"):]))
+        elif key.startswith("req:"):
+            from dashboard.requirement_detail import RequirementDetailScreen
+
+            phase, _, requirement = key[len("req:"):].partition(":")
+            if phase and requirement:
+                self.app.push_screen(
+                    RequirementDetailScreen(self.target, self.detail.effort, phase, requirement)
+                )
 
     def action_commit(self) -> None:
         if self.detail is None:

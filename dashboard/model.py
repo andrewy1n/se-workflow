@@ -15,12 +15,22 @@ from dashboard.artifact_store import Target, binary
 
 RECENT = timedelta(hours=24)
 TASK_ORDER = ("running", "ready", "waiting", "done", "withdrawn")
-NEEDS_ORDER = ("blocking-question", "needs-human", "unsigned-check", "open-question")
+NEEDS_ORDER = (
+    "blocking-question", "loop-route", "integration", "needs-human", "unsigned-check", "open-question",
+)
 LIVE_PHASE_STATES = ("planned", "in_progress", "done")
 COUNTED_TASK_STATES = ("planned", "in_progress", "done")
 CHECK_RESULT = {"pass": "passed", "fail": "failed"}
 TOKEN_DIRS = ("records", "history")
-FULL_TYPES = ("project:continuity-question", "project:finding", "project:check-run", "project:work-item")
+FULL_TYPES = (
+    "project:continuity-question", "project:finding", "project:check-run", "project:work-item",
+    "project:specification", "project:assessment", "project:integration-report",
+)
+SOFT_TYPES = frozenset({
+    "project:specification", "project:design", "project:assessment", "project:integration-report", "project:release",
+})
+UPSTREAM_NEXT = frozenset({"specify", "design", "plan"})
+LOOP_NEXT = ("specify", "design", "plan", "execute", "integrate", "verify", "release")
 
 
 class ModelError(RuntimeError):
@@ -37,6 +47,7 @@ class PhaseRow:
     total: int
     id: str = ""
     awaiting_signoff: bool = False
+    evidence: "PhaseEvidence | None" = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +72,11 @@ class NeedsYouItem:
     record_type: str = ""
     body: str = ""
     task_id: str = ""
+    phase: str = ""
+    requirement: str = ""
+    status: str = ""
+    next: str = ""
+    result: str = ""
 
 
 @dataclass(frozen=True)
@@ -81,6 +97,7 @@ class EffortView:
     tasks: list[TaskRow] = field(default_factory=list)
     needs_you: list[NeedsYouItem] = field(default_factory=list)
     activity: list[ActivityItem] = field(default_factory=list)
+    release_ready: bool = False
 
     @property
     def finished(self) -> bool:
@@ -132,8 +149,18 @@ def _run(target: Target, *args: str) -> dict[str, Any]:
         raise ModelError(f"{label} returned unreadable output") from exc
 
 
-def _list(target: Target, record_type: str) -> list[dict[str, Any]]:
-    output = _run(target, "list", "--type", record_type, *(("--full",) if record_type in FULL_TYPES else ()))
+def _list(target: Target, record_type: str, *, state: str | None = None) -> list[dict[str, Any]]:
+    args = ["list", "--type", record_type]
+    if record_type in FULL_TYPES:
+        args.append("--full")
+    if state:
+        args.extend(["--state", state])
+    try:
+        output = _run(target, *args)
+    except ModelError:
+        if record_type in SOFT_TYPES:
+            return []
+        raise
     try:
         return output["records"]
     except (KeyError, TypeError) as exc:
@@ -143,6 +170,7 @@ def _list(target: Target, record_type: str) -> list[dict[str, Any]]:
 _SNAPSHOT_TYPES = (
     "project:active-goal", "project:phase", "project:work-item", "project:continuity-question",
     "project:finding", "project:check-run", "project:assignment", "project:execution-report",
+    "project:specification", "project:design", "project:assessment", "project:integration-report", "project:release",
 )
 
 
@@ -173,6 +201,173 @@ def _derived(record: dict[str, Any]) -> dict[str, Any]:
 
 def _recorded_at(record: dict[str, Any]) -> datetime:
     return datetime.fromisoformat(record["recorded_at"])
+
+
+def _split_csv(value: Any) -> list[str]:
+    if not value:
+        return []
+    return [part.strip() for part in str(value).split(",") if part.strip()]
+
+
+def _section(body: str, heading: str) -> str:
+    collected: list[str] = []
+    collecting = False
+    target = heading.strip().lower()
+    for line in (body or "").splitlines():
+        if line.startswith("## "):
+            if collecting:
+                break
+            collecting = line[3:].strip().lower() == target
+            continue
+        if collecting:
+            collected.append(line)
+    return "\n".join(collected).strip()
+
+
+def _requirement_texts(body: str) -> dict[str, str]:
+    texts = {}
+    for line in _section(body, "Requirements").splitlines():
+        ident, sep, text = line.partition(":")
+        if sep and ident.strip():
+            texts[ident.strip()] = text.strip()
+    return texts
+
+
+def _live(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [record for record in records if record.get("lifecycle_state") not in INACTIVE_STATES]
+
+
+def _newest(records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return max(records, key=_recorded_at) if records else None
+
+
+def _oldest_first(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Order a supersede chain from the original record to the active one.
+
+    Supersede rewrites the predecessor's recorded_at to the moment it is retired,
+    which is after the successor's recorded_at was chosen.
+    """
+    by_id = {record["id"]: record for record in records}
+    previous: dict[str, str] = {}
+    pointed: set[str] = set()
+    for record in records:
+        links = [ref for ref in (record.get("relationships") or {}).get("supersedes") or [] if ref in by_id]
+        if links:
+            previous[record["id"]] = links[0]
+            pointed.add(links[0])
+    ordered: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for start in sorted((record for record in records if record["id"] not in pointed), key=_recorded_at):
+        chain: list[dict[str, Any]] = []
+        current: dict[str, Any] | None = start
+        while current is not None and current["id"] not in seen:
+            seen.add(current["id"])
+            chain.append(current)
+            current = by_id.get(previous.get(current["id"], ""))
+        chain.reverse()
+        ordered.extend(chain)
+    ordered.extend(sorted((record for record in records if record["id"] not in seen), key=_recorded_at))
+    return ordered
+
+
+def _for_phase(records: list[dict[str, Any]], phase: str, effort: str) -> list[dict[str, Any]]:
+    matched = []
+    for record in _live(records):
+        payload = _payload(record)
+        record_effort = payload.get("effort")
+        if record_effort and record_effort != effort:
+            continue
+        if payload.get("phase") == phase:
+            matched.append(record)
+    return matched
+
+
+def _structured_phases(specs: list[dict[str, Any]]) -> set[tuple[str, str]]:
+    found = set()
+    for record in _live(specs):
+        payload = _payload(record)
+        effort, phase = payload.get("effort") or "", payload.get("phase") or ""
+        if effort and phase:
+            found.add((effort, phase))
+    return found
+
+
+def _check_from(record: dict[str, Any]) -> "CheckRun":
+    payload = _payload(record)
+    return CheckRun(
+        record["id"], payload.get("result", ""), payload.get("method", ""),
+        payload.get("signed_by", ""), payload.get("revision", ""), _recorded_at(record),
+        payload.get("evidence_kind") or "",
+    )
+
+
+def _latest_assessment_map(records: list[dict[str, Any]]) -> dict[tuple[str, str], dict[str, Any]]:
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for record in sorted(_live(records), key=_recorded_at):
+        payload = _payload(record)
+        grouped[(payload.get("phase", ""), payload.get("requirement", ""))] = record
+    return grouped
+
+
+def _traced_records(tasks: list[dict[str, Any]], phase: str, requirement: str) -> list[dict[str, Any]]:
+    return [
+        task for task in tasks
+        if task.get("lifecycle_state") != "superseded"
+        and _payload(task).get("phase") == phase
+        and requirement in _split_csv(_payload(task).get("requirements"))
+    ]
+
+
+def _choices(subjects: list[str], decisions: list[dict[str, Any]]) -> tuple["DecisionChoice", ...]:
+    by_subject: dict[str, dict[str, Any]] = {}
+    for record in sorted(_live(decisions), key=_recorded_at):
+        by_subject[record["subject"]] = record
+    return tuple(
+        DecisionChoice(subject, _payload(by_subject[subject]).get("choice", "") if subject in by_subject else "")
+        for subject in subjects
+    )
+
+
+def _latest_requirement_check(
+    requirement: str, phase: str, acceptances: list[dict[str, Any]], checks: list[dict[str, Any]],
+) -> "CheckRun | None":
+    acceptance_ids = {
+        record["id"]
+        for record in acceptances
+        if record.get("lifecycle_state") not in INACTIVE_STATES and _payload(record).get("phase") == phase
+    }
+    matched = [
+        record for record in checks
+        if record.get("lifecycle_state") not in INACTIVE_STATES
+        and _payload(record).get("requirement") == requirement
+        and _payload(record).get("criterion_id") in acceptance_ids
+    ]
+    record = _newest(matched)
+    return _check_from(record) if record else None
+
+
+def _needs_route(record: dict[str, Any]) -> bool:
+    payload = _payload(record)
+    status, nxt, confidence = payload.get("status", ""), payload.get("next", ""), payload.get("confidence", "")
+    if status == "insufficient" or nxt == "execute":
+        return False
+    if nxt == "verify" and status != "blocked":
+        return False
+    return nxt in UPSTREAM_NEXT or status == "blocked" or confidence == "low"
+
+
+def _assessment_summary(record: dict[str, Any], by_id: dict[str, dict[str, Any]]) -> tuple[str, bool]:
+    payload = _payload(record)
+    summary = f"{payload.get('requirement', '')} {payload.get('status', '')} {payload.get('next', '')}"
+    if payload.get("next") in UPSTREAM_NEXT:
+        summary += " upstream"
+    links = (record.get("relationships") or {}).get("supersedes") or []
+    previous = by_id.get(links[0]) if links else None
+    if previous is not None:
+        old, new = _payload(previous).get("level") or "", payload.get("level") or ""
+        if old != new:
+            summary += f" level {old} to {new}"
+    return summary, payload.get("status") in ("failed", "blocked")
 
 
 def _task_status(record: dict[str, Any]) -> str | None:
@@ -225,8 +420,10 @@ def _awaits_signoff(
 def _phase_rows(
     records: list[dict[str, Any]], tasks: list[dict[str, Any]],
     acceptances: list[dict[str, Any]] | None = None, checks: list[dict[str, Any]] | None = None,
+    evidence_by_phase: dict[str, "PhaseEvidence"] | None = None,
 ) -> list[PhaseRow]:
     latest = _latest_checks(checks or [])
+    evidence_by_phase = evidence_by_phase or {}
     subjects = [task["subject"] for task in tasks]
     counted = [task for task in tasks if task["lifecycle_state"] in COUNTED_TASK_STATES]
     rows = []
@@ -244,6 +441,7 @@ def _phase_rows(
             subject=record["subject"], title=payload.get("title", ""), ordinal=payload.get("ordinal", 0),
             state=record["lifecycle_state"], done=sum(t["lifecycle_state"] == "done" for t in members),
             total=len(members), id=record["id"], awaiting_signoff=awaiting,
+            evidence=evidence_by_phase.get(record["subject"]),
         ))
     rows.sort(key=lambda row: (row.ordinal, row.subject))
     return rows
@@ -257,6 +455,8 @@ def _task_for(subject: str, tasks: list[dict[str, Any]]) -> str:
 def _needs_you(
     questions: list[dict[str, Any]], findings: list[dict[str, Any]], checks: list[dict[str, Any]],
     acceptances: dict[str, dict[str, Any]] | None = None, tasks: list[dict[str, Any]] | None = None,
+    assessments: list[dict[str, Any]] | None = None, integrations: list[dict[str, Any]] | None = None,
+    spec_phases: set[str] | None = None,
 ) -> list[NeedsYouItem]:
     acceptances = acceptances or {}
     tasks = tasks or []
@@ -283,6 +483,33 @@ def _needs_you(
             criterion = _payload(acceptance).get("criterion", "") if acceptance else ""
             text = f"{criterion} {payload.get('result', '')}".strip()
             items.append(item("unsigned-check", record, subject, text))
+    spec_phases = spec_phases or set()
+    for (phase, requirement), record in sorted(_latest_assessment_map(assessments or []).items()):
+        if phase not in spec_phases or not _needs_route(record):
+            continue
+        payload = _payload(record)
+        status, nxt = payload.get("status", ""), payload.get("next", "")
+        text = " ".join(part for part in (requirement, status, nxt) if part)
+        items.append(NeedsYouItem(
+            "loop-route", record["id"], record["subject"], text, record_type=record.get("record_type", ""),
+            phase=phase, requirement=requirement, status=status, next=nxt,
+        ))
+    reports_by_phase: dict[str, list[dict[str, Any]]] = {}
+    for record in _live(integrations or []):
+        phase = _payload(record).get("phase", "")
+        if phase in spec_phases:
+            reports_by_phase.setdefault(phase, []).append(record)
+    for phase, records in reports_by_phase.items():
+        latest = _newest(records)
+        if latest is None:
+            continue
+        result = _payload(latest).get("result", "")
+        if result not in ("fail", "blocked"):
+            continue
+        items.append(NeedsYouItem(
+            "integration", latest["id"], latest["subject"], f"{phase} {result}",
+            record_type=latest.get("record_type", ""), phase=phase, result=result,
+        ))
     items.sort(key=lambda entry: NEEDS_ORDER.index(entry.kind))
     return items
 
@@ -290,6 +517,8 @@ def _needs_you(
 def _activity(
     assignments: list[dict[str, Any]], reports: list[dict[str, Any]], checks: list[dict[str, Any]],
     efforts_by_work_item: dict[str, tuple[str, str]], since: datetime,
+    assessments: list[dict[str, Any]] | None = None, integrations: list[dict[str, Any]] | None = None,
+    releases: list[dict[str, Any]] | None = None, structured: set[tuple[str, str]] | None = None,
 ) -> dict[str, list[ActivityItem]]:
     by_effort: dict[str, list[ActivityItem]] = {}
 
@@ -319,6 +548,26 @@ def _activity(
         method = payload.get("method", "").replace("check", "").strip()
         label = " ".join(part for part in (record["subject"], method, "check", outcome) if part)
         add(payload.get("effort"), "check-run", record, label, payload.get("result") == "fail")
+    structured = structured or set()
+    assessment_by_id = {record["id"]: record for record in assessments or []}
+    for record in assessments or []:
+        payload = _payload(record)
+        if (payload.get("effort"), payload.get("phase")) not in structured:
+            continue
+        summary, failed = _assessment_summary(record, assessment_by_id)
+        add(payload.get("effort"), "assessment", record, summary, failed)
+    for record in integrations or []:
+        payload = _payload(record)
+        if (payload.get("effort"), payload.get("phase")) not in structured:
+            continue
+        result = payload.get("result", "")
+        add(payload.get("effort"), "integration", record, f"{payload.get('phase', '')} {result}", result in ("fail", "blocked"))
+    for record in releases or []:
+        payload = _payload(record)
+        if (payload.get("effort"), payload.get("phase")) not in structured:
+            continue
+        state = payload.get("state", "")
+        add(payload.get("effort"), "release", record, f"{payload.get('phase', '')} {state}", state == "failed")
     for items in by_effort.values():
         items.sort(key=lambda item: item.recorded_at, reverse=True)
     return by_effort
@@ -330,6 +579,158 @@ def _by_effort(records: list[dict[str, Any]], key: str = "effort") -> dict[str, 
         effort = record["subject"] if key == "subject" else _payload(record).get(key)
         grouped.setdefault(effort, []).append(record)
     return grouped
+
+
+@dataclass(frozen=True)
+class DecisionChoice:
+    subject: str
+    choice: str
+
+
+@dataclass(frozen=True)
+class IntegrationView:
+    result: str
+    conflicts: str
+
+
+@dataclass(frozen=True)
+class RequirementRow:
+    phase: str
+    id: str
+    text: str
+    status: str
+    next: str
+    latest_check: "CheckRun | None"
+    tasks: int
+
+
+@dataclass(frozen=True)
+class PhaseEvidence:
+    phase: str
+    weight: str
+    requirements: tuple[RequirementRow, ...]
+    stage: str
+    integration: IntegrationView | None
+    release_ready: bool
+    decisions: tuple[DecisionChoice, ...]
+    non_goals: str
+
+
+@dataclass(frozen=True)
+class AssessmentView:
+    id: str
+    status: str
+    level: str
+    next: str
+    confidence: str
+
+
+@dataclass(frozen=True)
+class RequirementDetail:
+    phase: str
+    id: str
+    text: str
+    status: str
+    next: str
+    decisions: tuple[DecisionChoice, ...]
+    tasks: tuple["TaskRow", ...]
+    acceptances: tuple["AcceptanceRow", ...]
+    assessments: tuple[AssessmentView, ...]
+
+
+def _stage(
+    phase: str, effort: str, spec_ids: list[str], designs: list[dict[str, Any]], tasks: list[dict[str, Any]],
+    acceptances: list[dict[str, Any]], checks: list[dict[str, Any]], assessments: list[dict[str, Any]],
+    reports: list[dict[str, Any]], releases: list[dict[str, Any]],
+) -> tuple[str, bool]:
+    latest_release = _newest(_for_phase(releases, phase, effort))
+    if latest_release and _payload(latest_release).get("state") == "ready":
+        return "release", True
+    latest = {
+        requirement: record
+        for (record_phase, requirement), record in _latest_assessment_map(assessments).items()
+        if record_phase == phase
+    }
+    non_verified = [record for record in latest.values() if _payload(record).get("status") != "verified"]
+    if non_verified:
+        def rank(record: dict[str, Any]) -> int:
+            nxt = _payload(record).get("next", "")
+            return LOOP_NEXT.index(nxt) if nxt in LOOP_NEXT else len(LOOP_NEXT)
+
+        return _payload(min(non_verified, key=rank)).get("next", ""), False
+    if spec_ids and all(_payload(latest.get(req) or {}).get("status") == "verified" for req in spec_ids):
+        return "release", False
+    if not _for_phase(designs, phase, effort):
+        return "design", False
+    counted = [
+        task for task in tasks
+        if _payload(task).get("phase") == phase and task.get("lifecycle_state") in COUNTED_TASK_STATES
+    ]
+    if not counted:
+        return "plan", False
+    if any(task.get("lifecycle_state") != "done" for task in counted):
+        return "execute", False
+    waves: dict[Any, int] = {}
+    for task in counted:
+        wave = _derived(task).get("wave")
+        waves[wave] = waves.get(wave, 0) + 1
+    passing = any(_payload(report).get("result") == "pass" for report in _for_phase(reports, phase, effort))
+    if any(count > 1 for count in waves.values()) and not passing:
+        return "integrate", False
+    checked = {
+        _payload(check).get("criterion_id")
+        for check in checks
+        if check.get("lifecycle_state") not in INACTIVE_STATES
+    }
+    if any(
+        _payload(record).get("requirement") and record["id"] not in checked
+        for record in _for_phase(acceptances, phase, effort)
+    ):
+        return "verify", False
+    return "assess", False
+
+
+def _phase_evidence(
+    phase: str, effort: str, specs: list[dict[str, Any]], designs: list[dict[str, Any]],
+    decisions: list[dict[str, Any]], tasks: list[dict[str, Any]], acceptances: list[dict[str, Any]],
+    checks: list[dict[str, Any]], assessments: list[dict[str, Any]], reports: list[dict[str, Any]],
+    releases: list[dict[str, Any]],
+) -> PhaseEvidence | None:
+    spec = _newest(_for_phase(specs, phase, effort))
+    if spec is None:
+        return None
+    spec_ids = _split_csv(_payload(spec).get("requirements"))
+    texts = _requirement_texts(spec.get("body") or "")
+    latest = {
+        requirement: record
+        for (record_phase, requirement), record in _latest_assessment_map(assessments).items()
+        if record_phase == phase
+    }
+    rows = []
+    for requirement in spec_ids:
+        assessment = latest.get(requirement)
+        if assessment is None:
+            status, nxt = "unassessed", ""
+        else:
+            status, nxt = _payload(assessment).get("status", ""), _payload(assessment).get("next", "")
+        rows.append(RequirementRow(
+            phase, requirement, texts.get(requirement, ""), status, nxt,
+            _latest_requirement_check(requirement, phase, acceptances, checks),
+            len(_traced_records(tasks, phase, requirement)),
+        ))
+    design = _newest(_for_phase(designs, phase, effort))
+    subjects = _split_csv(_payload(design).get("decisions")) if design else []
+    report = _newest(_for_phase(reports, phase, effort))
+    integration = None
+    if report is not None:
+        integration = IntegrationView(_payload(report).get("result", ""), _section(report.get("body") or "", "Conflicts"))
+    stage, release_ready = _stage(
+        phase, effort, spec_ids, designs, tasks, acceptances, checks, assessments, reports, releases,
+    )
+    return PhaseEvidence(
+        phase, _payload(spec).get("weight", ""), tuple(rows), stage, integration, release_ready,
+        _choices(subjects, decisions), _section(spec.get("body") or "", "Non-goals"),
+    )
 
 
 def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
@@ -357,25 +758,56 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         entry = (_payload(task).get("effort"), task["subject"])
         efforts_by_work_item[task["id"]] = entry
         efforts_by_work_item.setdefault(task["subject"], entry)
+    specs = listed["project:specification"]
+    designs = listed["project:design"]
+    assessments = listed["project:assessment"]
+    integrations = listed["project:integration-report"]
+    releases = listed["project:release"]
+    decisions = _remapped(_list(target, "project:decision"), aliases) if designs else []
+    structured = _structured_phases(specs)
+    specs_by_effort = _by_effort(specs)
+    designs_by_effort = _by_effort(designs)
+    assessments_by_effort = _by_effort(assessments)
+    integrations_by_effort = _by_effort(integrations)
+    releases_by_effort = _by_effort(releases)
+    decisions_by_effort = _by_effort(decisions)
     activity = _activity(
         listed["project:assignment"], listed["project:execution-report"], checks_all,
-        efforts_by_work_item, now - RECENT,
+        efforts_by_work_item, now - RECENT, assessments, integrations, releases, structured,
     )
     efforts = []
     for goal in sorted(goals, key=lambda record: record["subject"]):
         effort = goal["subject"]
+        effort_tasks = tasks.get(effort, [])
+        effort_acceptances = acceptances.get(effort, [])
+        effort_checks = checks.get(effort, [])
+        evidence_by_phase = {}
+        for spec_effort, phase in structured:
+            if spec_effort != effort:
+                continue
+            evidence = _phase_evidence(
+                phase, effort, specs_by_effort.get(effort, []), designs_by_effort.get(effort, []),
+                decisions_by_effort.get(effort, []), effort_tasks, effort_acceptances, effort_checks,
+                assessments_by_effort.get(effort, []), integrations_by_effort.get(effort, []),
+                releases_by_effort.get(effort, []),
+            )
+            if evidence is not None:
+                evidence_by_phase[phase] = evidence
+        phase_rows = _phase_rows(
+            phases.get(effort, []), effort_tasks, effort_acceptances, effort_checks, evidence_by_phase,
+        )
         efforts.append(EffortView(
             effort=effort,
             goal=_payload(goal).get("goal", ""),
-            phases=_phase_rows(
-                phases.get(effort, []), tasks.get(effort, []), acceptances.get(effort, []), checks.get(effort, []),
-            ),
-            tasks=_task_rows(tasks.get(effort, []), listed["project:assignment"]),
+            phases=phase_rows,
+            tasks=_task_rows(effort_tasks, listed["project:assignment"]),
             needs_you=_needs_you(
-                questions.get(effort, []), findings.get(effort, []), checks.get(effort, []), acceptances_by_id,
-                tasks.get(effort, []),
+                questions.get(effort, []), findings.get(effort, []), effort_checks, acceptances_by_id,
+                effort_tasks, assessments_by_effort.get(effort, []), integrations_by_effort.get(effort, []),
+                {phase for spec_effort, phase in structured if spec_effort == effort},
             ),
             activity=activity.get(effort, []),
+            release_ready=any(row.evidence is not None and row.evidence.release_ready for row in phase_rows),
         ))
     efforts.sort(key=lambda view: view.finished)
     return Snapshot(efforts, token, now)
@@ -397,6 +829,7 @@ class CheckRun:
     signed_by: str
     revision: str
     recorded_at: datetime
+    evidence_kind: str = ""
 
 
 @dataclass(frozen=True)
@@ -444,6 +877,8 @@ class TaskDetail:
     timeline: list[TimelineEvent]
     related: list[RelatedRecord]
     running_since: datetime | None = None
+    requirements: str = ""
+    decisions: str = ""
 
 
 RELATED_TEXT = {
@@ -478,10 +913,7 @@ def _latest_checks(checks: list[dict[str, Any]]) -> dict[str, CheckRun]:
         if record["lifecycle_state"] in INACTIVE_STATES:
             continue
         payload = _payload(record)
-        latest[payload.get("criterion_id", "")] = CheckRun(
-            record["id"], payload.get("result", ""), payload.get("method", ""),
-            payload.get("signed_by", ""), payload.get("revision", ""), _recorded_at(record),
-        )
+        latest[payload.get("criterion_id", "")] = _check_from(record)
     return latest
 
 
@@ -562,6 +994,7 @@ def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
         blocks=_linked((_derived(mine).get("referenced_by") or {}).get("depends_on", []), rows),
         acceptances=acceptances, timeline=_timeline(assignments, amendments, reports, checks), related=related,
         running_since=max(map(_recorded_at, assignments), default=None) if status == "running" else None,
+        requirements=payload.get("requirements") or "", decisions=payload.get("decisions") or "",
     )
 
 
@@ -576,6 +1009,7 @@ class PhaseDetail:
     decisions: list[RelatedRecord]
     constraints: list[RelatedRecord]
     tasks: list[TaskRow]
+    evidence: PhaseEvidence | None = None
 
 
 def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseDetail:
@@ -591,16 +1025,25 @@ def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseD
         raise ModelError(f"phase {phase_subject} not found in {effort}")
     item = _run(target, "get", "--type", "project:phase", "--id", record["id"])
     tasks = _by_effort(_list(target, "project:work-item")).get(effort, [])
+    effort_acceptances = by_effort("project:acceptance").get(effort, [])
+    effort_checks = by_effort("project:check-run").get(effort, [])
+    decision_records = by_effort("project:decision").get(effort, [])
     row = next(
-        (p for p in _phase_rows(
-            [record], tasks, by_effort("project:acceptance").get(effort, []),
-            by_effort("project:check-run").get(effort, []),
-        )),
+        (p for p in _phase_rows([record], tasks, effort_acceptances, effort_checks)),
         None,
+    )
+    evidence = _phase_evidence(
+        phase_subject, effort,
+        by_effort("project:specification").get(effort, []),
+        by_effort("project:design").get(effort, []),
+        decision_records, tasks, effort_acceptances, effort_checks,
+        by_effort("project:assessment").get(effort, []),
+        by_effort("project:integration-report").get(effort, []),
+        by_effort("project:release").get(effort, []),
     )
     decisions = [
         RelatedRecord("decision", r["id"], r["subject"], _payload(r).get("choice", ""))
-        for r in by_effort("project:decision").get(effort, [])
+        for r in decision_records
         if _payload(r).get("phase") == phase_subject and r["lifecycle_state"] not in INACTIVE_STATES
     ]
     constraints = [
@@ -614,4 +1057,69 @@ def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseD
         awaiting_signoff=bool(row and row.awaiting_signoff), body=item.get("body") or "",
         decisions=decisions, constraints=constraints,
         tasks=[t for t in _task_rows(tasks) if t.phase == phase_subject],
+        evidence=evidence,
+    )
+
+
+def load_requirement_detail(target: Target, effort: str, phase: str, requirement: str) -> RequirementDetail:
+    """Load one requirement, including superseded assessments oldest first."""
+    aliases = _merge_aliases(_list(target, "project:active-goal"))
+
+    def listed(record_type: str, state: str | None = None) -> list[dict[str, Any]]:
+        return _remapped(_list(target, record_type, state=state), aliases)
+
+    specs = listed("project:specification")
+    by_id = {record["id"]: record for record in listed("project:assessment")}
+    for record in listed("project:assessment", "superseded"):
+        by_id.setdefault(record["id"], record)
+    history = [
+        record for record in by_id.values()
+        if _payload(record).get("phase") == phase
+        and _payload(record).get("requirement") == requirement
+        and _payload(record).get("effort") in (None, "", effort)
+    ]
+    history = _oldest_first(history)
+    active = [record for record in history if record.get("lifecycle_state") not in INACTIVE_STATES]
+    latest = _newest(active)
+    if latest is None:
+        status, nxt = "unassessed", ""
+    else:
+        status, nxt = _payload(latest).get("status", ""), _payload(latest).get("next", "")
+    spec = _newest(_for_phase(specs, phase, effort))
+    text = _requirement_texts(spec.get("body") or "").get(requirement, "") if spec else ""
+    traced = [
+        task for task in _traced_records(listed("project:work-item"), phase, requirement)
+        if _payload(task).get("effort") in (None, "", effort)
+    ]
+    traced.sort(key=lambda record: record["subject"])
+    subjects: list[str] = []
+    for task in traced:
+        for subject in _split_csv(_payload(task).get("decisions")):
+            if subject not in subjects:
+                subjects.append(subject)
+    acceptances = [
+        record for record in _for_phase(listed("project:acceptance"), phase, effort)
+        if _payload(record).get("requirement") == requirement
+    ]
+    acceptances.sort(key=_recorded_at)
+    latest_checks = _latest_checks(listed("project:check-run"))
+    return RequirementDetail(
+        phase, requirement, text, status, nxt,
+        _choices(subjects, listed("project:decision")),
+        tuple(row for row in _task_rows(traced) if row.phase == phase),
+        tuple(
+            AcceptanceRow(
+                record["id"], record["subject"], _payload(record).get("criterion", ""),
+                _payload(record).get("method", ""), _payload(record).get("verify_command", ""),
+                latest_checks.get(record["id"]),
+            )
+            for record in acceptances
+        ),
+        tuple(
+            AssessmentView(
+                record["id"], _payload(record).get("status", ""), _payload(record).get("level") or "",
+                _payload(record).get("next", ""), _payload(record).get("confidence", ""),
+            )
+            for record in history
+        ),
     )
