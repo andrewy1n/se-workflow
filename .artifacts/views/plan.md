@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:e975f7117238d7279a94e29109cd48fefb81781ee0752fee6142bc5ef1953727
+> Store state: sha256:b68624c08a730b96ddfc69b2f000abeabff458c52d7850b0649c85d888f309a3
 
 ## dashboard-view
 
@@ -157,7 +157,6 @@
 
 ### Work
 - **assess-route**: Assess evidence and choose the next stage; evidence-loop; deliver; workflow-loop _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
-- **contract-loop**: Add evidence-loop record types; evidence-loop; deliver; workflow-loop _(id: [rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6](.artifacts/records/project__work-item/rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6.md))_
 - **integrate-execute**: Record semantic integration after parallel execution; evidence-loop; deliver; workflow-loop _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
 - **loop-scenarios**: Test the evidence loop through the CLI; evidence-loop; deliver; workflow-loop _(id: [rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba](.artifacts/records/project__work-item/rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba.md))_
 - **readme-lifecycle**: Document the evidence loop; evidence-loop; deliver; workflow-loop _(id: [rec-0a346ce9-d543-40c6-bffd-977250e063c5](.artifacts/records/project__work-item/rec-0a346ce9-d543-40c6-bffd-977250e063c5.md))_

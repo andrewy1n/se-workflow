@@ -7,7 +7,7 @@
     "resolved_contract_format": "0.3.0",
     "traits_version": "0.4.0",
     "backends_version": "0.4.0",
-    "design_digest": "sha256:70818ae9ff071b9d79d0acf5a64d6f7332b425b98834132bddcad964b121ce4c",
+    "design_digest": "sha256:9245187ff124beaa5c5bc582839c82a7d43bf7bbeb83aab567371bf19a09a8be",
     "source_lock": {
       "catalog_version": "0.7.0",
       "catalog": "sha256:d7f0f1d05f8c67f638c0ff1b4ad738161f43c1ec970729709f8f2afc1d8c1eb1",
@@ -290,7 +290,9 @@
         "kind",
         "assignee",
         "effort",
-        "executor"
+        "executor",
+        "requirements",
+        "decisions"
       ],
       "lifecycle": {
         "initial": "planned",
@@ -337,7 +339,9 @@
         "phase": "project:phase"
       },
       "optional_payload": [
-        "executor"
+        "executor",
+        "requirements",
+        "decisions"
       ],
       "payload_enum": {
         "executor": [
@@ -374,7 +378,8 @@
         "method",
         "phase",
         "effort",
-        "verify_command"
+        "verify_command",
+        "requirement"
       ],
       "lifecycle": {
         "initial": "active",
@@ -405,6 +410,9 @@
       "payload_references": {
         "phase": "project:phase"
       },
+      "optional_payload": [
+        "requirement"
+      ],
       "pattern": "definition",
       "purpose": "What done means for this change",
       "canonical_for": "what done means for this change"
@@ -492,7 +500,9 @@
         "result",
         "effort",
         "method",
-        "signed_by"
+        "signed_by",
+        "requirement",
+        "evidence_kind"
       ],
       "lifecycle": {
         "initial": "recorded",
@@ -516,6 +526,25 @@
       "storage_capabilities": [
         "append_with_audit"
       ],
+      "optional_payload": [
+        "requirement",
+        "evidence_kind"
+      ],
+      "payload_enum": {
+        "evidence_kind": [
+          "unit",
+          "integration",
+          "acceptance",
+          "static",
+          "types",
+          "security",
+          "property",
+          "fuzz",
+          "review",
+          "runtime",
+          "other"
+        ]
+      },
       "pattern": "event",
       "purpose": "That this criterion was tested at a revision",
       "canonical_for": "that this criterion was tested at this revision"
@@ -984,6 +1013,428 @@
       "pattern": "observation",
       "purpose": "What an executor returned for its assignment, body verbatim",
       "canonical_for": "what this executor returned for this assignment"
+    },
+    {
+      "id": "project:specification",
+      "name": "specification",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "stewarded",
+        "current-claim"
+      ],
+      "base_kind": "claim",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "stewardship",
+        "epistemic_status",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "weight",
+        "phase",
+        "effort",
+        "requirements"
+      ],
+      "lifecycle": {
+        "initial": "active",
+        "states": [
+          "active",
+          "superseded"
+        ],
+        "transitions": {
+          "active": [
+            "superseded"
+          ]
+        }
+      },
+      "relationships": [
+        "supersedes"
+      ],
+      "update": "conditional_replace_with_history",
+      "capture": {
+        "trigger": [
+          "explicit_request"
+        ]
+      },
+      "read_policy": "routed_by_relevance",
+      "storage_capabilities": [
+        "conditional_mutation",
+        "history"
+      ],
+      "required_sections": [
+        "Requirements",
+        "Acceptance criteria",
+        "Constraints",
+        "Non-goals",
+        "Invariants",
+        "Assumptions"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "payload_enum": {
+        "weight": [
+          "light",
+          "full"
+        ]
+      },
+      "pattern": "definition",
+      "purpose": "What must be true for this phase",
+      "canonical_for": "what must be true for this phase"
+    },
+    {
+      "id": "project:design",
+      "name": "design",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "stewarded",
+        "current-claim"
+      ],
+      "base_kind": "claim",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "stewardship",
+        "epistemic_status",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "phase",
+        "effort",
+        "decisions"
+      ],
+      "lifecycle": {
+        "initial": "active",
+        "states": [
+          "active",
+          "superseded"
+        ],
+        "transitions": {
+          "active": [
+            "superseded"
+          ]
+        }
+      },
+      "relationships": [
+        "supersedes"
+      ],
+      "update": "conditional_replace_with_history",
+      "capture": {
+        "trigger": [
+          "explicit_request"
+        ]
+      },
+      "read_policy": "routed_by_relevance",
+      "storage_capabilities": [
+        "conditional_mutation",
+        "history"
+      ],
+      "required_sections": [
+        "Architecture",
+        "Interfaces",
+        "Decisions",
+        "Invariants",
+        "Assumptions",
+        "Tradeoffs",
+        "Risks"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "pattern": "definition",
+      "purpose": "How the specification should work",
+      "canonical_for": "how the specification should work"
+    },
+    {
+      "id": "project:integration-report",
+      "name": "integration-report",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "occurrence"
+      ],
+      "base_kind": "observation",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "provenance",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "phase",
+        "effort",
+        "result",
+        "revision"
+      ],
+      "lifecycle": {
+        "initial": "recorded",
+        "states": [
+          "recorded"
+        ],
+        "transitions": {}
+      },
+      "relationships": [
+        "corrects"
+      ],
+      "correction": "successor_record",
+      "correction_status": "derived_from_successor",
+      "capture": {
+        "trigger": [
+          "event"
+        ]
+      },
+      "read_policy": "queried",
+      "storage_capabilities": [
+        "append_with_audit"
+      ],
+      "required_sections": [
+        "Interfaces",
+        "Assumptions",
+        "Invariants",
+        "Conflicts"
+      ],
+      "payload_enum": {
+        "result": [
+          "pass",
+          "fail",
+          "blocked"
+        ]
+      },
+      "pattern": "observation",
+      "purpose": "Semantic integration of parallel work, distinct from a git merge",
+      "canonical_for": "the semantic integration of parallel work for this phase"
+    },
+    {
+      "id": "project:assessment",
+      "name": "assessment",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "stewarded",
+        "current-claim"
+      ],
+      "base_kind": "claim",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "stewardship",
+        "epistemic_status",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "requirement",
+        "status",
+        "level",
+        "next",
+        "confidence",
+        "phase",
+        "effort",
+        "missing"
+      ],
+      "lifecycle": {
+        "initial": "active",
+        "states": [
+          "active",
+          "superseded"
+        ],
+        "transitions": {
+          "active": [
+            "superseded"
+          ]
+        }
+      },
+      "relationships": [
+        "supersedes"
+      ],
+      "update": "conditional_replace_with_history",
+      "capture": {
+        "trigger": [
+          "event"
+        ]
+      },
+      "read_policy": "always_loaded",
+      "storage_capabilities": [
+        "conditional_mutation",
+        "history"
+      ],
+      "required_sections": [
+        "Evidence",
+        "Missing",
+        "Reason"
+      ],
+      "optional_payload": [
+        "level",
+        "missing"
+      ],
+      "payload_enum": {
+        "status": [
+          "verified",
+          "failed",
+          "insufficient",
+          "blocked"
+        ],
+        "level": [
+          "implementation",
+          "design",
+          "plan",
+          "specification",
+          "integration",
+          "verification",
+          "environment",
+          "unknown"
+        ],
+        "next": [
+          "specify",
+          "design",
+          "plan",
+          "execute",
+          "integrate",
+          "verify",
+          "release"
+        ],
+        "confidence": [
+          "high",
+          "low"
+        ]
+      },
+      "pattern": "current-status",
+      "purpose": "Given the check-runs, what the requirement's evidence means and which stage is next. A check-run does not carry this.",
+      "canonical_for": "what this requirement's evidence means and which stage is next"
+    },
+    {
+      "id": "project:release",
+      "name": "release",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "stewarded",
+        "current-claim"
+      ],
+      "base_kind": "claim",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "stewardship",
+        "epistemic_status",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "state",
+        "phase",
+        "effort"
+      ],
+      "lifecycle": {
+        "initial": "active",
+        "states": [
+          "active",
+          "superseded"
+        ],
+        "transitions": {
+          "active": [
+            "superseded"
+          ]
+        }
+      },
+      "relationships": [
+        "supersedes"
+      ],
+      "update": "conditional_replace_with_history",
+      "capture": {
+        "trigger": [
+          "event"
+        ]
+      },
+      "read_policy": "always_loaded",
+      "storage_capabilities": [
+        "conditional_mutation",
+        "history"
+      ],
+      "payload_enum": {
+        "state": [
+          "ready",
+          "merged",
+          "artifact",
+          "deploying",
+          "deployed",
+          "failed"
+        ]
+      },
+      "pattern": "current-status",
+      "purpose": "Ready means every requirement is verified. It is not deployment. The other states exist for a later phase.",
+      "canonical_for": "whether this effort's requirements are ready"
+    },
+    {
+      "id": "project:feedback",
+      "name": "feedback",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "occurrence"
+      ],
+      "base_kind": "observation",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "provenance",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "source",
+        "signal",
+        "effort",
+        "phase"
+      ],
+      "lifecycle": {
+        "initial": "recorded",
+        "states": [
+          "recorded"
+        ],
+        "transitions": {}
+      },
+      "relationships": [
+        "corrects"
+      ],
+      "correction": "successor_record",
+      "correction_status": "derived_from_successor",
+      "capture": {
+        "trigger": [
+          "event"
+        ]
+      },
+      "read_policy": "queried",
+      "storage_capabilities": [
+        "append_with_audit"
+      ],
+      "required_sections": [
+        "Signal"
+      ],
+      "optional_payload": [
+        "phase"
+      ],
+      "pattern": "observation",
+      "purpose": "An external signal engage can route into specify. Nothing collects it.",
+      "canonical_for": "the external signal engage can route into specify"
     }
   ],
   "views": [

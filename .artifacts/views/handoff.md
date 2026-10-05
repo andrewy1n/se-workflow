@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:826189b26a013bee0420c545e7db93364083e67506ac107ef87cefb669b1a7cf
+> Store state: sha256:c62d84bda8a6cd32048040f85806ec9d66419b80ad3a6629fa060e7273ecaa4b
 
 ## dashboard
 
@@ -40,6 +40,3 @@
 ### Position
 - **evidence-loop**: evidence-loop is in progress. Plan amended for evidence escalation, the verify/assess split, and two modes. Waiting on plan review.; phase _(id: [rec-a6ece343-bb6b-4f27-bf3f-c60902142e4c](.artifacts/records/project__current-position/rec-a6ece343-bb6b-4f27-bf3f-c60902142e4c.md))_
 - **workflow-loop**: evidence-loop is planned. The approach is settled. Tasks are not written.; effort _(id: [rec-e8b30aae-956a-4d62-b097-4cdbf4168bc0](.artifacts/records/project__current-position/rec-e8b30aae-956a-4d62-b097-4cdbf4168bc0.md))_
-
-### Blocking Question
-- **workflow-loop**: True; plan-review:evidence-loop _(id: [rec-b9b19713-05d0-4e3a-95f6-d70c864b81bb](.artifacts/records/project__continuity-question/rec-b9b19713-05d0-4e3a-95f6-d70c864b81bb.md))_

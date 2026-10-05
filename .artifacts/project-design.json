@@ -96,10 +96,14 @@
         "kind",
         "assignee",
         "effort",
-        "executor"
+        "executor",
+        "requirements",
+        "decisions"
       ],
       "optional_payload": [
-        "executor"
+        "executor",
+        "requirements",
+        "decisions"
       ],
       "required_sections": [
         "Description"
@@ -126,7 +130,11 @@
         "method",
         "phase",
         "effort",
-        "verify_command"
+        "verify_command",
+        "requirement"
+      ],
+      "optional_payload": [
+        "requirement"
       ],
       "payload_references": {
         "phase": "project:phase"
@@ -161,8 +169,29 @@
         "result",
         "effort",
         "method",
-        "signed_by"
-      ]
+        "signed_by",
+        "requirement",
+        "evidence_kind"
+      ],
+      "optional_payload": [
+        "requirement",
+        "evidence_kind"
+      ],
+      "payload_enum": {
+        "evidence_kind": [
+          "unit",
+          "integration",
+          "acceptance",
+          "static",
+          "types",
+          "security",
+          "property",
+          "fuzz",
+          "review",
+          "runtime",
+          "other"
+        ]
+      }
     },
     {
       "name": "decision",
@@ -301,6 +330,190 @@
         "work_item": "project:work-item",
         "assignment": "project:assignment"
       }
+    },
+    {
+      "name": "specification",
+      "pattern": "definition",
+      "purpose": "What must be true for this phase",
+      "canonical_for": "what must be true for this phase",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": [
+        "weight",
+        "phase",
+        "effort",
+        "requirements"
+      ],
+      "payload_enum": {
+        "weight": [
+          "light",
+          "full"
+        ]
+      },
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "required_sections": [
+        "Requirements",
+        "Acceptance criteria",
+        "Constraints",
+        "Non-goals",
+        "Invariants",
+        "Assumptions"
+      ]
+    },
+    {
+      "name": "design",
+      "pattern": "definition",
+      "purpose": "How the specification should work",
+      "canonical_for": "how the specification should work",
+      "capture": "explicit",
+      "read": "if_relevant",
+      "payload": [
+        "phase",
+        "effort",
+        "decisions"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "required_sections": [
+        "Architecture",
+        "Interfaces",
+        "Decisions",
+        "Invariants",
+        "Assumptions",
+        "Tradeoffs",
+        "Risks"
+      ]
+    },
+    {
+      "name": "integration-report",
+      "pattern": "observation",
+      "purpose": "Semantic integration of parallel work, distinct from a git merge",
+      "canonical_for": "the semantic integration of parallel work for this phase",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "phase",
+        "effort",
+        "result",
+        "revision"
+      ],
+      "payload_enum": {
+        "result": [
+          "pass",
+          "fail",
+          "blocked"
+        ]
+      },
+      "required_sections": [
+        "Interfaces",
+        "Assumptions",
+        "Invariants",
+        "Conflicts"
+      ]
+    },
+    {
+      "name": "assessment",
+      "pattern": "current-status",
+      "purpose": "Given the check-runs, what the requirement's evidence means and which stage is next. A check-run does not carry this.",
+      "canonical_for": "what this requirement's evidence means and which stage is next",
+      "capture": "at_event",
+      "read": "always",
+      "payload": [
+        "requirement",
+        "status",
+        "level",
+        "next",
+        "confidence",
+        "phase",
+        "effort",
+        "missing"
+      ],
+      "optional_payload": [
+        "level",
+        "missing"
+      ],
+      "payload_enum": {
+        "status": [
+          "verified",
+          "failed",
+          "insufficient",
+          "blocked"
+        ],
+        "level": [
+          "implementation",
+          "design",
+          "plan",
+          "specification",
+          "integration",
+          "verification",
+          "environment",
+          "unknown"
+        ],
+        "next": [
+          "specify",
+          "design",
+          "plan",
+          "execute",
+          "integrate",
+          "verify",
+          "release"
+        ],
+        "confidence": [
+          "high",
+          "low"
+        ]
+      },
+      "required_sections": [
+        "Evidence",
+        "Missing",
+        "Reason"
+      ]
+    },
+    {
+      "name": "release",
+      "pattern": "current-status",
+      "purpose": "Ready means every requirement is verified. It is not deployment. The other states exist for a later phase.",
+      "canonical_for": "whether this effort's requirements are ready",
+      "capture": "at_event",
+      "read": "always",
+      "payload": [
+        "state",
+        "phase",
+        "effort"
+      ],
+      "payload_enum": {
+        "state": [
+          "ready",
+          "merged",
+          "artifact",
+          "deploying",
+          "deployed",
+          "failed"
+        ]
+      }
+    },
+    {
+      "name": "feedback",
+      "pattern": "observation",
+      "purpose": "An external signal engage can route into specify. Nothing collects it.",
+      "canonical_for": "the external signal engage can route into specify",
+      "capture": "at_event",
+      "read": "query",
+      "payload": [
+        "source",
+        "signal",
+        "effort",
+        "phase"
+      ],
+      "optional_payload": [
+        "phase"
+      ],
+      "required_sections": [
+        "Signal"
+      ]
     }
   ],
   "views": [

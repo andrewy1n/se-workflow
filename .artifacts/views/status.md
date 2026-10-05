@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:b6278189ec982d36c7e7b402793db6657ac3a2026ba4b55426d6f8309a2e2fa5
+> Store state: sha256:4eae76c8ed4008d037a5bec09e4597ac6b1fcece135e80bc9614269125def047
 
 ## dashboard-view
 
@@ -139,13 +139,13 @@
 ## evidence-loop
 
 ### Work
-- **assess-route**: Assess evidence and choose the next stage; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
-- **contract-loop**: Add evidence-loop record types; evidence-loop; deliver; workflow-loop; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6](.artifacts/records/project__work-item/rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6.md))_
-- **integrate-execute**: Record semantic integration after parallel execution; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
+- **assess-route**: Assess evidence and choose the next stage; evidence-loop; deliver; workflow-loop; state: planned; ready: True; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
+- **contract-loop**: Add evidence-loop record types; evidence-loop; deliver; workflow-loop; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6](.artifacts/records/project__work-item/rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6.md))_
+- **integrate-execute**: Record semantic integration after parallel execution; evidence-loop; deliver; workflow-loop; state: planned; ready: True; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
 - **loop-scenarios**: Test the evidence loop through the CLI; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba](.artifacts/records/project__work-item/rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba.md))_
 - **readme-lifecycle**: Document the evidence loop; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-0a346ce9-d543-40c6-bffd-977250e063c5](.artifacts/records/project__work-item/rec-0a346ce9-d543-40c6-bffd-977250e063c5.md))_
-- **specify-design**: Write specification and design from discuss; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-c38456f3-9e59-46f8-a9a4-5c05961544e8](.artifacts/records/project__work-item/rec-c38456f3-9e59-46f8-a9a4-5c05961544e8.md))_
-- **trace-plan**: Stamp tasks with requirements and decisions; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c](.artifacts/records/project__work-item/rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c.md))_
+- **specify-design**: Write specification and design from discuss; evidence-loop; deliver; workflow-loop; state: planned; ready: True; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-c38456f3-9e59-46f8-a9a4-5c05961544e8](.artifacts/records/project__work-item/rec-c38456f3-9e59-46f8-a9a4-5c05961544e8.md))_
+- **trace-plan**: Stamp tasks with requirements and decisions; evidence-loop; deliver; workflow-loop; state: planned; ready: True; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c](.artifacts/records/project__work-item/rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c.md))_
 - **verify-evidence-loop**: Verify the evidence loop; evidence-loop; deliver; workflow-loop; state: planned; ready: False; wave: 4; criteria: 0 pass / 0 fail _(id: [rec-1ed5449a-0cff-4806-aea0-c527992f2e80](.artifacts/records/project__work-item/rec-1ed5449a-0cff-4806-aea0-c527992f2e80.md))_
 
 ## bugfix-needs-you-data

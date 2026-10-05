@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:f5143982b5c920e189a8338ad08dd56787efed746fba889a260709afc85e48b9
+> Store state: sha256:2cdc909bbbbe76a55d4e12bc80d409751103a8a04afb0498590f96d0e7e168c9
 
 ## activity-failures
 
@@ -145,6 +145,9 @@
 
 ### Acceptance
 - **contract-loop**: The bundled contract resolves specification, design, integration-report, assessment, release, and feedback, and a check-run result of pass still validates.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-6d715e64-501c-42c0-b057-42d81bbb01b8](.artifacts/records/project__acceptance/rec-6d715e64-501c-42c0-b057-42d81bbb01b8.md))_
+
+### Check
+- **contract-loop**: rec-6d715e64-501c-42c0-b057-42d81bbb01b8; dirty; pass; check _(id: [rec-bc6527c5-0217-413e-a69f-4a2272e61b1d](.artifacts/records/project__check-run/rec-bc6527c5-0217-413e-a69f-4a2272e61b1d.md))_
 
 ## copy-and-commit-actions
 
