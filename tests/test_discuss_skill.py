@@ -19,9 +19,15 @@ def test_discuss_skill_is_discoverable():
     assert "description:" in text.split("---")[1]
 
 
-def test_discuss_writes_only_decisions_phase_bodies_and_questions():
+def test_discuss_writes_specification_design_decisions_phase_and_questions():
     written = {inv["type"] for inv in extract_invocations(_text("discuss")) if inv["subcommand"] in WRITES}
-    assert written == {"project:decision", "project:phase", "project:continuity-question"}
+    assert written == {
+        "project:specification",
+        "project:design",
+        "project:decision",
+        "project:phase",
+        "project:continuity-question",
+    }
 
 
 def test_engage_routes_new_phases_through_discuss():
