@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:5e0b14504184cabe43da237abcc7d298d809dd89ede3d7f5f32f256ce9f68dab
+> Store state: sha256:85a952e97eb05a4595a604934805a3d984c1351569d8b851e8c9c4cd3554ded4
 
 ## activity-failures
 
@@ -112,7 +112,7 @@
 ## dashboard
 
 ### Position
-- **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
+- **dashboard**: human-gates done; next up: spec-view; effort _(id: [rec-6fb92033-f209-429b-8a59-7deb20531c27](.artifacts/records/project__current-position/rec-6fb92033-f209-429b-8a59-7deb20531c27.md))_
 
 ## dashboard-app
 
@@ -301,7 +301,7 @@
 ## evidence-matrix
 
 ### Position
-- **evidence-matrix**: evidence-matrix planned; waiting on plan review; phase _(id: [rec-05197b6f-4d9d-4719-99f3-7269b2c23b6d](.artifacts/records/project__current-position/rec-05197b6f-4d9d-4719-99f3-7269b2c23b6d.md))_
+- **evidence-matrix**: evidence-matrix plan approved; ready for execute after prior UX deps; phase _(id: [rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b](.artifacts/records/project__current-position/rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b.md))_
 
 ## evidence-model
 
@@ -403,9 +403,6 @@
 
 ## gates-landing
 
-### Work
-- **gates-landing**: Read-only phase Landing git state; human-gates; deliver; dashboard _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
-
 ### Acceptance
 - **gates-landing**: phase_landing reports branch, exists, ahead, and merged or not merged for a scratch repo with a Landing section; no Landing heading returns None; missing branch shows exists false; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_gates.py -q -k 'landing and not (nogr or readonly)' _(id: [rec-79184477-3098-4868-8374-96e8edb0d92c](.artifacts/records/project__acceptance/rec-79184477-3098-4868-8374-96e8edb0d92c.md))_
 
@@ -421,9 +418,6 @@
 
 ## gates-model
 
-### Work
-- **gates-model**: Wire landing merge, last_record_at, and quiet into the model; human-gates; deliver; dashboard _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
-
 ### Acceptance
 - **gates-model**: A done phase with Landing whose branch exists and is not merged into main yields a Merge branch Needs you item after integration items; Enter detail carries branch and ahead count; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_gates.py -q -k "gates and (merge or landing_item)" _(id: [rec-72691ffa-0dcd-45d0-a9dc-4cabce493d6e](.artifacts/records/project__acceptance/rec-72691ffa-0dcd-45d0-a9dc-4cabce493d6e.md))_
 
@@ -434,16 +428,10 @@
 
 ## gates-status
 
-### Work
-- **gates-status**: tmux status-right needs-you count segment; human-gates; deliver; dashboard _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
-
 ### Acceptance
 - **gates-status**: In a real tmux server, status-right shows the needs-you count for the pane repo when @dashboard-status-right is on, and shows nothing when off or the count is zero; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests -q -m tmux -k "status and (gates or needs or segment)" _(id: [rec-bec7c314-2052-4053-9d5a-3f78a5db6663](.artifacts/records/project__acceptance/rec-bec7c314-2052-4053-9d5a-3f78a5db6663.md))_
 
 ## gates-ui
-
-### Work
-- **gates-ui**: Next-step line, copy prompt, and new-item alerts; human-gates; deliver; dashboard _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
 
 ### Acceptance
 - **gates-ui**: c on a Needs you item copies the ready agent prompt; c on a task row still copies the slug; footer and key help say copy prompt when Needs you has focus; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k "gates and (copy or prompt)" _(id: [rec-6a06a80a-ba89-47c8-8d09-ef1c546ddbb6](.artifacts/records/project__acceptance/rec-6a06a80a-ba89-47c8-8d09-ef1c546ddbb6.md))_
@@ -459,9 +447,6 @@
 - **gates-ui-next**: Under the goal, a next-step line shows next: plus the first matching R4 rule, then the position text in muted colour; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k "gates and next" _(id: [rec-f1684acd-c413-4721-bdc5-4b9b28b25793](.artifacts/records/project__acceptance/rec-f1684acd-c413-4721-bdc5-4b9b28b25793.md))_
 
 ## gates-vocab
-
-### Work
-- **gates-vocab**: Gate vocabulary: labels, prompts, next step, quiet; human-gates; deliver; dashboard _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
 
 ### Acceptance
 - **gates-vocab**: action_label returns the R1 verbs for each Needs you kind, and a plan-review scope shows Review plan plus the phase title not the raw scope; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'gates and (label or plan_review or action)' _(id: [rec-dda923b2-838f-49de-82f7-3d6b9e8e648d](.artifacts/records/project__acceptance/rec-dda923b2-838f-49de-82f7-3d6b9e8e648d.md))_
@@ -516,11 +501,6 @@
 ### Acceptance
 - **heading-spacing**: Pilot test: in phase detail the line above each body heading is not blank (except the first line of the panel); the test fails before the change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k heading _(id: [rec-e3cb339f-2f12-42bd-9dab-4439494334aa](.artifacts/records/project__acceptance/rec-e3cb339f-2f12-42bd-9dab-4439494334aa.md))_
 
-## human-gates
-
-### Position
-- **human-gates**: human-gates plan approved; blocked on UX plan-before-execute until remaining phases planned; phase _(id: [rec-8ae183e6-1ece-4610-9102-9e3e147be23d](.artifacts/records/project__current-position/rec-8ae183e6-1ece-4610-9102-9e3e147be23d.md))_
-
 ## integrate-execute
 
 ### Acceptance
@@ -566,7 +546,7 @@
 ## journal-view
 
 ### Position
-- **journal-view**: journal-view planned; waiting on plan review; phase _(id: [rec-9abd8e4d-983c-4fb3-8deb-37e2cc84f334](.artifacts/records/project__current-position/rec-9abd8e4d-983c-4fb3-8deb-37e2cc84f334.md))_
+- **journal-view**: journal-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-214e4e33-f72b-4aed-bced-7e71015a63d2](.artifacts/records/project__current-position/rec-214e4e33-f72b-4aed-bced-7e71015a63d2.md))_
 
 ## keyboard-focus
 
@@ -877,7 +857,7 @@
 ## spec-view
 
 ### Position
-- **spec-view**: spec-view planned; waiting on plan review; phase _(id: [rec-fd3fdd37-4968-46bb-8062-512a639a796c](.artifacts/records/project__current-position/rec-fd3fdd37-4968-46bb-8062-512a639a796c.md))_
+- **spec-view**: spec-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-df06b9c4-1371-47b2-8db5-29e582d40101](.artifacts/records/project__current-position/rec-df06b9c4-1371-47b2-8db5-29e582d40101.md))_
 
 ## specify-design
 
@@ -1188,9 +1168,6 @@
 - **verify-evidence-view-suite**: Exit criterion 4: the full suite passes, including the tmux tests; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m 'not tmux' && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-ffb67717-3553-4bc6-9497-fb877731866f](.artifacts/records/project__acceptance/rec-ffb67717-3553-4bc6-9497-fb877731866f.md))_
 
 ## verify-human-gates
-
-### Work
-- **verify-human-gates**: Verify human-gates phase; human-gates; deliver; dashboard _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
 
 ### Acceptance
 - **verify-human-gates**: dashboard/bin/dashboard --once against a seeded store with plan-review, Landing, and a quiet task prints action verbs, a next-step line, and landing branch/ahead/merged on the selector; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_integration.py -q -k "gates or once" _(id: [rec-c61f4280-d622-4017-83d1-4a8222faed84](.artifacts/records/project__acceptance/rec-c61f4280-d622-4017-83d1-4a8222faed84.md))_

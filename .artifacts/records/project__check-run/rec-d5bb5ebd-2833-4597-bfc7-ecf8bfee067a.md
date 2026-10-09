@@ -1,0 +1,38 @@
+---
+{
+  "base_kind": "event",
+  "id": "rec-d5bb5ebd-2833-4597-bfc7-ecf8bfee067a",
+  "identity": "unknown",
+  "lifecycle_state": "recorded",
+  "payload": {
+    "criterion_id": "rec-bec7c314-2052-4053-9d5a-3f78a5db6663",
+    "effort": "dashboard",
+    "evidence_kind": "runtime",
+    "method": "tdd",
+    "requirement": "R8",
+    "result": "pass",
+    "revision": "dirty",
+    "signed_by": ""
+  },
+  "provenance": {
+    "sources": [
+      "gates-status"
+    ]
+  },
+  "record_type": "project:check-run",
+  "recorded_at": "2026-10-09T21:20:43+00:00",
+  "relationships": {
+    "informed_by": [
+      "rec-bec7c314-2052-4053-9d5a-3f78a5db6663",
+      "rec-f44fa27d-ed4e-4476-8be8-e4c4d68ee605"
+    ]
+  },
+  "revision": "sha256:25d92b8d6cf0c17449f548d700f195245cecf92f47ce10696d048e9d32c80799",
+  "subject": "gates-status",
+  "time": {
+    "observed": "2026-10-09T21:20:43+00:00",
+    "recorded": "2026-10-09T21:20:43+00:00"
+  }
+}
+---
+

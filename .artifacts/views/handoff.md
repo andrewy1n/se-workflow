@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:db21784507ef3188a173719eacc28b6348e5576ab83fbebe2c858cc9024a1b4c
+> Store state: sha256:d81f19695d6bab381d613719c5e6280a72d3d75b190611ca859db4dca9c59e53
 
 ## dashboard
 
@@ -9,9 +9,8 @@
 - **dashboard**: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; effort; deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
 ### Position
-- **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
+- **dashboard**: human-gates done; next up: spec-view; effort _(id: [rec-6fb92033-f209-429b-8a59-7deb20531c27](.artifacts/records/project__current-position/rec-6fb92033-f209-429b-8a59-7deb20531c27.md))_
 - **evidence-matrix**: evidence-matrix plan approved; ready for execute after prior UX deps; phase _(id: [rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b](.artifacts/records/project__current-position/rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b.md))_
-- **human-gates**: human-gates plan approved; UX plan-before-execute cleared; ready for execute-phase; phase _(id: [rec-1ff7689f-ebef-400b-832d-5c27059f77c3](.artifacts/records/project__current-position/rec-1ff7689f-ebef-400b-832d-5c27059f77c3.md))_
 - **journal-view**: journal-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-214e4e33-f72b-4aed-bced-7e71015a63d2](.artifacts/records/project__current-position/rec-214e4e33-f72b-4aed-bced-7e71015a63d2.md))_
 - **spec-view**: spec-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-df06b9c4-1371-47b2-8db5-29e582d40101](.artifacts/records/project__current-position/rec-df06b9c4-1371-47b2-8db5-29e582d40101.md))_
 

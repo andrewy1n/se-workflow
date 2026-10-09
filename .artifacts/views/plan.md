@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:ed8642f695ffa8a0665359299da0c49721be92d607c77886760c935b50203cbf
+> Store state: sha256:530ec62ece74d3b842f12efc7ed096f0a08f8c4a0614f78ac26e6238c4afedd3
 
 ## dashboard-view
 
@@ -342,17 +342,6 @@
 - **verify-phase-selector-suite**: Full non-tmux and tmux test suites pass; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m not tmux && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-a11805b7-bc3c-4f57-bcb4-db7d8ffa9ed9](.artifacts/records/project__acceptance/rec-a11805b7-bc3c-4f57-bcb4-db7d8ffa9ed9.md))_
 
 ## human-gates
-
-### Phase
-- **human-gates**: Show the human gates: action labels, copy prompt, next step, landing; 23; dashboard _(id: [rec-c52c1f18-8b64-4731-9d21-2e74eabf7366](.artifacts/records/project__phase/rec-c52c1f18-8b64-4731-9d21-2e74eabf7366.md))_
-
-### Work
-- **gates-landing**: Read-only phase Landing git state; human-gates; deliver; dashboard _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
-- **gates-model**: Wire landing merge, last_record_at, and quiet into the model; human-gates; deliver; dashboard _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
-- **gates-status**: tmux status-right needs-you count segment; human-gates; deliver; dashboard _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
-- **gates-ui**: Next-step line, copy prompt, and new-item alerts; human-gates; deliver; dashboard _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
-- **gates-vocab**: Gate vocabulary: labels, prompts, next step, quiet; human-gates; deliver; dashboard _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
-- **verify-human-gates**: Verify human-gates phase; human-gates; deliver; dashboard _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
 
 ### Acceptance
 - **gates-landing**: phase_landing reports branch, exists, ahead, and merged or not merged for a scratch repo with a Landing section; no Landing heading returns None; missing branch shows exists false; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_gates.py -q -k 'landing and not (nogr or readonly)' _(id: [rec-79184477-3098-4868-8374-96e8edb0d92c](.artifacts/records/project__acceptance/rec-79184477-3098-4868-8374-96e8edb0d92c.md))_

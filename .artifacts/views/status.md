@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:299f5985bcad8e4c0dcd7c50a9233d60033c2aab9127ae9b6fc46540a9e924c2
+> Store state: sha256:7e1b4115b1ed48274d7b7734de775be68ec6708368b4b155fcf4d9e673ac13f2
 
 ## dashboard-view
 
@@ -254,12 +254,12 @@
 ## human-gates
 
 ### Work
-- **gates-landing**: Read-only phase Landing git state; human-gates; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
-- **gates-model**: Wire landing merge, last_record_at, and quiet into the model; human-gates; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
-- **gates-status**: tmux status-right needs-you count segment; human-gates; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
-- **gates-ui**: Next-step line, copy prompt, and new-item alerts; human-gates; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
-- **gates-vocab**: Gate vocabulary: labels, prompts, next step, quiet; human-gates; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
-- **verify-human-gates**: Verify human-gates phase; human-gates; deliver; dashboard; state: planned; ready: False; wave: 4; criteria: 0 pass / 0 fail _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
+- **gates-landing**: Read-only phase Landing git state; human-gates; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 3 pass / 0 fail _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
+- **gates-model**: Wire landing merge, last_record_at, and quiet into the model; human-gates; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 2 pass / 0 fail _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
+- **gates-status**: tmux status-right needs-you count segment; human-gates; deliver; dashboard; state: done; ready: True; wave: 3; criteria: 1 pass / 0 fail _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
+- **gates-ui**: Next-step line, copy prompt, and new-item alerts; human-gates; deliver; dashboard; state: done; ready: True; wave: 3; criteria: 3 pass / 0 fail _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
+- **gates-vocab**: Gate vocabulary: labels, prompts, next step, quiet; human-gates; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 5 pass / 0 fail _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
+- **verify-human-gates**: Verify human-gates phase; human-gates; deliver; dashboard; state: done; ready: True; wave: 4; criteria: 5 pass / 0 fail _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
 
 ## spec-view
 

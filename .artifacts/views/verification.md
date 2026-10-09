@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:dabd37b97784cfaada208876e62d2e36f2774432e618197f9a9394d821c0c945
+> Store state: sha256:e18918ac5133102867fb25ec81f2718e2638b633f872eed149fafc96e2429294
 
 ## activity-failures
 
@@ -559,65 +559,105 @@
 ### Acceptance
 - **gates-landing**: phase_landing reports branch, exists, ahead, and merged or not merged for a scratch repo with a Landing section; no Landing heading returns None; missing branch shows exists false; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_gates.py -q -k 'landing and not (nogr or readonly)' _(id: [rec-79184477-3098-4868-8374-96e8edb0d92c](.artifacts/records/project__acceptance/rec-79184477-3098-4868-8374-96e8edb0d92c.md))_
 
+### Check
+- **gates-landing**: rec-79184477-3098-4868-8374-96e8edb0d92c; dirty; pass; tdd _(id: [rec-ac631f0f-5f7e-4ff1-87c5-eb980c002e01](.artifacts/records/project__check-run/rec-ac631f0f-5f7e-4ff1-87c5-eb980c002e01.md))_
+
 ## gates-landing-failsoft
 
 ### Acceptance
 - **gates-landing-failsoft**: With no git repository, no git binary, or a failing git command, phase_landing returns None and raises nothing; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_gates.py -q -k 'nogr or no_git or fail' _(id: [rec-03da42d3-f54d-49ba-8ca2-afca1260b398](.artifacts/records/project__acceptance/rec-03da42d3-f54d-49ba-8ca2-afca1260b398.md))_
+
+### Check
+- **gates-landing-failsoft**: rec-03da42d3-f54d-49ba-8ca2-afca1260b398; dirty; pass; tdd _(id: [rec-77950a7e-4aba-4694-b411-a5cab13fe76d](.artifacts/records/project__check-run/rec-77950a7e-4aba-4694-b411-a5cab13fe76d.md))_
 
 ## gates-landing-readonly
 
 ### Acceptance
 - **gates-landing-readonly**: After phase_landing runs, git status and the store directory are unchanged; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_gates.py -q -k readonly _(id: [rec-3ba5ea87-0663-4f77-9a0e-ef0a6da1fc3e](.artifacts/records/project__acceptance/rec-3ba5ea87-0663-4f77-9a0e-ef0a6da1fc3e.md))_
 
+### Check
+- **gates-landing-readonly**: rec-3ba5ea87-0663-4f77-9a0e-ef0a6da1fc3e; dirty; pass; tdd _(id: [rec-30fee293-6832-4850-bdce-e7dc53b760a6](.artifacts/records/project__check-run/rec-30fee293-6832-4850-bdce-e7dc53b760a6.md))_
+
 ## gates-model
 
 ### Acceptance
 - **gates-model**: A done phase with Landing whose branch exists and is not merged into main yields a Merge branch Needs you item after integration items; Enter detail carries branch and ahead count; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_gates.py -q -k "gates and (merge or landing_item)" _(id: [rec-72691ffa-0dcd-45d0-a9dc-4cabce493d6e](.artifacts/records/project__acceptance/rec-72691ffa-0dcd-45d0-a9dc-4cabce493d6e.md))_
+
+### Check
+- **gates-model**: rec-72691ffa-0dcd-45d0-a9dc-4cabce493d6e; dirty; pass; tdd _(id: [rec-8953d20c-a86f-4baa-a24c-4e2880aff9bb](.artifacts/records/project__check-run/rec-8953d20c-a86f-4baa-a24c-4e2880aff9bb.md))_
 
 ## gates-model-quiet
 
 ### Acceptance
 - **gates-model-quiet**: A quiet running task shows running <time> · quiet in warning colour and its wave strip glyph uses warning colour; quiet tasks add no Needs you item; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_tasks.py -q -k "gates and quiet" _(id: [rec-bbb94de7-ae26-498b-ae76-2528eb547de3](.artifacts/records/project__acceptance/rec-bbb94de7-ae26-498b-ae76-2528eb547de3.md))_
 
+### Check
+- **gates-model-quiet**: rec-bbb94de7-ae26-498b-ae76-2528eb547de3; dirty; pass; tdd _(id: [rec-49e5e75a-5390-4d96-a3ac-a3f19faa538a](.artifacts/records/project__check-run/rec-49e5e75a-5390-4d96-a3ac-a3f19faa538a.md))_
+
 ## gates-status
 
 ### Acceptance
 - **gates-status**: In a real tmux server, status-right shows the needs-you count for the pane repo when @dashboard-status-right is on, and shows nothing when off or the count is zero; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests -q -m tmux -k "status and (gates or needs or segment)" _(id: [rec-bec7c314-2052-4053-9d5a-3f78a5db6663](.artifacts/records/project__acceptance/rec-bec7c314-2052-4053-9d5a-3f78a5db6663.md))_
+
+### Check
+- **gates-status**: rec-bec7c314-2052-4053-9d5a-3f78a5db6663; dirty; pass; tdd _(id: [rec-d5bb5ebd-2833-4597-bfc7-ecf8bfee067a](.artifacts/records/project__check-run/rec-d5bb5ebd-2833-4597-bfc7-ecf8bfee067a.md))_
 
 ## gates-ui
 
 ### Acceptance
 - **gates-ui**: c on a Needs you item copies the ready agent prompt; c on a task row still copies the slug; footer and key help say copy prompt when Needs you has focus; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k "gates and (copy or prompt)" _(id: [rec-6a06a80a-ba89-47c8-8d09-ef1c546ddbb6](.artifacts/records/project__acceptance/rec-6a06a80a-ba89-47c8-8d09-ef1c546ddbb6.md))_
 
+### Check
+- **gates-ui**: rec-6a06a80a-ba89-47c8-8d09-ef1c546ddbb6; dirty; pass; tdd _(id: [rec-b41e3704-d094-429c-8b4e-c0549f937bf9](.artifacts/records/project__check-run/rec-b41e3704-d094-429c-8b4e-c0549f937bf9.md))_
+
 ## gates-ui-alert
 
 ### Acceptance
 - **gates-ui-alert**: A Needs you item absent from the previous snapshot rings the bell and shows a stubbed tmux message naming effort, action, and subject; items present at startup do not alert; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k "gates and (alert or bell or message)" _(id: [rec-eafbbe7b-d2e4-4c00-8ade-b19308d28efd](.artifacts/records/project__acceptance/rec-eafbbe7b-d2e4-4c00-8ade-b19308d28efd.md))_
+
+### Check
+- **gates-ui-alert**: rec-eafbbe7b-d2e4-4c00-8ade-b19308d28efd; dirty; pass; tdd _(id: [rec-11fa611b-b22c-4461-beda-193333d0b769](.artifacts/records/project__check-run/rec-11fa611b-b22c-4461-beda-193333d0b769.md))_
 
 ## gates-ui-next
 
 ### Acceptance
 - **gates-ui-next**: Under the goal, a next-step line shows next: plus the first matching R4 rule, then the position text in muted colour; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k "gates and next" _(id: [rec-f1684acd-c413-4721-bdc5-4b9b28b25793](.artifacts/records/project__acceptance/rec-f1684acd-c413-4721-bdc5-4b9b28b25793.md))_
 
+### Check
+- **gates-ui-next**: rec-f1684acd-c413-4721-bdc5-4b9b28b25793; dirty; pass; tdd _(id: [rec-d238e363-b7a8-42bb-8a24-a4a03abf0d89](.artifacts/records/project__check-run/rec-d238e363-b7a8-42bb-8a24-a4a03abf0d89.md))_
+
 ## gates-vocab
 
 ### Acceptance
 - **gates-vocab**: action_label returns the R1 verbs for each Needs you kind, and a plan-review scope shows Review plan plus the phase title not the raw scope; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'gates and (label or plan_review or action)' _(id: [rec-dda923b2-838f-49de-82f7-3d6b9e8e648d](.artifacts/records/project__acceptance/rec-dda923b2-838f-49de-82f7-3d6b9e8e648d.md))_
+
+### Check
+- **gates-vocab**: rec-dda923b2-838f-49de-82f7-3d6b9e8e648d; dirty; pass; tdd _(id: [rec-333e89ae-61cf-4b06-a898-ae1f07b3465f](.artifacts/records/project__check-run/rec-333e89ae-61cf-4b06-a898-ae1f07b3465f.md))_
+- **gates-vocab**: rec-dda923b2-838f-49de-82f7-3d6b9e8e648d; dirty; pass; tdd _(id: [rec-722bd310-6ac0-48c4-96e1-312514ce34b9](.artifacts/records/project__check-run/rec-722bd310-6ac0-48c4-96e1-312514ce34b9.md))_
 
 ## gates-vocab-next
 
 ### Acceptance
 - **gates-vocab-next**: next_step returns the first matching R4 rule string for seeded effort states including plan-review, merge, unsigned, running, ready, and discuss/plan next phase; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'gates and next_step' _(id: [rec-3724b87a-e342-4a93-ad2e-32b3dbf21060](.artifacts/records/project__acceptance/rec-3724b87a-e342-4a93-ad2e-32b3dbf21060.md))_
 
+### Check
+- **gates-vocab-next**: rec-3724b87a-e342-4a93-ad2e-32b3dbf21060; dirty; pass; tdd _(id: [rec-461ab218-714c-4e32-b5ff-b5bd26054b97](.artifacts/records/project__check-run/rec-461ab218-714c-4e32-b5ff-b5bd26054b97.md))_
+
 ## gates-vocab-prompt
 
 ### Acceptance
 - **gates-vocab-prompt**: prompt(item, view) returns a ready agent string naming the effort, subject or phase, and action for each Needs you kind; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'gates and prompt' _(id: [rec-287530b8-fbf2-465a-b92d-5e699772d5de](.artifacts/records/project__acceptance/rec-287530b8-fbf2-465a-b92d-5e699772d5de.md))_
 
+### Check
+- **gates-vocab-prompt**: rec-287530b8-fbf2-465a-b92d-5e699772d5de; dirty; pass; tdd _(id: [rec-b32e7854-688c-4f90-8680-870d767ee6ee](.artifacts/records/project__check-run/rec-b32e7854-688c-4f90-8680-870d767ee6ee.md))_
+
 ## gates-vocab-quiet
 
 ### Acceptance
 - **gates-vocab-quiet**: is_quiet is true when a running task's last_record_at is older than twice estimate_minutes, or 60 minutes with no estimate, and false otherwise; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'gates and quiet' _(id: [rec-0292d7ca-96a5-452c-aa18-2b9dd5029589](.artifacts/records/project__acceptance/rec-0292d7ca-96a5-452c-aa18-2b9dd5029589.md))_
+
+### Check
+- **gates-vocab-quiet**: rec-0292d7ca-96a5-452c-aa18-2b9dd5029589; dirty; pass; tdd _(id: [rec-f923fa9e-6830-4792-9fb7-223e0d9dbc54](.artifacts/records/project__check-run/rec-f923fa9e-6830-4792-9fb7-223e0d9dbc54.md))_
 
 ## goal-status-field
 
@@ -1551,25 +1591,40 @@
 ### Acceptance
 - **verify-human-gates**: dashboard/bin/dashboard --once against a seeded store with plan-review, Landing, and a quiet task prints action verbs, a next-step line, and landing branch/ahead/merged on the selector; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_integration.py -q -k "gates or once" _(id: [rec-c61f4280-d622-4017-83d1-4a8222faed84](.artifacts/records/project__acceptance/rec-c61f4280-d622-4017-83d1-4a8222faed84.md))_
 
+### Check
+- **verify-human-gates**: rec-c61f4280-d622-4017-83d1-4a8222faed84; dirty; pass; check _(id: [rec-65fe5f9e-0653-44de-a8a1-b48a7afa10d3](.artifacts/records/project__check-run/rec-65fe5f9e-0653-44de-a8a1-b48a7afa10d3.md))_
+
 ## verify-human-gates-app
 
 ### Acceptance
 - **verify-human-gates-app**: c copies the prompt and new items trigger the message and bell in a Textual pilot with tmux stubbed; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k gates _(id: [rec-d63e9f38-6953-44e4-a67f-8793531de963](.artifacts/records/project__acceptance/rec-d63e9f38-6953-44e4-a67f-8793531de963.md))_
+
+### Check
+- **verify-human-gates-app**: rec-d63e9f38-6953-44e4-a67f-8793531de963; dirty; pass; check _(id: [rec-92a4682a-8b32-4f73-bfcb-6d3c812c1af4](.artifacts/records/project__check-run/rec-92a4682a-8b32-4f73-bfcb-6d3c812c1af4.md))_
 
 ## verify-human-gates-model
 
 ### Acceptance
 - **verify-human-gates-model**: Verbs, plan-review recognition, prompt text, next-step rules, landing state, Merge branch item, and quiet rule hold in model and gates tests; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_gates.py -q -k gates _(id: [rec-8ca825cb-80c2-47cc-9b12-ebfeb449dca9](.artifacts/records/project__acceptance/rec-8ca825cb-80c2-47cc-9b12-ebfeb449dca9.md))_
 
+### Check
+- **verify-human-gates-model**: rec-8ca825cb-80c2-47cc-9b12-ebfeb449dca9; dirty; pass; check _(id: [rec-882ec15d-d5e0-4cf1-b2cf-34855cb81c4a](.artifacts/records/project__check-run/rec-882ec15d-d5e0-4cf1-b2cf-34855cb81c4a.md))_
+
 ## verify-human-gates-suite
 
 ### Acceptance
 - **verify-human-gates-suite**: The full non-tmux and tmux test suites pass; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-84b6b2c0-f0cc-49a6-93fd-ebd2e5390f9a](.artifacts/records/project__acceptance/rec-84b6b2c0-f0cc-49a6-93fd-ebd2e5390f9a.md))_
 
+### Check
+- **verify-human-gates-suite**: rec-84b6b2c0-f0cc-49a6-93fd-ebd2e5390f9a; dirty; pass; check _(id: [rec-4d33d4c5-08df-486b-99d0-ce5aab20392e](.artifacts/records/project__check-run/rec-4d33d4c5-08df-486b-99d0-ce5aab20392e.md))_
+
 ## verify-human-gates-tmux
 
 ### Acceptance
 - **verify-human-gates-tmux**: The status-right needs-you segment appears in a real tmux server when enabled; check; dashboard; uv run --with textual --with pytest python -m pytest tests -q -m tmux -k "status and (gates or needs or segment)" _(id: [rec-fa10fcaa-3669-4d69-a554-844faf4d41b6](.artifacts/records/project__acceptance/rec-fa10fcaa-3669-4d69-a554-844faf4d41b6.md))_
+
+### Check
+- **verify-human-gates-tmux**: rec-fa10fcaa-3669-4d69-a554-844faf4d41b6; dirty; pass; check _(id: [rec-281456a3-47c1-4258-b732-c664aa99a58b](.artifacts/records/project__check-run/rec-281456a3-47c1-4258-b732-c664aa99a58b.md))_
 
 ## verify-journal-view
 
