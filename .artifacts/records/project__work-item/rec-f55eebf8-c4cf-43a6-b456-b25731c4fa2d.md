@@ -1,0 +1,42 @@
+---
+{
+  "base_kind": "task",
+  "id": "rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d",
+  "identity": "unknown",
+  "lifecycle_state": "done",
+  "payload": {
+    "assignee": "budget-instructions-agent",
+    "decisions": "phase-checks-only,verify-stop",
+    "effort": "workflow-loop",
+    "estimate_minutes": 35,
+    "executor": "subagent",
+    "kind": "deliver",
+    "phase": "verify-budget",
+    "requirements": "R1,R2,R3,R4",
+    "size": "L",
+    "title": "Limit verification instructions to phase checks"
+  },
+  "record_type": "project:work-item",
+  "recorded_at": "2026-10-09T22:48:47+00:00",
+  "relationships": {},
+  "revision": "sha256:3b610712b26c6df5d2fd040983c8ca147c6a1956a6478453d046e8a1c1eb4a59",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "budget-instructions"
+}
+---
+
+## Description
+
+Make the skills and the close instructions limit verification to the phase's checks, and make a failing verification return fail without editing.
+
+## Approach
+
+1. Add `tests/test_verify_budget.py` with these tests, and run it so it fails before the edits:
+   - `test_plan_phase_limits_verification_to_phase_checks`: `skills/plan-phase/SKILL.md` says the verification task's acceptances come from the phase exit criteria, and one is an integration check through the real entry point.
+   - `test_plan_phase_rejects_whole_suite_and_unfiltered_app_file`: the same skill says a `verify_command` that runs the whole `tests` tree, or `tests/test_dashboard_app.py` without a `-k` filter for this phase, is not a verification acceptance.
+   - `test_close_instructions_use_the_task_command`: `AGENTS.md` and `CLAUDE.md` Testing sections tell the agent to run the task's `verify_command`. They do not say to run the full suite before closing the task. The forbidden text is the `-n 4 -m "not tmux"` command chained with `-m tmux`, and the sentence that says to run the full suite before closing the task.
+   - `test_verification_failure_does_not_edit`: `skills/execute-phase/SKILL.md` says the verification executor returns fail and does not edit the tree. `skills/verify-work/SKILL.md` leaves the work-item `in_progress` and uses assessment `next` `execute` for that failure, and does not tell the parent to run a suite the acceptance does not name.
+2. Edit `skills/plan-phase/SKILL.md`, `skills/execute-phase/SKILL.md`, `skills/verify-work/SKILL.md`, `AGENTS.md`, and `CLAUDE.md` until `uv run --with pytest python -m pytest tests/test_verify_budget.py tests/test_skill_contract_consistency.py -q` passes.
+3. Do not edit the planned dashboard acceptances. That is `narrow-planned`.

@@ -1,0 +1,41 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-7eabaab6-bd09-4dbb-b022-0341c92ac09b",
+  "identity": "unknown",
+  "lifecycle_state": "superseded",
+  "payload": {
+    "confidence": "high",
+    "effort": "workflow-loop",
+    "missing": "",
+    "next": "release",
+    "phase": "verify-budget",
+    "requirement": "R5",
+    "status": "verified"
+  },
+  "record_type": "project:assessment",
+  "recorded_at": "2026-10-09T22:51:38+00:00",
+  "relationships": {},
+  "revision": "sha256:b4692d23f13be35b48a13eccffeed47c517a69ea242bd90efa5e019d503e17ee",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "verify-budget-R5",
+  "time": {
+    "as_of": "2026-10-09T22:49:44+00:00"
+  }
+}
+---
+
+## Evidence
+
+Passing check-run for criterion rec-6d54e8ac-3496-44e6-beff-60a45f056733. The verify_command listed the three active suite acceptances and the three work-items through adaptive-artifacts, required a -k filter, rejected the full-suite pytest invocation, and rejected the words "full suite" in those bodies. Exit 0, printed "phase checks only".
+
+## Missing
+
+none
+
+## Reason
+
+The planned spec-view, evidence-matrix, and journal-view verification tasks no longer carry a full-suite acceptance or a full-suite step. The store check exercised that requirement directly.

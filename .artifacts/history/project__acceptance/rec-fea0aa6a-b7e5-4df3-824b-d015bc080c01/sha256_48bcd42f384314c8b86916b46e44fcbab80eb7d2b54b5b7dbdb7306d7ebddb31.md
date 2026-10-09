@@ -1,0 +1,29 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-fea0aa6a-b7e5-4df3-824b-d015bc080c01",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "criterion": "The full non-tmux and tmux test suites pass",
+    "effort": "dashboard",
+    "method": "check",
+    "phase": "journal-view",
+    "requirement": "R9",
+    "verify_command": "uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m \"not tmux\" && uv run --with textual --with pytest python -m pytest tests -q -m tmux"
+  },
+  "record_type": "project:acceptance",
+  "recorded_at": "2026-10-09T20:51:09+00:00",
+  "relationships": {},
+  "revision": "sha256:48bcd42f384314c8b86916b46e44fcbab80eb7d2b54b5b7dbdb7306d7ebddb31",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "verify-journal-view-suite",
+  "time": {
+    "as_of": "2026-10-09T20:51:09+00:00"
+  }
+}
+---
+

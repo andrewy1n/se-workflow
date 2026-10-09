@@ -1,0 +1,29 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-b147b60a-bac3-473f-bff5-6ea8db7fe2e9",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "criterion": "plan-phase writes verification acceptances from the phase exit criteria, including one integration check through the real entry point",
+    "effort": "workflow-loop",
+    "method": "tdd",
+    "phase": "verify-budget",
+    "requirement": "R1",
+    "verify_command": "uv run --with pytest python -m pytest tests/test_verify_budget.py -q -k plan_phase_limits"
+  },
+  "record_type": "project:acceptance",
+  "recorded_at": "2026-10-09T22:37:53+00:00",
+  "relationships": {},
+  "revision": "sha256:0863a4b014f45e092c38f253d2d7d01cfd99c3d54eff150d663a015ef172a202",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "budget-instructions",
+  "time": {
+    "as_of": "2026-10-09T22:37:53+00:00"
+  }
+}
+---
+

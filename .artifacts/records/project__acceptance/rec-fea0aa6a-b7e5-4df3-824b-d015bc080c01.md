@@ -4,7 +4,7 @@
   "epistemic_status": "asserted",
   "id": "rec-fea0aa6a-b7e5-4df3-824b-d015bc080c01",
   "identity": "unknown",
-  "lifecycle_state": "active",
+  "lifecycle_state": "superseded",
   "payload": {
     "criterion": "The full non-tmux and tmux test suites pass",
     "effort": "dashboard",
@@ -14,9 +14,9 @@
     "verify_command": "uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m \"not tmux\" && uv run --with textual --with pytest python -m pytest tests -q -m tmux"
   },
   "record_type": "project:acceptance",
-  "recorded_at": "2026-10-09T20:51:09+00:00",
+  "recorded_at": "2026-10-09T22:49:20+00:00",
   "relationships": {},
-  "revision": "sha256:48bcd42f384314c8b86916b46e44fcbab80eb7d2b54b5b7dbdb7306d7ebddb31",
+  "revision": "sha256:71bf17be90e782717ddb819fcc81592ecfe9d84d2ab12e79533ee857390c4434",
   "stewardship": {
     "steward": "agent"
   },
