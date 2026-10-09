@@ -1461,3 +1461,313 @@ def test_visible_efforts_hides_finished_by_default_and_keeps_those_with_needs():
     shown, hidden = selection.visible_efforts(snapshot, show_finished=True)
     assert [v.effort for v in shown] == ["live", "done-needs", "done"]
     assert hidden == 0
+
+
+# --- gates vocabulary (human-gates / gates-vocab) ---
+
+from dashboard import gates  # noqa: E402
+
+
+def _gates_phase(
+    subject: str, title: str, ordinal: int, state: str, *,
+    decisions: tuple[model.DecisionChoice, ...] | None = None,
+) -> model.PhaseRow:
+    evidence = None
+    if decisions is not None:
+        evidence = model.PhaseEvidence(
+            phase=subject, weight="", requirements=(), stage="", integration=None,
+            release_ready=False, decisions=decisions, non_goals="",
+        )
+    return model.PhaseRow(subject, title, ordinal, state, 0, 0, evidence=evidence)
+
+
+def _gates_task(
+    subject: str, phase: str, status: str, *, wave: int | None = 1,
+    estimate_minutes: int | None = None, last_record_at: datetime | None = None,
+) -> model.TaskRow:
+    return model.TaskRow(
+        id=f"id-{subject}", subject=subject, title=subject, phase=phase,
+        assignee="", wave=wave, status=status, estimate_minutes=estimate_minutes,
+        last_record_at=last_record_at,
+    )
+
+
+def _gates_view(
+    effort: str = "dashboard",
+    *,
+    phases: list[model.PhaseRow] | None = None,
+    tasks: list[model.TaskRow] | None = None,
+    needs_you: list[model.NeedsYouItem] | None = None,
+) -> model.EffortView:
+    return model.EffortView(
+        effort, f"goal for {effort}",
+        phases=list(phases or []),
+        tasks=list(tasks or []),
+        needs_you=list(needs_you or []),
+    )
+
+
+def test_gates_action_label_verbs_for_each_needs_you_kind():
+    view = _gates_view(phases=[_gates_phase("human-gates", "Human gates", 1, "planned")])
+    cases = [
+        (model.NeedsYouItem("blocking-question", "1", "dashboard", "plan-review:human-gates"), "Review plan"),
+        (model.NeedsYouItem("blocking-question", "2", "dashboard", "pick-renderer"), "Answer"),
+        (model.NeedsYouItem("open-question", "3", "dashboard", "nice-to-have"), "Answer"),
+        (model.NeedsYouItem("needs-human", "4", "as-dry-run", "claim text"), "Decide"),
+        (model.NeedsYouItem("unsigned-check", "5", "as-dry-run", "criterion pass"), "Sign off"),
+        (model.NeedsYouItem("loop-route", "6", "r1", "R1 upstream design", next="design", requirement="R1"), "Route to design"),
+        (model.NeedsYouItem("integration", "7", "phase-a", "phase-a fail", phase="phase-a", result="fail"), "Fix integration"),
+        (model.NeedsYouItem("merge-branch", "8", "human-gates", "phase/human-gates", phase="human-gates"), "Merge branch"),
+    ]
+    for item, expected in cases:
+        assert gates.action_label(item, view) == expected
+
+
+def test_gates_action_label_plan_review_shows_phase_title_not_raw_scope():
+    view = _gates_view(phases=[
+        _gates_phase("human-gates", "Show the human gates", 1, "planned"),
+    ])
+    item = model.NeedsYouItem("blocking-question", "1", "dashboard", "plan-review:human-gates")
+    assert gates.action_label(item, view) == "Review plan"
+    assert gates.item_text(item, view) == "Show the human gates"
+    assert "plan-review:" not in gates.item_text(item, view)
+    other = model.NeedsYouItem("blocking-question", "2", "dashboard", "pick-renderer")
+    assert gates.item_text(other, view) == "pick-renderer"
+
+
+def test_gates_prompt_names_effort_subject_or_phase_and_action():
+    view = _gates_view(
+        "dashboard",
+        phases=[_gates_phase("human-gates", "Human gates", 1, "planned")],
+    )
+    plan = model.NeedsYouItem("blocking-question", "1", "dashboard", "plan-review:human-gates")
+    assert gates.prompt(plan, view) == (
+        "Walk me through the plan for phase human-gates (effort dashboard) so I can review it."
+    )
+    sign = model.NeedsYouItem("unsigned-check", "2", "as-dry-run", "criterion pass")
+    sa = _gates_view("session-analysis")
+    assert gates.prompt(sign, sa) == (
+        "Sign off the manual check for as-dry-run (effort session-analysis)."
+    )
+    decide = model.NeedsYouItem("needs-human", "3", "join-gap", "ambiguous join")
+    assert "Decide" in gates.prompt(decide, sa) or "decide" in gates.prompt(decide, sa).lower()
+    assert "session-analysis" in gates.prompt(decide, sa)
+    assert "join-gap" in gates.prompt(decide, sa)
+    route = model.NeedsYouItem(
+        "loop-route", "4", "r1", "R1 upstream design",
+        phase="human-gates", requirement="R1", next="design",
+    )
+    text = gates.prompt(route, view)
+    assert "dashboard" in text and "design" in text and "R1" in text
+    merge = model.NeedsYouItem("merge-branch", "5", "human-gates", "branch", phase="human-gates")
+    assert "Merge" in gates.prompt(merge, view) and "human-gates" in gates.prompt(merge, view)
+
+
+def test_gates_next_step_plan_review():
+    view = _gates_view(needs_you=[
+        model.NeedsYouItem("blocking-question", "1", "dashboard", "plan-review:human-gates"),
+    ])
+    assert gates.next_step(view, {}) == "review the human-gates plan (plan-phase)"
+
+
+def test_gates_next_step_other_blocking():
+    view = _gates_view(needs_you=[
+        model.NeedsYouItem("blocking-question", "1", "dashboard", "pick-renderer"),
+    ])
+    assert gates.next_step(view, {}) == "answer: pick-renderer"
+
+
+def test_gates_next_step_merge_unmerged_done_phase():
+    from dashboard.landing import Landing
+    view = _gates_view(phases=[
+        _gates_phase("human-gates", "Human gates", 1, "done"),
+    ])
+    landing = {"human-gates": Landing("phase/human-gates", True, 3, False)}
+    assert gates.next_step(view, landing) == "merge phase/human-gates (execute-phase)"
+
+
+def test_gates_next_step_loop_route_and_unsigned():
+    route_view = _gates_view(needs_you=[
+        model.NeedsYouItem(
+            "loop-route", "1", "r1", "R1 upstream design",
+            requirement="R1", next="design",
+        ),
+    ])
+    assert gates.next_step(route_view, {}) == "design for R1 (discuss)"
+    unsigned_view = _gates_view(needs_you=[
+        model.NeedsYouItem("unsigned-check", "2", "as-dry-run", "criterion pass"),
+    ])
+    assert gates.next_step(unsigned_view, {}) == "sign off as-dry-run (verify-work)"
+
+
+def test_gates_next_step_running_and_ready():
+    running = _gates_view(tasks=[
+        _gates_task("a", "p", "running", wave=2),
+        _gates_task("b", "p", "running", wave=2),
+    ])
+    assert gates.next_step(running, {}) == "wave 2 running: 2 tasks"
+    ready = _gates_view(tasks=[
+        _gates_task("a", "p", "ready", wave=3),
+        _gates_task("b", "p", "ready", wave=3),
+    ])
+    assert gates.next_step(ready, {}) == "execute-phase wave 3"
+
+
+def test_gates_next_step_close_in_progress_and_discuss_or_plan_phase():
+    close_view = _gates_view(
+        phases=[_gates_phase("human-gates", "Human gates", 1, "in_progress")],
+        tasks=[_gates_task("a", "human-gates", "done"), _gates_task("b", "human-gates", "done")],
+    )
+    assert gates.next_step(close_view, {}) == "close human-gates (verify-work)"
+
+    discuss_view = _gates_view(phases=[
+        _gates_phase("human-gates", "Human gates", 1, "planned", decisions=()),
+    ])
+    assert gates.next_step(discuss_view, {}) == "discuss human-gates"
+
+    plan_view = _gates_view(phases=[
+        _gates_phase(
+            "human-gates", "Human gates", 1, "planned",
+            decisions=(model.DecisionChoice("needs-you-copy-prompt", "chosen"),),
+        ),
+    ])
+    assert gates.next_step(plan_view, {}) == "plan-phase human-gates"
+
+
+def test_gates_next_step_every_phase_done():
+    view = _gates_view(phases=[
+        _gates_phase("one", "One", 1, "done"),
+        _gates_phase("two", "Two", 2, "done"),
+    ])
+    assert gates.next_step(view, {}) == "close the effort or add a phase"
+
+
+def test_gates_quiet_threshold_for_running_tasks():
+    now = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
+    quiet_est = _gates_task(
+        "a", "p", "running", estimate_minutes=10,
+        last_record_at=now - timedelta(minutes=21),
+    )
+    assert gates.is_quiet(quiet_est, now) is True
+    fresh_est = _gates_task(
+        "b", "p", "running", estimate_minutes=10,
+        last_record_at=now - timedelta(minutes=19),
+    )
+    assert gates.is_quiet(fresh_est, now) is False
+    quiet_default = _gates_task(
+        "c", "p", "running", estimate_minutes=None,
+        last_record_at=now - timedelta(minutes=61),
+    )
+    assert gates.is_quiet(quiet_default, now) is True
+    fresh_default = _gates_task(
+        "d", "p", "running", estimate_minutes=None,
+        last_record_at=now - timedelta(minutes=59),
+    )
+    assert gates.is_quiet(fresh_default, now) is False
+    not_running = _gates_task(
+        "e", "p", "ready", estimate_minutes=10,
+        last_record_at=now - timedelta(minutes=100),
+    )
+    assert gates.is_quiet(not_running, now) is False
+    no_stamp = _gates_task("f", "p", "running", estimate_minutes=10, last_record_at=None)
+    assert gates.is_quiet(no_stamp, now) is False
+
+
+def test_gates_merge_landing_item_after_integration_carries_branch_and_ahead():
+    from dashboard.landing import Landing
+
+    view = _gates_view(
+        phases=[
+            _gates_phase("alpha", "Alpha", 1, "done"),
+            _gates_phase("beta", "Beta", 2, "done"),
+            _gates_phase("gamma", "Gamma", 3, "in_progress"),
+        ],
+        needs_you=[
+            model.NeedsYouItem(
+                "integration", "int-1", "alpha-int", "alpha fail",
+                phase="alpha", result="fail",
+            ),
+            model.NeedsYouItem("needs-human", "h-1", "finding", "claim"),
+        ],
+    )
+    landing = {
+        "alpha": Landing("phase/alpha", True, 3, False),
+        "beta": Landing("phase/beta", True, 1, False),
+        "gamma": Landing("phase/gamma", True, 2, False),
+    }
+    merged = gates.merge_landing_needs(view, landing)
+    kinds = [item.kind for item in merged.needs_you]
+    assert kinds == sorted(kinds, key=lambda kind: model.NEEDS_ORDER.index(kind))
+    assert "merge-branch" in model.NEEDS_ORDER
+    assert model.NEEDS_ORDER.index("merge-branch") == model.NEEDS_ORDER.index("integration") + 1
+    assert kinds.index("integration") < kinds.index("merge-branch")
+    assert kinds.index("merge-branch") < kinds.index("needs-human")
+
+    merge_items = [item for item in merged.needs_you if item.kind == "merge-branch"]
+    assert [(item.id, item.phase, item.text, item.body) for item in merge_items] == [
+        ("merge:alpha", "alpha", "phase/alpha", "3 ahead"),
+        ("merge:beta", "beta", "phase/beta", "1 ahead"),
+    ]
+    assert all(item.subject == item.phase for item in merge_items)
+    assert "3" in merge_items[0].body and "phase/alpha" in merge_items[0].text
+
+
+def test_gates_landing_item_skips_merged_missing_and_not_done():
+    from dashboard.landing import Landing
+
+    view = _gates_view(phases=[
+        _gates_phase("done-merged", "Merged", 1, "done"),
+        _gates_phase("done-missing", "Missing", 2, "done"),
+        _gates_phase("done-gone", "Gone", 3, "done"),
+        _gates_phase("live", "Live", 4, "in_progress"),
+    ])
+    landing = {
+        "done-merged": Landing("phase/done-merged", True, 0, True),
+        "done-missing": Landing("phase/done-missing", False, 0, False),
+        "live": Landing("phase/live", True, 4, False),
+    }
+    merged = gates.merge_landing_needs(view, landing)
+    assert [item.kind for item in merged.needs_you] == []
+
+
+def test_gates_quiet_adds_no_needs_you_item():
+    now = datetime(2026, 10, 9, 12, 0, tzinfo=timezone.utc)
+    quiet = _gates_task(
+        "quiet-task", "human-gates", "running", estimate_minutes=10,
+        last_record_at=now - timedelta(minutes=30),
+    )
+    assert gates.is_quiet(quiet, now) is True
+    view = _gates_view(
+        phases=[_gates_phase("human-gates", "Human gates", 1, "in_progress")],
+        tasks=[quiet],
+    )
+    assert view.needs_you == []
+    assert gates.merge_landing_needs(view, {}).needs_you == []
+
+
+def test_gates_phase_body_and_last_record_at_on_running_task(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    body = (
+        "## Problem\n\nplaceholder.\n\n## Approach\n\nShip it.\n\n"
+        "## Landing\n\n- Branch: `phase/p-land`\n\n"
+        "## Exit criteria\n\nplaceholder.\n"
+    )
+    phase = _record(
+        cli, defs, "project:phase", "p-land",
+        {"title": "Land", "ordinal": 1, "effort": "alpha"}, body,
+    )
+    h.transition(cli, "project:phase", phase, "in_progress")
+    task = _work_item(cli, defs, "alpha", "land-run", "p-land")
+    h.transition(cli, "project:work-item", task, "in_progress")
+    assignment = _assign(cli, defs, "land-run", "agent")
+    amendment = _record(
+        cli, defs, "project:assignment-amendment", "land-run",
+        {"assignment": assignment["subject"], "effort": "alpha"},
+        "## Correction\n\nlater",
+    )
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    assert view.phases[0].body == body
+    assert "Landing" in view.phases[0].body
+    running = {t.subject: t for t in view.tasks}["land-run"]
+    assert running.running_since is not None
+    assert running.last_record_at == datetime.fromisoformat(amendment["recorded_at"])

@@ -152,3 +152,22 @@ def test_prints_nothing_when_the_cli_fails(home):
 def test_prints_nothing_for_unreadable_status_json(home):
     result = _run(home, stdin="not json", cwd=Path("/"))
     assert (result.returncode, result.stdout) == (0, "")
+
+
+def test_tmux_prints_merged_needs_flag_count(home, seeded):
+    result = _run(home, "--tmux", str(seeded))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout == "⚑ 3\n"
+
+
+def test_tmux_prints_nothing_when_needs_count_is_zero(home, store, cli, resolved_contract):
+    defs = h.record_defs_by_id(resolved_contract)
+    _goal(cli, defs, "quiet")
+    _work_item(cli, defs, "quiet", "quiet-ready")
+    result = _run(home, "--tmux", str(store))
+    assert (result.returncode, result.stdout) == (0, "")
+
+
+def test_tmux_prints_nothing_without_a_store(home):
+    result = _run(home, "--tmux", str(make_git_repo()))
+    assert (result.returncode, result.stdout) == (0, "")

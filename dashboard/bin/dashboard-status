@@ -4,6 +4,9 @@
 Takes a directory argument, or Claude Code status JSON on stdin
 (workspace.current_dir, else cwd). Prints nothing when the directory has
 no store, the CLI fails, or the snapshot takes longer than TIMEOUT seconds.
+
+With --tmux, prints a single ``⚑ <n>`` for the merged Needs you count
+(including Merge branch items), or nothing when the count is zero.
 """
 
 from __future__ import annotations
@@ -16,6 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from dashboard.artifact_store import resolve  # noqa: E402
+from dashboard.gates import apply_landing_needs, landings_for_snapshot  # noqa: E402
 from dashboard.model import ModelError, Snapshot, load_snapshot  # noqa: E402
 
 TIMEOUT = 2
@@ -50,12 +54,28 @@ def summarize(snapshot: Snapshot) -> list[str]:
     return lines
 
 
+def summarize_tmux(root: Path, snapshot: Snapshot) -> str | None:
+    landings = landings_for_snapshot(root, snapshot)
+    merged = apply_landing_needs(snapshot, landings)
+    count = sum(len(view.needs_you) for view in merged.efforts)
+    if count == 0:
+        return None
+    return f"⚑ {count}"
+
+
 def _give_up(signum, frame) -> None:
     os._exit(0)
 
 
 def main(argv: list[str]) -> int:
-    directory = target_directory(argv)
+    tmux = False
+    rest: list[str] = []
+    for arg in argv:
+        if arg == "--tmux":
+            tmux = True
+        else:
+            rest.append(arg)
+    directory = target_directory(rest)
     if directory is None or not directory.is_dir():
         return 0
     target = resolve(directory)
@@ -65,12 +85,17 @@ def main(argv: list[str]) -> int:
     signal.alarm(TIMEOUT)
     try:
         snapshot = load_snapshot(target)
+        if tmux:
+            line = summarize_tmux(target.root, snapshot)
+            if line:
+                print(line)
+            return 0
+        for line in summarize(snapshot):
+            print(line)
     except (ModelError, OSError):
         return 0
     finally:
         signal.alarm(0)
-    for line in summarize(snapshot):
-        print(line)
     return 0
 
 

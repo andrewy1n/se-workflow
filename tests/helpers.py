@@ -296,6 +296,11 @@ class Tmux:
         self("new-session", "-d", "-s", session, "-x", str(self.cols), "-y", str(self.rows), "-c", str(directory))
         # Deliver Esc before the popup tests drain the pane and snapshot it.
         self("set", "-g", "escape-time", "0")
+        self("set", "-g", "status", "on")
+        self("set", "-g", "status-interval", "1")
+        aa = self.env.get("ADAPTIVE_ARTIFACTS_BIN")
+        if aa:
+            self("set-environment", "-g", "ADAPTIVE_ARTIFACTS_BIN", aa)
         self("run-shell", shlex.quote(str(TMUX_ENTRY)))
         self.socket_path = self("display", "-p", "#{socket_path}").strip()
 

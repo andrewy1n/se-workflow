@@ -75,3 +75,26 @@ def test_custom_keys_from_the_options_rebind_and_leave_the_defaults_unbound(serv
     assert "split-window" in server.binding("P")
     assert "dashboard" not in server.binding("A")
     assert "dashboard" not in server.binding("S")
+
+
+def test_status_right_gates_needs_segment_appended_when_on(server):
+    server.load()
+    status = server("show-option", "-gv", "status-right")
+    status_bin = str(REPO_ROOT / "dashboard" / "bin" / "dashboard-status")
+    assert status_bin in status
+    assert "--tmux" in status
+    assert "#{pane_current_path}" in status
+
+
+def test_status_right_gates_needs_segment_absent_when_off(server):
+    server("set-option", "-g", "@dashboard-status-right", "off")
+    server.load()
+    status = server("show-option", "-gv", "status-right", check=False)
+    assert "dashboard-status" not in status
+
+
+def test_status_right_gates_needs_segment_not_duplicated_on_reload(server):
+    server.load()
+    server.load()
+    status = server("show-option", "-gv", "status-right")
+    assert status.count("dashboard-status") == 1

@@ -8,8 +8,10 @@ from typing import Any
 
 from rich.text import Text
 
-from dashboard import model
-from dashboard.display import ACTIVITY_GLYPH, ACTIVITY_LINES, PHASE_GLYPH, STATUS_GLYPH, clip, relative_time
+from dashboard import gates, model
+from dashboard.display import (
+    ACTIVITY_GLYPH, ACTIVITY_LINES, ANSI_PALETTE, PHASE_GLYPH, STATUS_GLYPH, clip, relative_time,
+)
 
 
 @dataclass(frozen=True)
@@ -114,11 +116,13 @@ def scoped(view: model.EffortView, subject: str | None) -> model.EffortView:
         needs_you=view.needs_you[:],
         activity=view.activity[:],
         release_ready=view.release_ready,
+        position=view.position,
     )
 
 
 def _phase_segment(
     phase: model.PhaseRow, selected: str | None, colors: dict[str, str], *, planned: bool = False,
+    landing_suffix: str = "",
 ) -> Text:
     glyph = PHASE_GLYPH.get(phase.state, "·")
     title = phase.title or phase.subject
@@ -135,18 +139,23 @@ def _phase_segment(
     text.stylize(base)
     if is_selected:
         text.stylize("reverse")
+    if landing_suffix and phase.subject == selected:
+        text.append(f" · {landing_suffix}", style=colors["muted"])
     text.apply_meta({"target": f"phase:{phase.subject}"})
     return text
 
 
-def selector_segments(view: model.EffortView, selected: str | None, colors: dict[str, str]) -> list[Text]:
+def selector_segments(
+    view: model.EffortView, selected: str | None, colors: dict[str, str],
+    landing_suffix: str = "",
+) -> list[Text]:
     """Build clickable selector segments: done count/selected done, in-progress, next, All phases."""
     segments: list[Text] = []
     done_phases = [phase for phase in view.phases if phase.state == "done"]
     selected_phase = next((phase for phase in view.phases if phase.subject == selected), None)
 
     if selected_phase is not None and selected_phase.state == "done":
-        segments.append(_phase_segment(selected_phase, selected, colors))
+        segments.append(_phase_segment(selected_phase, selected, colors, landing_suffix=landing_suffix))
     elif done_phases:
         done_text = Text(f"{len(done_phases)} done", style=colors["muted"])
         done_text.apply_meta({"target": "picker"})
@@ -154,12 +163,12 @@ def selector_segments(view: model.EffortView, selected: str | None, colors: dict
 
     for phase in view.phases:
         if phase.state == "in_progress":
-            segments.append(_phase_segment(phase, selected, colors))
+            segments.append(_phase_segment(phase, selected, colors, landing_suffix=landing_suffix))
 
     planned = [phase for phase in view.phases if phase.state == "planned"]
     if planned:
         next_phase = min(planned, key=lambda phase: (phase.ordinal, phase.subject))
-        segments.append(_phase_segment(next_phase, selected, colors, planned=True))
+        segments.append(_phase_segment(next_phase, selected, colors, planned=True, landing_suffix=landing_suffix))
 
     all_style = colors["primary"] if selected is None else colors["muted"]
     all_text = Text("All phases", style=all_style)
@@ -170,9 +179,12 @@ def selector_segments(view: model.EffortView, selected: str | None, colors: dict
     return segments
 
 
-def selector_text(view: model.EffortView, selected: str | None, colors: dict[str, str], width: int) -> Text:
+def selector_text(
+    view: model.EffortView, selected: str | None, colors: dict[str, str], width: int,
+    landing_suffix: str = "",
+) -> Text:
     """Lay out selector segments with wrapping and clipping to the given width."""
-    segments = selector_segments(view, selected, colors)
+    segments = selector_segments(view, selected, colors, landing_suffix=landing_suffix)
     text = Text()
     used = 0
     for index, label in enumerate(segments):
@@ -197,8 +209,16 @@ def _least_finished(tasks: list[model.TaskRow]) -> model.TaskRow:
     return min(tasks, key=lambda task: _FINISH_RANK.get(task.status, len(_FINISH_RANK)))
 
 
-def wave_strip(view: model.EffortView, subject: str, width: int) -> Text:
+def wave_strip(
+    view: model.EffortView,
+    subject: str,
+    width: int,
+    colors: dict[str, str] | None = None,
+    now: datetime | None = None,
+) -> Text:
     """Render a wave strip for the selected phase."""
+    colors = colors or ANSI_PALETTE
+    now = now or datetime.now(timezone.utc)
     tasks = [task for task in view.tasks if task.phase == subject and task.status != "withdrawn"]
     groups: dict[Any, list[model.TaskRow]] = {}
     for task in tasks:
@@ -212,6 +232,13 @@ def wave_strip(view: model.EffortView, subject: str, width: int) -> Text:
 
     ordered = sorted(groups.items(), key=order)
 
+    def append_glyph(text: Text, task: model.TaskRow) -> None:
+        glyph = STATUS_GLYPH.get(task.status, "·")
+        if gates.is_quiet(task, now):
+            text.append(glyph, style=colors["warning"])
+        else:
+            text.append(glyph)
+
     def render(compact: bool) -> Text:
         text = Text()
         for wave, members in ordered:
@@ -219,14 +246,10 @@ def wave_strip(view: model.EffortView, subject: str, width: int) -> Text:
                 text.append("  ")
             text.append(f"w{wave} ")
             if compact:
-                task = _least_finished(members)
-                text.append(STATUS_GLYPH.get(task.status, "·"))
+                append_glyph(text, _least_finished(members))
             else:
-                glyphs = "".join(
-                    STATUS_GLYPH.get(task.status, "·")
-                    for task in sorted(members, key=lambda t: model.TASK_ORDER.index(t.status))
-                )
-                text.append(glyphs)
+                for task in sorted(members, key=lambda t: model.TASK_ORDER.index(t.status)):
+                    append_glyph(text, task)
         return text
 
     full = render(False)

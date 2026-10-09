@@ -6,6 +6,7 @@ import fcntl
 import json
 import os
 import select
+import shlex
 import shutil
 import struct
 import subprocess
@@ -148,7 +149,8 @@ def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_ti
     missing = [needle for needle in needles if needle not in text]
     assert not missing, f"missing {missing} in client output: {text[-2000:]}"
     assert "status task assignee" in text and "status task wave" not in text, text[-2000:]
-    assert "running 48h title of fx-running" in text, text[-2000:]
+    assert "running 48h" in text and "title of fx-running" in text, text[-2000:]
+    assert "quiet" in text, text[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 
@@ -409,7 +411,7 @@ def test_prefix_a_popup_walks_six_tabs_counts_needs_you_reads_unsigned_checks_re
     assert "assignee" in tmux.screen_text(["title of fx-ready", "assignee"])
 
     tabs = ("Active (2)", "Running (1)", "Ready (1)", "Waiting (0)", "Done (0)", "All (2)")
-    opening = press(b"", *tabs, "Needs you 2", "unsigned pages render on mobile pass fx-ready")
+    opening = press(b"", *tabs, "Needs you 2", "Sign off pages render on mobile pass fx-ready")
     assert " ".join(tabs) in opening, opening[-2000:]
     assert opening.count("Needs you") == 1, opening[-2000:]
     assert "rec-" not in opening, opening[-2000:]
@@ -445,6 +447,52 @@ def test_status_segment_counts_match_the_seeded_store(home, seeded):
         input=json.dumps({"workspace": {"current_dir": str(seeded)}}), cwd="/",
     )
     assert (by_arg.stdout, by_json.stdout) == (expected, expected), by_arg.stderr + by_json.stderr
+
+
+def test_status_right_gates_needs_segment_shows_flag_count_when_on(tmux, seeded):
+    status = tmux("show-option", "-gv", "status-right")
+    assert "dashboard-status" in status and "--tmux" in status
+    assert "#{pane_current_path}" in status
+    env = dict(
+        os.environ,
+        HOME=str(tmux.env["HOME"]),
+        ADAPTIVE_ARTIFACTS_BIN=str(AA_ROOT / "bin" / "adaptive-artifacts"),
+    )
+    tmux("set-environment", "-g", "ADAPTIVE_ARTIFACTS_BIN", str(AA_ROOT / "bin" / "adaptive-artifacts"))
+    direct = subprocess.run(
+        [str(STATUS), "--tmux", str(seeded)], capture_output=True, text=True, env=env, timeout=30, input="",
+    )
+    assert direct.stdout == "⚑ 1\n", direct.stderr
+
+    # #{T:status-right} from a control client stays "not ready" here; the attached
+    # pty draws the real status line, so read the flag from client output.
+    def on_client() -> str | None:
+        tmux.output = b""
+        tmux("refresh-client")
+        if select.select([tmux.client_fd], [], [], 1.0)[0]:
+            try:
+                tmux.output += os.read(tmux.client_fd, 65536)
+            except OSError:
+                pass
+        text = h.plain_terminal(tmux.output)
+        return text if "⚑" in text else None
+
+    rendered = h.wait_for(on_client, "client status-right needs flag", deadline=15.0)
+    assert "⚑ 1" in rendered, rendered
+
+
+def test_status_right_gates_needs_segment_absent_when_option_off(home, seeded, tmp_path):
+    server = h.Tmux(home, tmp_path)
+    try:
+        server("new-session", "-d", "-s", "main", "-x", "120", "-y", "40", "-c", str(seeded))
+        server("set-option", "-g", "@dashboard-status-right", "off")
+        server("run-shell", shlex.quote(str(h.TMUX_ENTRY)))
+        status = server("show-option", "-gv", "status-right", check=False)
+        assert "dashboard-status" not in status
+        rendered = server("display-message", "-p", "#{T:status-right}", check=False)
+        assert "⚑" not in rendered
+    finally:
+        server.kill()
 
 
 def test_prefix_a_popup_walks_needs_you_into_task_and_question_details_and_lists_a_finished_effort_last(

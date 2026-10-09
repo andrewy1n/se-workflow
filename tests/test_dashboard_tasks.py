@@ -106,6 +106,44 @@ def test_status_label_shows_elapsed_time_for_a_running_task():
     assert tasks.status_label("ready", None, NOW) == "● ready"
 
 
+def test_gates_quiet_status_label_and_wave_strip_use_warning_colour():
+    from dashboard import selection
+
+    quiet = task(
+        "quiet", "running",
+        running_since=NOW - timedelta(minutes=5),
+        estimate_minutes=10,
+        last_record_at=NOW - timedelta(minutes=25),
+    )
+    fresh = task(
+        "fresh", "running",
+        running_since=NOW - timedelta(minutes=5),
+        estimate_minutes=10,
+        last_record_at=NOW - timedelta(minutes=5),
+    )
+    label = tasks.status_label(
+        quiet.status, quiet.running_since, NOW, quiet=True,
+    )
+    assert label == "▶ running 5m · quiet"
+    cell = tasks.status_cell(quiet, COLORS, NOW)
+    assert "quiet" in cell.plain
+    assert cell.style == COLORS["warning"]
+    fresh_cell = tasks.status_cell(fresh, COLORS, NOW)
+    assert "quiet" not in fresh_cell.plain
+    assert fresh_cell.style == COLORS["running"]
+
+    view = model.EffortView(
+        "e", "g",
+        phases=[phase("p1", "in_progress", 1)],
+        tasks=[quiet, fresh],
+    )
+    strip = selection.wave_strip(view, "p1", 80, COLORS, NOW)
+    assert "▶" in strip.plain
+    warning_spans = [span for span in strip.spans if span.style == COLORS["warning"]]
+    assert warning_spans
+    assert view.needs_you == []
+
+
 def test_title_cell_clips_and_notes_what_a_waiting_task_waits_on():
     row = task("w", "waiting", title="Wait", waits_on=("b", "a"))
     assert tasks.title_cell(row, 40, COLORS).plain == "Wait · subagent  waits on a, b"

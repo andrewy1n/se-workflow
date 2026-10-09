@@ -10,7 +10,7 @@ from textual.binding import Binding
 from textual.coordinate import Coordinate
 from textual.widgets import DataTable
 
-from dashboard import model
+from dashboard import gates, model
 from dashboard.display import PHASE_GLYPH, STATUS_GLYPH, WIDE, clip, elapsed
 
 STATUS_TABS = (
@@ -127,13 +127,21 @@ def empty_text(view: model.EffortView, task_filter: TaskFilter) -> str:
     return "No tasks match"
 
 
-def status_label(status: str, running_since: datetime | None, now: datetime) -> str:
+def status_label(
+    status: str, running_since: datetime | None, now: datetime, *, quiet: bool = False,
+) -> str:
     label = f"{STATUS_GLYPH.get(status, '·')} {status}"
-    return f"{label} {elapsed(running_since, now)}" if running_since is not None else label
+    if running_since is not None:
+        label = f"{label} {elapsed(running_since, now)}"
+    if quiet:
+        label = f"{label} · quiet"
+    return label
 
 
 def status_cell(task: model.TaskRow, colors: dict[str, str], now: datetime) -> Text:
-    return Text(status_label(task.status, task.running_since, now), style=colors[task.status])
+    quiet = gates.is_quiet(task, now)
+    style = colors["warning"] if quiet else colors[task.status]
+    return Text(status_label(task.status, task.running_since, now, quiet=quiet), style=style)
 
 
 def task_columns(width: int) -> list[str]:
@@ -218,7 +226,10 @@ def section_cells(row: SectionRow, columns: list[str], title_width: int, colors:
 
 def title_width(columns: list[str], width: int, tasks: list[model.TaskRow], now: datetime) -> int:
     fixed = {
-        "status": max([len(status_label(t.status, t.running_since, now)) for t in tasks] + [9]),
+        "status": max([
+            len(status_label(t.status, t.running_since, now, quiet=gates.is_quiet(t, now)))
+            for t in tasks
+        ] + [9]),
         "assignee": max([len(t.assignee) for t in tasks] + [8]),
     }
     used = sum(fixed[name] for name in columns if name != "task") + 2 * len(columns)

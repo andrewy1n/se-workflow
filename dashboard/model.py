@@ -16,7 +16,8 @@ from dashboard.artifact_store import Target, binary
 RECENT = timedelta(hours=24)
 TASK_ORDER = ("running", "ready", "waiting", "done", "withdrawn")
 NEEDS_ORDER = (
-    "blocking-question", "loop-route", "integration", "needs-human", "unsigned-check", "open-question",
+    "blocking-question", "loop-route", "integration", "merge-branch",
+    "needs-human", "unsigned-check", "open-question",
 )
 LIVE_PHASE_STATES = ("planned", "in_progress", "done")
 COUNTED_TASK_STATES = ("planned", "in_progress", "done")
@@ -27,7 +28,8 @@ FULL_TYPES = (
     "project:phase", "project:specification", "project:assessment", "project:integration-report",
 )
 SOFT_TYPES = frozenset({
-    "project:specification", "project:design", "project:assessment", "project:integration-report", "project:release",
+    "project:specification", "project:design", "project:assessment", "project:integration-report",
+    "project:release", "project:current-position",
 })
 UPSTREAM_NEXT = frozenset({"specify", "design", "plan"})
 LOOP_NEXT = ("specify", "design", "plan", "execute", "integrate", "verify", "release")
@@ -49,6 +51,7 @@ class PhaseRow:
     awaiting_signoff: bool = False
     evidence: "PhaseEvidence | None" = None
     sitting: str = ""
+    body: str = ""
     elapsed_minutes: int | None = None
     unset_estimates: int = 0
 
@@ -67,6 +70,7 @@ class TaskRow:
     size: str = ""
     estimate_minutes: int | None = None
     executor: str = "subagent"
+    last_record_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +108,7 @@ class EffortView:
     needs_you: list[NeedsYouItem] = field(default_factory=list)
     activity: list[ActivityItem] = field(default_factory=list)
     release_ready: bool = False
+    position: str = ""
 
     @property
     def finished(self) -> bool:
@@ -175,8 +180,10 @@ def _list(target: Target, record_type: str, *, state: str | None = None) -> list
 
 _SNAPSHOT_TYPES = (
     "project:active-goal", "project:phase", "project:work-item", "project:continuity-question",
-    "project:finding", "project:check-run", "project:assignment", "project:execution-report",
+    "project:finding", "project:check-run", "project:assignment", "project:assignment-amendment",
+    "project:execution-report",
     "project:specification", "project:design", "project:assessment", "project:integration-report", "project:release",
+    "project:current-position",
 )
 
 
@@ -453,8 +460,48 @@ def _assigned_at(assignments: list[dict[str, Any]], record: dict[str, Any]) -> d
     return max(stamps, default=None)
 
 
-def _task_rows(records: list[dict[str, Any]], assignments: list[dict[str, Any]] | None = None) -> list[TaskRow]:
+def _task_assignments(assignments: list[dict[str, Any]], record: dict[str, Any]) -> list[dict[str, Any]]:
+    names = {record["id"], record["subject"]}
+    return [a for a in assignments if _payload(a).get("work_item") in names]
+
+
+def _last_record_at(
+    record: dict[str, Any],
+    assignments: list[dict[str, Any]],
+    amendments: list[dict[str, Any]],
+    reports: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+    others: list[str],
+) -> datetime | None:
+    """Latest assignment / amendment / execution-report / check-run stamp for a running task."""
+    names = {record["id"], record["subject"]}
+    mine = _task_assignments(assignments, record)
+    stamps = [_recorded_at(a) for a in mine]
+    assignment_names = names | {a["id"] for a in mine} | {a["subject"] for a in mine}
+    stamps.extend(
+        _recorded_at(a) for a in amendments if _payload(a).get("assignment") in assignment_names
+    )
+    stamps.extend(_recorded_at(r) for r in reports if _payload(r).get("work_item") in names)
+    slug, effort = record["subject"], _payload(record).get("effort", "")
+    stamps.extend(
+        _recorded_at(c) for c in checks if _belongs(c, slug, effort, others)
+    )
+    return max(stamps, default=None)
+
+
+def _task_rows(
+    records: list[dict[str, Any]],
+    assignments: list[dict[str, Any]] | None = None,
+    amendments: list[dict[str, Any]] | None = None,
+    reports: list[dict[str, Any]] | None = None,
+    checks: list[dict[str, Any]] | None = None,
+) -> list[TaskRow]:
     by_id = {record["id"]: record for record in records}
+    assignments = assignments or []
+    amendments = amendments or []
+    reports = reports or []
+    checks = checks or []
+    subjects = [record["subject"] for record in records]
     rows = []
     for record in records:
         status = _task_status(record)
@@ -462,13 +509,20 @@ def _task_rows(records: list[dict[str, Any]], assignments: list[dict[str, Any]] 
             continue
         payload = _payload(record)
         depends_on = [by_id[ref] for ref in (record.get("relationships") or {}).get("depends_on", []) if ref in by_id]
+        running_since = _assigned_at(assignments, record) if status == "running" else None
+        others = [s for s in subjects if s != record["subject"]]
+        last_record_at = (
+            _last_record_at(record, assignments, amendments, reports, checks, others)
+            if running_since is not None else None
+        )
         rows.append(TaskRow(
             id=record["id"], subject=record["subject"], title=payload.get("title", ""),
             phase=payload.get("phase", ""), assignee=payload.get("assignee", ""),
             wave=_derived(record).get("wave"), status=status,
             waits_on=tuple(dep["subject"] for dep in depends_on if dep["lifecycle_state"] != "done"),
-            running_since=_assigned_at(assignments or [], record) if status == "running" else None,
+            running_since=running_since,
             size=_size(payload), estimate_minutes=_estimate_minutes(payload), executor=_executor(payload),
+            last_record_at=last_record_at,
         ))
     rows.sort(key=lambda row: (TASK_ORDER.index(row.status), row.wave if row.wave is not None else 0, row.subject))
     return rows
@@ -509,12 +563,13 @@ def _phase_rows(
             for task in open_tasks
         )
         elapsed_minutes, unset_estimates = phase_elapsed(_task_rows(members))
+        body = record.get("body") or ""
         rows.append(PhaseRow(
             subject=record["subject"], title=payload.get("title", ""), ordinal=payload.get("ordinal", 0),
             state=record["lifecycle_state"], done=sum(t["lifecycle_state"] == "done" for t in members),
             total=len(members), id=record["id"], awaiting_signoff=awaiting,
             evidence=evidence_by_phase.get(record["subject"]),
-            sitting=sitting_phrase(record.get("body") or ""),
+            sitting=sitting_phrase(body), body=body,
             elapsed_minutes=elapsed_minutes, unset_estimates=unset_estimates,
         ))
     rows.sort(key=lambda row: (row.ordinal, row.subject))
@@ -849,6 +904,13 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         listed["project:assignment"], listed["project:execution-report"], checks_all,
         efforts_by_work_item, now - RECENT, assessments, integrations, releases, structured,
     )
+    positions = {
+        record["subject"]: _payload(record).get("position", "")
+        for record in listed["project:current-position"]
+        if record["lifecycle_state"] == "active"
+        and _payload(record).get("status") != "closed"
+        and _payload(record).get("scope") == "effort"
+    }
     efforts = []
     for goal in sorted(goals, key=lambda record: record["subject"]):
         effort = goal["subject"]
@@ -874,7 +936,13 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             effort=effort,
             goal=_payload(goal).get("goal", ""),
             phases=phase_rows,
-            tasks=_task_rows(effort_tasks, listed["project:assignment"]),
+            tasks=_task_rows(
+                effort_tasks,
+                listed["project:assignment"],
+                listed["project:assignment-amendment"],
+                listed["project:execution-report"],
+                effort_checks,
+            ),
             needs_you=_needs_you(
                 questions.get(effort, []), findings.get(effort, []), effort_checks, acceptances_by_id,
                 effort_tasks, assessments_by_effort.get(effort, []), integrations_by_effort.get(effort, []),
@@ -882,6 +950,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             ),
             activity=activity.get(effort, []),
             release_ready=any(row.evidence is not None and row.evidence.release_ready for row in phase_rows),
+            position=positions.get(effort, ""),
         ))
     efforts.sort(key=lambda view: view.finished)
     return Snapshot(efforts, token, now)

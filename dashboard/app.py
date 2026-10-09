@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 import sys
 import textwrap
 import time
@@ -10,9 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dashboard import artifact_store
+from dashboard import gates
 from dashboard import model
 from dashboard import selection
 from dashboard.commit import CommitScreen
+from dashboard.landing import Landing
 from dashboard.display import (
     ANSI_PALETTE, PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, WIDE, clip, palette_from, relative_time, slug,
 )
@@ -37,14 +41,10 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 RESULT_GLYPH = {"pass": "✓", "fail": "✗"}
-NEEDS_LABEL = {
-    "blocking-question": "blocking", "loop-route": "route", "integration": "integrate",
-    "needs-human": "needs you", "unsigned-check": "unsigned", "open-question": "question",
-}
 STAGE_NAMES = ("specify", "design", "plan", "execute", "integrate", "verify", "assess", "release")
 NEEDS_TEXT_TITLE = {
     "blocking-question": "Question", "open-question": "Question", "needs-human": "Claim", "unsigned-check": "Check",
-    "loop-route": "Assessment", "integration": "Report",
+    "loop-route": "Assessment", "integration": "Report", "merge-branch": "Branch",
 }
 
 
@@ -76,15 +76,30 @@ def needs_lines(view: model.EffortView, colors: dict[str, str], width: int = 100
     for item in view.needs_you:
         color = colors["error"] if item.kind == "blocking-question" else colors["warning"]
         line = Text(no_wrap=True, overflow="ellipsis")
-        line.append(f"{NEEDS_LABEL[item.kind]:<9}", style=color)
+        label = gates.action_label(item, view)
+        line.append(label, style=color)
         detail = _needs_detail(item)
+        shown = gates.item_text(item, view)
         if detail is None:
-            line.append(f" {clip(item.text, max(width - 12 - len(item.subject) - 2, 10))}")
-            line.append(f"  {clip(item.subject, max(width - 12, 10))}", style=colors["muted"])
+            room = max(width - len(label) - len(item.subject) - 4, 10)
+            line.append(f" {clip(shown, room)}")
+            line.append(f"  {clip(item.subject, max(width - len(label) - 2, 10))}", style=colors["muted"])
         else:
-            line.append(" " + clip(detail, max(width - 10, 10)))
+            line.append(" " + clip(detail, max(width - len(label) - 1, 10)))
         lines.append(line)
     return lines
+
+
+def next_step_text(view: model.EffortView, landing: dict[str, Landing], colors: dict[str, str]) -> Text:
+    step = gates.next_step(view, landing)
+    text = Text(no_wrap=True, overflow="ellipsis")
+    if step:
+        text.append(f"next: {step}")
+    if view.position:
+        if text.plain:
+            text.append("  ")
+        text.append(view.position, style=colors["muted"])
+    return text
 
 
 def header_text(target: artifact_store.Target, stamp: datetime | None, colors: dict[str, str], width: int = 100) -> Text:
@@ -148,6 +163,8 @@ def requirement_line(row: model.RequirementRow, width: int) -> Text:
 
 def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console: Console) -> None:
     colors = ANSI_PALETTE
+    landings = gates.landings_for_snapshot(target.root, snapshot)
+    snapshot = gates.apply_landing_needs(snapshot, landings)
     console.print(header_text(target, snapshot.generated_at, colors))
     if not snapshot.efforts:
         console.print(f"\nNo live efforts in {target.store}")
@@ -155,9 +172,19 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
         console.print()
         console.rule(Text(tab_label(view), style="dim" if view.finished else "bold"), align="left")
         console.print(Text(view.goal, style=colors["muted"]))
+        landing = landings.get(view.effort, {})
         selected = selection.default_phase(view)
-        console.print(selection.selector_text(view, selected, colors, console.width))
-        strip = selection.wave_strip(view, selected, console.width) if selected is not None else Text()
+        step = next_step_text(view, landing, colors)
+        if step.plain:
+            console.print(step)
+        suffix = ""
+        if selected is not None and selected in landing:
+            suffix = gates.landing_summary(landing[selected])
+        console.print(selection.selector_text(view, selected, colors, console.width, landing_suffix=suffix))
+        strip = (
+            selection.wave_strip(view, selected, console.width, colors, snapshot.generated_at)
+            if selected is not None else Text()
+        )
         if strip.plain:
             console.print(strip)
         label = progress_label(view, selected)
@@ -224,6 +251,7 @@ class EffortPane(VerticalScroll):
 
     def compose(self) -> ComposeResult:
         yield Static(id="goal")
+        yield Static(id="next-step")
         yield PhaseSelector(id="stepper")
         yield Static(id="waves")
         yield Static(id="progress-label")
@@ -253,6 +281,11 @@ class EffortPane(VerticalScroll):
         inner = self.scrollable_content_region.width or width - 2
         self.inner = inner
         self.query_one("#goal", Static).update(Text(view.goal, style=colors["muted"]))
+        landing = self.app.landings.get(self.effort, {})
+        step = next_step_text(view, landing, colors)
+        step_widget = self.query_one("#next-step", Static)
+        step_widget.update(step)
+        step_widget.display = bool(step.plain)
         has_phases = bool(view.phases)
         selector_widget = self.query_one("#stepper", Static)
         waves_widget = self.query_one("#waves", Static)
@@ -260,7 +293,10 @@ class EffortPane(VerticalScroll):
         waves_widget.display = has_phases
         selected = selection.resolve_selection(view, self.app.selections.get(self.effort, selection.PhaseSelection()))
         if has_phases:
-            selector_widget.update(selection.selector_text(view, selected, colors, inner))
+            suffix = ""
+            if selected is not None and selected in landing:
+                suffix = gates.landing_summary(landing[selected])
+            selector_widget.update(selection.selector_text(view, selected, colors, inner, landing_suffix=suffix))
             strip = selection.wave_strip(view, selected, inner) if selected is not None else Text()
             waves_widget.update(strip)
             waves_widget.display = bool(strip.plain)
@@ -673,7 +709,7 @@ class NeedsYouDetailScreen(Screen[None]):
     AUTO_FOCUS = "#needs-detail"
     BINDINGS = [
         Binding("escape", "back", "back"),
-        Binding("c", "app.copy_slug", "copy"),
+        Binding("c", "app.copy_slug", "copy prompt"),
         Binding("r", "app.refresh", "refresh"),
     ]
 
@@ -724,9 +760,11 @@ class NeedsYouDetailScreen(Screen[None]):
         self.query_one("#needs-bar", Static).update(bar)
         self.query_one("#needs-title", Static).update(Text(item.subject, style="bold"))
         color = colors["error"] if item.kind == "blocking-question" else colors["warning"]
-        chips = Text.assemble((NEEDS_LABEL[item.kind], color), "  ", (item.record_type, colors["muted"]))
+        view = self.app.effort_view(self.effort)
+        label = gates.action_label(item, view) if view is not None else item.kind
+        chips = Text.assemble((label, color), "  ", (item.record_type, colors["muted"]))
         self.query_one("#needs-chips", Static).update(chips)
-        self.query_one("#needs-text").border_title = NEEDS_TEXT_TITLE[item.kind]
+        self.query_one("#needs-text").border_title = NEEDS_TEXT_TITLE.get(item.kind, "Detail")
         await self.query_one("#needs-text Markdown", Markdown).update(item.text)
         self.query_one("#needs-body").display = bool(item.body.strip())
         await self.query_one("#needs-body Markdown", Markdown).update(item.body.strip())
@@ -836,6 +874,7 @@ class DashboardApp(App[None]):
     #efforts Tab.finished { text-style: dim; }
     .effort { padding: 0 1; }
     #goal { margin-top: 1; color: $text-muted; }
+    #next-step { margin-top: 1; }
     #stepper { margin-top: 1; }
     #waves { height: auto; margin-top: 1; color: $text-muted; }
     #progress-label { margin-top: 1; color: $text-muted; }
@@ -890,6 +929,10 @@ class DashboardApp(App[None]):
         self.filters: dict[str, TaskFilter] = {}
         self.selections: dict[str, selection.PhaseSelection] = {}
         self.show_finished = False
+        self.landings: dict[str, dict[str, Landing]] = {}
+        self._landing_token: str | None = None
+        self.seen_needs: set[str] = set()
+        self._seen_needs_ready = False
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="header"):
@@ -975,6 +1018,27 @@ class DashboardApp(App[None]):
             if isinstance(screen, (TaskDetailScreen, PhaseDetailScreen)):
                 screen.poll(token)
 
+    def effort_view(self, effort: str) -> model.EffortView | None:
+        if self.snapshot is None:
+            return None
+        return next((view for view in self.snapshot.efforts if view.effort == effort), None)
+
+    def _needs_copy_focus(self) -> bool:
+        return isinstance(self.focused, NeedsList) or isinstance(self.screen, NeedsYouDetailScreen)
+
+    def _refresh_copy_binding(self) -> None:
+        description = "copy prompt" if self._needs_copy_focus() else "copy"
+        self._bindings.key_to_bindings["c"] = [
+            Binding("c", "copy_slug", description, show=True),
+        ]
+        self.refresh_bindings()
+
+    def on_descendant_focus(self, event: events.DescendantFocus) -> None:
+        self._refresh_copy_binding()
+
+    def on_descendant_blur(self, event: events.DescendantBlur) -> None:
+        self.call_after_refresh(self._refresh_copy_binding)
+
     def action_copy_slug(self) -> None:
         screen = self.screen
         if isinstance(screen, TaskDetailScreen):
@@ -982,15 +1046,19 @@ class DashboardApp(App[None]):
         elif isinstance(screen, PhaseDetailScreen):
             name = screen.phase_subject
         elif isinstance(screen, NeedsYouDetailScreen):
-            name = screen.item.subject
+            view = self.effort_view(screen.effort)
+            name = gates.prompt(screen.item, view) if view is not None else screen.item.subject
         elif isinstance(self.focused, NeedsList):
             item = self.focused.highlighted_item()
-            name = item.subject if item is not None else None
+            pane = self.focused.query_ancestor(EffortPane)
+            view = self.effort_view(pane.effort) if pane is not None else None
+            name = gates.prompt(item, view) if item is not None and view is not None else None
         else:
             name = self.cursor_subject()
         if name:
             self.copy_to_clipboard(name)
-            self.notify(f"Copied {name}", timeout=2)
+            shown = name if len(name) <= 60 else name[:57] + "..."
+            self.notify(f"Copied {shown}", timeout=2)
 
     def cursor_subject(self) -> str | None:
         pane = self.active_pane()
@@ -1202,8 +1270,7 @@ class DashboardApp(App[None]):
             blocks.extend(["", type(focused).__name__, *self._format_bindings(type(focused))])
         return "\n".join(blocks)
 
-    @staticmethod
-    def _format_bindings(cls: type) -> list[str]:
+    def _format_bindings(self, cls: type) -> list[str]:
         lines = []
         for binding in getattr(cls, "BINDINGS", []):
             if isinstance(binding, tuple):
@@ -1212,6 +1279,8 @@ class DashboardApp(App[None]):
             else:
                 key = binding.key
                 description = binding.description
+            if key == "c" and cls is DashboardApp and self._needs_copy_focus():
+                description = "copy prompt"
             lines.append(f"{key}  {description}")
         return lines
 
@@ -1257,13 +1326,66 @@ class DashboardApp(App[None]):
         self.token = snapshot.token
         self.call_from_thread(self.apply, snapshot)
 
+    @work(thread=True, exclusive=True, group="landing")
+    def refresh_landing(self) -> None:
+        snapshot = self.snapshot
+        if snapshot is None:
+            return
+        root = self.target.root
+        token = gates.landing_cache_token(root, snapshot)
+        if token is not None and token == self._landing_token and self.landings:
+            landings = self.landings
+        else:
+            landings = gates.landings_for_snapshot(root, snapshot)
+            self._landing_token = token
+        self.call_from_thread(self.apply_landing, landings)
+
+    def apply_landing(self, landings: dict[str, dict[str, Landing]]) -> None:
+        if not self.is_attached or self.snapshot is None or not self.screen_stack:
+            return
+        if not self.query("#header-path"):
+            return
+        self.landings = landings
+        self.snapshot = gates.apply_landing_needs(self.snapshot, landings)
+        self.paint()
+        self._alert_new_needs(self.snapshot)
+
+    def _alert_new_needs(self, snapshot: model.Snapshot) -> None:
+        current = {item.id for view in snapshot.efforts for item in view.needs_you}
+        if self._seen_needs_ready:
+            for view in snapshot.efforts:
+                for item in view.needs_you:
+                    if item.id in self.seen_needs:
+                        continue
+                    self.bell()
+                    label = gates.action_label(item, view)
+                    self._tmux_needs_message(view.effort, label, item.subject)
+        self.seen_needs |= current
+        self._seen_needs_ready = True
+
+    def _tmux_needs_message(self, effort: str, label: str, subject: str) -> None:
+        if not os.environ.get("TMUX"):
+            return
+        message = f"{effort}: {label} {subject}"
+        try:
+            subprocess.run(
+                ["tmux", "display-message", "-d", "4000", message],
+                check=False, capture_output=True, timeout=2,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return
+
     def show_error(self, message: str) -> None:
         banner = self.query_one("#error", Static)
         banner.update(Text(message.splitlines()[0] if message else "error", no_wrap=True, overflow="ellipsis"))
         banner.display = True
 
     async def apply(self, snapshot: model.Snapshot) -> None:
+        if self.landings:
+            snapshot = gates.apply_landing_needs(snapshot, self.landings)
         self.snapshot = snapshot
+        if not self.is_attached or not self.screen_stack or not self.query("#header-path"):
+            return
         self.query_one("#error", Static).display = False
         shown, hidden = selection.visible_efforts(snapshot, self.show_finished)
         tabs = self.query_one("#efforts", TabbedContent)
@@ -1279,6 +1401,8 @@ class DashboardApp(App[None]):
                 pane = EffortPane(view.effort)
                 self.panes[view.effort] = pane
                 await tabs.add_pane(TabPane(tab_label(view), pane, id=f"effort-{slug(view.effort)}"))
+        if not self.is_attached or not self.screen_stack or not self.query("#header-path"):
+            return
         if kept[moved:] and active in [pane.id for pane in tabs.query(TabPane)]:
             self.set_focus(None)
             tabs.active = active
@@ -1288,14 +1412,17 @@ class DashboardApp(App[None]):
         self.paint()
         for screen in self.screen_stack:
             if isinstance(screen, NeedsYouDetailScreen):
-                await screen.follow(snapshot)
+                await screen.follow(self.snapshot)
+        self.refresh_landing()
         if self.focused is None:
             self.focus_tasks()
             self.call_after_refresh(self.focus_tasks)
 
     def paint(self, width: int | None = None) -> None:
         snapshot = self.snapshot
-        if snapshot is None:
+        if snapshot is None or not self.is_attached or not self.screen_stack:
+            return
+        if not self.query("#header-path"):
             return
         width = width or self.size.width
         colors = palette_from(self.get_css_variables())

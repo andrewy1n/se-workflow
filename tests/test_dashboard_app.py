@@ -391,7 +391,7 @@ def test_running_row_status_shows_its_running_time(waits, width):
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
         row = _row_by_title(table, "title of w-running")
-        assert str(row[0]) == "▶ running 48h"
+        assert str(row[0]) == "▶ running 48h · quiet"
         assert str(row[1]).strip().endswith(" · subagent")
         assert str(_row_by_title(table, "title of w-other")[0]) == "▶ running"
 
@@ -2479,7 +2479,7 @@ def test_needs_you_enter_on_a_question_opens_the_needs_you_detail_with_full_text
         screen = await _needs_shown(app, pilot)
         assert str(screen.query_one("#needs-bar").render()).startswith("alpha")
         chips = str(screen.query_one("#needs-chips").render())
-        assert chips.startswith("question") and "project:continuity-question" in chips
+        assert chips.startswith("Answer") and "project:continuity-question" in chips
         assert screen.query_one("#needs-text Markdown").source == LONG_SCOPE
         assert screen.query_one("#needs-body Markdown").source == "Pick the **home** store unless the repo pins one."
         await pilot.press("escape")
@@ -2500,17 +2500,23 @@ def test_c_on_the_needs_you_list_and_detail_copies_the_item_subject(seeded, cli,
     async def scenario(app, pilot):
         await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
         await _focus_needs(app, pilot, "need a call")
+        item = _item(app, "need a call")
+        view = app.effort_view("alpha")
+        from dashboard import gates
+        expected = gates.prompt(item, view)
         await pilot.press("c")
         await pilot.pause()
-        assert app.clipboard == "a-waiting"
-        assert "Copied a-waiting" in _notices(app)
+        assert app.clipboard == expected
+        assert any("Copied" in note for note in _notices(app))
         await pilot.press("escape")
         await _focus_needs(app, pilot, LONG_SCOPE)
         await pilot.press("enter")
-        await _needs_shown(app, pilot)
+        screen = await _needs_shown(app, pilot)
+        view = app.effort_view("alpha")
+        expected = gates.prompt(screen.item, view)
         await pilot.press("c")
         await pilot.pause()
-        assert app.clipboard == "alpha"
+        assert app.clipboard == expected
 
     _detail_run(seeded, size, scenario)
 
@@ -3190,3 +3196,128 @@ def test_finished_effort_with_needs_you_stays_visible(finished, cli, defs):
         assert _finished_tab(app, "alpha")
 
     _run(store, 120, scenario)
+
+
+# --- human-gates UI (R3, R4, R9) ---
+
+
+def test_gates_copy_prompt_on_needs_you_and_slug_on_task_row(seeded, cli, defs, monkeypatch):
+    from dashboard import gates
+
+    _needy(cli, defs)
+    monkeypatch.delenv("TMUX", raising=False)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await app.workers.wait_for_complete()
+        table = app.query_one("#tasks")
+        table.focus()
+        await pilot.pause()
+        keys = [str(key.description) for key in app.query("FooterKey")]
+        assert "copy" in keys and "copy prompt" not in keys
+        table.move_cursor(row=0)
+        await pilot.press("c")
+        await pilot.pause()
+        slug = app.clipboard
+        assert slug and "effort" not in slug
+
+        await _focus_needs(app, pilot, "need a call")
+        await pilot.pause()
+        app._refresh_copy_binding()
+        await pilot.pause()
+        keys = [str(key.description) for key in app.query("FooterKey")]
+        assert "copy prompt" in keys
+        help_text = app._key_help()
+        assert "copy prompt" in help_text
+
+        item = _item(app, "need a call")
+        view = app.effort_view("alpha")
+        expected = gates.prompt(item, view)
+        await pilot.press("c")
+        await pilot.pause()
+        assert app.clipboard == expected
+
+    _detail_run(seeded, (120, 40), scenario)
+
+
+def test_gates_next_step_line_shows_next_and_muted_position(store, cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha",
+        extra_payload={"goal": "ship gates", "kind": "deliver"},
+    )
+    _record(
+        cli, defs, "project:current-position", "alpha",
+        {"position": "waiting on the backend choice", "scope": "effort", "effort": "alpha", "status": "open"},
+    )
+    h.create_generic_record(
+        cli, defs, "project:continuity-question", subject="alpha",
+        extra_payload={"blocking": True, "scope": "which backend"},
+    )
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query("#next-step") and "next:" in _text(app, "#next-step"))
+        await app.workers.wait_for_complete()
+        line = app.query_one("#next-step").render()
+        plain = str(line)
+        assert plain.startswith("next: answer: which backend")
+        assert "waiting on the backend choice" in plain
+        muted = app_module.palette_from(app.get_css_variables())["muted"]
+        pos_at = plain.index("waiting on the backend choice")
+        pos_spans = [span for span in line.spans if span.start <= pos_at < span.end]
+        assert pos_spans
+        assert any(muted in str(span.style) for span in pos_spans)
+
+    _run(store, 120, scenario)
+
+
+def test_gates_alert_bell_and_tmux_message_for_new_needs_only(seeded, cli, defs, monkeypatch):
+    _needy(cli, defs)
+    tmux_calls = []
+    bells = []
+
+    real_run = app_module.subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if cmd and cmd[0] == "tmux":
+            tmux_calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setenv("TMUX", "/tmp/tmux-test")
+    monkeypatch.setattr(app_module.subprocess, "run", fake_run)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await app.workers.wait_for_complete()
+        await _until(pilot, lambda: app._seen_needs_ready)
+        original = set(app.seen_needs)
+        assert original
+        assert tmux_calls == []
+
+        app.bell = lambda: bells.append("bell")
+
+        _record(
+            cli, defs, "project:finding", "fresh-gate",
+            {
+                "claim": "new decision needed",
+                "basis": "b",
+                "needs": "human",
+                "effort": "alpha",
+                "invalidated_when": "w",
+            },
+        )
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 4)
+        await app.workers.wait_for_complete()
+        await _until(pilot, lambda: bells and tmux_calls)
+
+        assert bells == ["bell"]
+        assert any(
+            cmd[:4] == ["tmux", "display-message", "-d", "4000"]
+            and "alpha:" in cmd[4]
+            and "Decide" in cmd[4]
+            and "fresh-gate" in cmd[4]
+            for cmd in tmux_calls
+        )
+        assert "fresh-gate" not in "".join(original)
+
+    _detail_run(seeded, (120, 40), scenario, interval=0.3)
