@@ -195,13 +195,18 @@ adaptive-artifacts create --type project:assignment \
      amendments) — verbatim, not retyped
    - the assignment's `## Orientation` body from step 4
    - kind-specific instruction:
-     - `deliver` / `incidental` — implement the change
+     - `deliver` / `incidental` — implement the change, except a
+       verification task, which does not implement a fix
      - `repair` — reproduce, record observations, name a root cause
        if found, then fix; do not skip diagnose
      - `evaluate` — run the campaign; return metrics / comparison;
        do not "fix" the system unless the criterion says so
    - follow `## Approach` in the work-item body; do not ask the user
      for an implementation recipe when that section is present
+   - when the task is the verification task (the work-item that
+     `depends_on` every other phase work-item), run the phase checks
+     and do not implement a fix. The verification executor returns
+     `fail` and does not edit the tree.
    - subagents return evidence and do not call `adaptive-artifacts`.
      That holds for any form that writes, and it still holds once a
      `--read-only` mode exists for executors; do **not** edit
@@ -209,7 +214,9 @@ adaptive-artifacts create --type project:assignment \
 
    `inline` does not spawn a subagent. This session implements the
    task, then still writes the execution-report and runs
-   `verify-work` in step 7 — not twice. When `## Landing` is
+   `verify-work` in step 7 — not twice. When the task is the
+   verification task, do not implement a fix. The verification
+   executor returns `fail` and does not edit the tree. When `## Landing` is
    present, that implementation runs in the worktree. Use the same
    brief section,
    orientation, and kind-specific instruction a subagent would have
@@ -452,3 +459,5 @@ adaptive-artifacts supersede --type project:current-position --id <position-id> 
 - Write `.artifacts` anywhere but the primary checkout, or include
   `.artifacts` in the phase branch commit
 - Push unless Landing names push as a human stop
+- Let the verification executor edit the tree. The verification
+  executor returns `fail` and does not edit the tree.

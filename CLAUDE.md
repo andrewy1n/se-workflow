@@ -5,13 +5,9 @@ for when a change belongs in adaptive-artifacts instead.
 
 ## Testing
 
-While editing, run only the affected test files. Run the full suite
-once before you close a task. `pytest.ini` already skips `tmux`.
-
-```bash
-uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" \
-  && uv run --with textual --with pytest python -m pytest tests -q -m tmux
-```
+While editing, run only the affected test files. Before closing the
+task, run that task's `verify_command`. `pytest.ini` already skips
+`tmux`.
 
 The suite needs a checkout of adaptive-artifacts at
 `~/adaptive-artifacts` (override with `ADAPTIVE_ARTIFACTS_ROOT`). It

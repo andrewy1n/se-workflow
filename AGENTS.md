@@ -100,13 +100,8 @@ If the se-workflow contract can express the need, change
 ## Testing
 
 `pytest.ini` skips tests marked `tmux` unless `-m tmux` is set. While
-editing, run the affected files. Before closing the task, run the full
-suite: non-tmux tests in parallel, then the tmux tests alone.
-
-```bash
-uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" \
-  && uv run --with textual --with pytest python -m pytest tests -q -m tmux
-```
+editing, run the affected files. Before closing the task, run that
+task's `verify_command`.
 
 Dashboard tests need `textual` (the `uv run --with textual` form).
 Commands and the `ADAPTIVE_ARTIFACTS_ROOT` override are in the README,

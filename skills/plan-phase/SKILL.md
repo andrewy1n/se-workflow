@@ -66,11 +66,18 @@ kind/focus are unset).
 - Every `deliver` or `repair` phase ends with one **verification
   task**: a work-item that `depends_on` every other work-item in the
   phase. Its acceptances cover each exit criterion in the phase body,
-  one or more per criterion. At least one acceptance is an
-  integration check through the real entry point (CLI, service, UI),
-  not a unit test. A phase whose exit criteria no acceptance checks
-  is not planned yet. `evaluate` phases need it only when the
-  campaign has a binary gate; incidental work never has one.
+  one or more per criterion. The verification task's acceptances come
+  from the phase exit criteria, and one is an integration check
+  through the real entry point (CLI, service, UI), not a unit test.
+  At least one acceptance is an integration check through the real
+  entry point. A `verify_command` that runs the whole `tests` tree,
+  or `tests/test_dashboard_app.py` without a `-k` filter for this
+  phase, is not a verification acceptance. The same rule rejects
+  another pre-existing pilot file unless a `-k` filter limits it to
+  the tests this phase added. A phase whose exit criteria no
+  acceptance checks is not planned yet. `evaluate` phases need it
+  only when the campaign has a binary gate; incidental work never
+  has one.
 - Each new work-item body includes `## Approach`, the implementation
   recipe, and payload `executor` is `inline` or `subagent`. Every task
   in a wave uses the same executor. Missing `executor` means
@@ -292,8 +299,11 @@ adaptive-artifacts create --type project:acceptance \
 7. For a `deliver` or `repair` phase, create the verification task
    last, with one `--rel depends_on:` per other work-item in the
    phase. Give it one acceptance per exit criterion (suffixed
-   subjects), and make at least one of them an integration check
-   that drives the real entry point end to end:
+   subjects). The verification task's acceptances come from the phase
+   exit criteria, and one is an integration check through the real
+   entry point. A `verify_command` that runs the whole `tests` tree,
+   or `tests/test_dashboard_app.py` without a `-k` filter for this
+   phase, is not a verification acceptance.
 
 ```bash
 adaptive-artifacts create --type project:work-item \

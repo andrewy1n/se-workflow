@@ -243,6 +243,11 @@ finding with `needs` `human` (the same two writes as a repeated
 `failed` and the cause is the task's code: `level` `implementation`,
 `next` `execute`. Leave the work-item `in_progress`.
 
+When a verification check fails and the cause is the task's code,
+leave the work-item `in_progress` and use assessment `next` `execute`
+for that failure. Do not tell the parent to run a suite the
+acceptance does not name. Run that acceptance's `verify_command`.
+
 ```bash
 adaptive-artifacts create --type project:assessment \
   --subject "<phase-slug>-<requirement-id>" \
@@ -456,7 +461,11 @@ adaptive-artifacts create --type project:finding \
    `project:continuity-question` on the **focus** subject with
    `blocking=true` if dispatch must stop. Structured work does not
    stop in this step: a `fail` is evidence for Assess, and Assess
-   chooses `next`. Do not send every failure to execute.
+   chooses `next`. Do not send every failure to execute. When a
+   verification check fails and the cause is the task's code, leave
+   the work-item `in_progress` and use assessment `next` `execute`
+   for that failure. Do not tell the parent to run a suite the
+   acceptance does not name.
 7. On **abandoned** approach: `create --type project:failed-attempt`
    with `attempted_action`, `retry_when`, `effort`. If the whole task
    is dropped (not just this attempt), transition the work-item to
@@ -610,3 +619,7 @@ adaptive-artifacts apply /tmp/close-batch.ndjson
 - Write `project:release` with `state` other than `ready`, or deploy
 - Write an assessment or a release for incidental work or a phase with
   no specification
+- Tell the parent to run a suite the acceptance does not name
+- Edit the tree from a verification task when its check fails. The
+  verification executor returns `fail`; leave the work-item
+  `in_progress` and use assessment `next` `execute` for that failure
