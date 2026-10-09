@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:c85c42329ca223c4ddd5fad7051943944c769b015cd7c9fd55b6a4a25a7ffa81
+> Store state: sha256:1d25eafcb17344e452ebe7c95badb0e348ab3d9163959105b02c5f0cee32f29d
 
 ## dashboard-view
 
@@ -279,9 +279,9 @@
 ## evidence-matrix
 
 ### Work
-- **matrix-model**: RequirementRow fields and matrix pure helpers; evidence-matrix; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace](.artifacts/records/project__work-item/rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace.md))_
-- **matrix-ui**: Evidence matrix DataTable and main-screen strip; evidence-matrix; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-3930c283-cde9-4f78-86e1-504b9c9f51df](.artifacts/records/project__work-item/rec-3930c283-cde9-4f78-86e1-504b9c9f51df.md))_
-- **verify-evidence-matrix**: Verify evidence-matrix phase; evidence-matrix; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-8432d854-983c-4de9-bb0f-f99b94ecae9a](.artifacts/records/project__work-item/rec-8432d854-983c-4de9-bb0f-f99b94ecae9a.md))_
+- **matrix-model**: RequirementRow fields and matrix pure helpers; evidence-matrix; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 5 pass / 0 fail _(id: [rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace](.artifacts/records/project__work-item/rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace.md))_
+- **matrix-ui**: Evidence matrix DataTable and main-screen strip; evidence-matrix; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 4 pass / 0 fail _(id: [rec-3930c283-cde9-4f78-86e1-504b9c9f51df](.artifacts/records/project__work-item/rec-3930c283-cde9-4f78-86e1-504b9c9f51df.md))_
+- **verify-evidence-matrix**: Verify evidence-matrix phase; evidence-matrix; deliver; dashboard; state: done; ready: True; wave: 3; criteria: 3 pass / 0 fail _(id: [rec-8432d854-983c-4de9-bb0f-f99b94ecae9a](.artifacts/records/project__work-item/rec-8432d854-983c-4de9-bb0f-f99b94ecae9a.md))_
 
 ## journal-view
 

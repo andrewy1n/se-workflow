@@ -3,9 +3,9 @@
   "base_kind": "task",
   "id": "rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace",
   "identity": "unknown",
-  "lifecycle_state": "planned",
+  "lifecycle_state": "done",
   "payload": {
-    "assignee": "",
+    "assignee": "matrix-model-subagent",
     "decisions": "evidence-matrix-rows,evidence-release-line,evidence-strip",
     "effort": "dashboard",
     "estimate_minutes": 30,
@@ -17,9 +17,9 @@
     "title": "RequirementRow fields and matrix pure helpers"
   },
   "record_type": "project:work-item",
-  "recorded_at": "2026-10-09T20:50:14+00:00",
+  "recorded_at": "2026-10-09T23:02:23+00:00",
   "relationships": {},
-  "revision": "sha256:df9b56f8b889f093ed5099c70e152be93f3786001ff152edd43bf09f12016fc4",
+  "revision": "sha256:4baa033e478f89bf89afa8920c03baa5f3d24b3909a80b9b5ccbf967ac675e90",
   "stewardship": {
     "steward": "agent"
   },

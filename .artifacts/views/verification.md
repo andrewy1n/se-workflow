@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:178e8702efb8f712989c0cc9964aff9c0013d8e56107e99b3af97bdde36a706e
+> Store state: sha256:f87a450bc015ce26187586d1b1fc7efd9811dd5ff016561c769c1fbd1c487edc
 
 ## activity-failures
 
@@ -812,15 +812,30 @@
 ### Acceptance
 - **matrix-model**: Matrix helpers return correct row values, tone classes, release blockers, and strip glyphs for seeded evidence including no-specification phases; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py -q -k matrix _(id: [rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d](.artifacts/records/project__acceptance/rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d.md))_
 
+### Check
+- **matrix-model**: rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d; dirty; pass; tdd _(id: [rec-266fb4cc-1eed-4022-846a-12125240bfc0](.artifacts/records/project__check-run/rec-266fb4cc-1eed-4022-846a-12125240bfc0.md))_
+- **matrix-model**: rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d; dirty; pass; tdd _(id: [rec-46b9f311-d4f1-4e06-b938-eadf309eb074](.artifacts/records/project__check-run/rec-46b9f311-d4f1-4e06-b938-eadf309eb074.md))_
+- **matrix-model**: rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d; dirty; pass; tdd _(id: [rec-66ff9889-48bf-409a-a98c-f306a87278e4](.artifacts/records/project__check-run/rec-66ff9889-48bf-409a-a98c-f306a87278e4.md))_
+- **matrix-model**: rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d; dirty; pass; tdd _(id: [rec-8ab560a6-a96a-46de-b5c1-a990aaa2c1ad](.artifacts/records/project__check-run/rec-8ab560a6-a96a-46de-b5c1-a990aaa2c1ad.md))_
+- **matrix-model**: rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d; dirty; pass; tdd _(id: [rec-e4647efd-5712-41c4-9d54-cdc51014a6de](.artifacts/records/project__check-run/rec-e4647efd-5712-41c4-9d54-cdc51014a6de.md))_
+
 ## matrix-ui
 
 ### Acceptance
 - **matrix-ui**: Evidence tab shows the matrix and release line; Enter opens requirement detail and Esc returns to the same row; columns drop at 55 and 40 width; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee](.artifacts/records/project__acceptance/rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee.md))_
 
+### Check
+- **matrix-ui**: rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee; dirty; pass; tdd _(id: [rec-3e25e616-2a2d-4fbc-9340-b95aaa00d53a](.artifacts/records/project__check-run/rec-3e25e616-2a2d-4fbc-9340-b95aaa00d53a.md))_
+- **matrix-ui**: rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee; dirty; pass; tdd _(id: [rec-a4e5ad10-f2fd-4494-b365-3e042c8f98e1](.artifacts/records/project__check-run/rec-a4e5ad10-f2fd-4494-b365-3e042c8f98e1.md))_
+- **matrix-ui**: rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee; dirty; pass; tdd _(id: [rec-cad7ff06-72a0-4efa-9208-969a2de691f9](.artifacts/records/project__check-run/rec-cad7ff06-72a0-4efa-9208-969a2de691f9.md))_
+
 ## matrix-ui-strip
 
 ### Acceptance
 - **matrix-ui-strip**: Selected structured phase shows coloured requirement glyphs after the R tally; click or e opens Evidence; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py tests/test_dashboard_app.py -q -k "strip or glyph" _(id: [rec-2803f0e2-8159-46ac-90b0-d9cec7762a4a](.artifacts/records/project__acceptance/rec-2803f0e2-8159-46ac-90b0-d9cec7762a4a.md))_
+
+### Check
+- **matrix-ui-strip**: rec-2803f0e2-8159-46ac-90b0-d9cec7762a4a; dirty; pass; tdd _(id: [rec-967f4dc8-c14d-4f0f-b094-fdd4e4ed50d4](.artifacts/records/project__check-run/rec-967f4dc8-c14d-4f0f-b094-fdd4e4ed50d4.md))_
 
 ## model-fixture-reuse
 
@@ -1619,10 +1634,17 @@ print("phase checks only")
 ### Acceptance
 - **verify-evidence-matrix**: Matrix row values, tones, blockers, and strip glyphs hold in model tests; pilots cover Enter, width dropping, and strip click; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-44755f3e-cfe0-44bf-8751-6f8850f4700a](.artifacts/records/project__acceptance/rec-44755f3e-cfe0-44bf-8751-6f8850f4700a.md))_
 
+### Check
+- **verify-evidence-matrix**: rec-44755f3e-cfe0-44bf-8751-6f8850f4700a; dirty; pass; check _(id: [rec-701861ae-0cbf-431d-b38f-8500d7ba6486](.artifacts/records/project__check-run/rec-701861ae-0cbf-431d-b38f-8500d7ba6486.md))_
+
 ## verify-evidence-matrix-suite
 
 ### Acceptance
 - **verify-evidence-matrix-suite**: the evidence-matrix checks pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-90a86f40-7f74-4dc3-875a-9d1043564b55](.artifacts/records/project__acceptance/rec-90a86f40-7f74-4dc3-875a-9d1043564b55.md))_
+
+### Check
+- **verify-evidence-matrix-suite**: rec-90a86f40-7f74-4dc3-875a-9d1043564b55; dirty; pass; check _(id: [rec-af62d62f-5d5b-4918-85b1-f1d681f7a05e](.artifacts/records/project__check-run/rec-af62d62f-5d5b-4918-85b1-f1d681f7a05e.md))_
+- **verify-evidence-matrix-suite**: rec-242ca52f-0229-46fb-8334-e9d041b5c06d; dirty; pass; check _(id: [rec-db8ec3ec-aca0-46a3-b3ac-d073165f0ad7](.artifacts/records/project__check-run/rec-db8ec3ec-aca0-46a3-b3ac-d073165f0ad7.md))_
 
 ## verify-evidence-view
 

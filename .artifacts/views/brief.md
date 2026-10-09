@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:aa98edfc02996e4649ddfd1b488ea2d42c12f0f56f3202106f47d0648f456844
+> Store state: sha256:793ef7e5b8ff54a1188beb972c9f5d43109458abca05d6cdaef36159b0cdb830
 
 ## activity-failures
 
@@ -132,7 +132,7 @@
 ## dashboard
 
 ### Position
-- **dashboard**: spec-view done; next up: evidence-matrix; effort _(id: [rec-c165f569-614e-44c7-91e6-4ec73a7514a2](.artifacts/records/project__current-position/rec-c165f569-614e-44c7-91e6-4ec73a7514a2.md))_
+- **dashboard**: evidence-matrix done; next up: journal-view; effort _(id: [rec-b28084d4-03ea-4388-8cca-07d7072f90db](.artifacts/records/project__current-position/rec-b28084d4-03ea-4388-8cca-07d7072f90db.md))_
 
 ## dashboard-app
 
@@ -317,11 +317,6 @@
 
 ### Acceptance
 - **estimate-table-suffix**: test_estimate_view_title_suffix fails before the change and passes after: the task title shows size, minutes, and executor before a waits-on note; a missing size is omitted; 0 shows as 0m; a missing executor shows as subagent.; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k estimate_view_title_suffix _(id: [rec-c823c876-890c-4582-b8ac-0b8e804b6de6](.artifacts/records/project__acceptance/rec-c823c876-890c-4582-b8ac-0b8e804b6de6.md))_
-
-## evidence-matrix
-
-### Position
-- **evidence-matrix**: evidence-matrix plan approved; ready for execute after prior UX deps; phase _(id: [rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b](.artifacts/records/project__current-position/rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b.md))_
 
 ## evidence-model
 
@@ -588,16 +583,10 @@
 
 ## matrix-model
 
-### Work
-- **matrix-model**: RequirementRow fields and matrix pure helpers; evidence-matrix; deliver; dashboard _(id: [rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace](.artifacts/records/project__work-item/rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace.md))_
-
 ### Acceptance
 - **matrix-model**: Matrix helpers return correct row values, tone classes, release blockers, and strip glyphs for seeded evidence including no-specification phases; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py -q -k matrix _(id: [rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d](.artifacts/records/project__acceptance/rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d.md))_
 
 ## matrix-ui
-
-### Work
-- **matrix-ui**: Evidence matrix DataTable and main-screen strip; evidence-matrix; deliver; dashboard _(id: [rec-3930c283-cde9-4f78-86e1-504b9c9f51df](.artifacts/records/project__work-item/rec-3930c283-cde9-4f78-86e1-504b9c9f51df.md))_
 
 ### Acceptance
 - **matrix-ui**: Evidence tab shows the matrix and release line; Enter opens requirement detail and Esc returns to the same row; columns drop at 55 and 40 width; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee](.artifacts/records/project__acceptance/rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee.md))_
@@ -1155,9 +1144,6 @@ print("phase checks only")
 - **verify-evidence-loop-skills**: The six skills document only contract-legal writes for specification, design, trace fields, integration-report, and assessment routing.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py tests/test_plan_trace.py tests/test_integrate_rules.py tests/test_assess_routing.py -q _(id: [rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f](.artifacts/records/project__acceptance/rec-a7ead56b-fe80-4a0d-a5ae-9b34a976c46f.md))_
 
 ## verify-evidence-matrix
-
-### Work
-- **verify-evidence-matrix**: Verify evidence-matrix phase; evidence-matrix; deliver; dashboard _(id: [rec-8432d854-983c-4de9-bb0f-f99b94ecae9a](.artifacts/records/project__work-item/rec-8432d854-983c-4de9-bb0f-f99b94ecae9a.md))_
 
 ### Acceptance
 - **verify-evidence-matrix**: Matrix row values, tones, blockers, and strip glyphs hold in model tests; pilots cover Enter, width dropping, and strip click; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-44755f3e-cfe0-44bf-8751-6f8850f4700a](.artifacts/records/project__acceptance/rec-44755f3e-cfe0-44bf-8751-6f8850f4700a.md))_

@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:b66b0b6475c8dd1b5ba8e1611648a778ea86107add902ba23804b62321bdb13c
+> Store state: sha256:044b69410e4be3dddd8404d185d34e7162244b6cdf52ec8c58f73f2a4bd5461c
 
 ## dashboard-view
 
@@ -427,14 +427,6 @@ print("phase checks only")
 - **verify-spec-view-suite**: the spec-view phase checks pass through the phase screen and the dashboard entry; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py tests/test_dashboard_integration.py -q -k "phase_screen or once" _(id: [rec-09c72984-b31a-4157-a36c-f922a4700458](.artifacts/records/project__acceptance/rec-09c72984-b31a-4157-a36c-f922a4700458.md))_
 
 ## evidence-matrix
-
-### Phase
-- **evidence-matrix**: Requirements matrix for the selected phase; 25; dashboard _(id: [rec-0bdee82d-39eb-4e98-9606-407b3f717a02](.artifacts/records/project__phase/rec-0bdee82d-39eb-4e98-9606-407b3f717a02.md))_
-
-### Work
-- **matrix-model**: RequirementRow fields and matrix pure helpers; evidence-matrix; deliver; dashboard _(id: [rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace](.artifacts/records/project__work-item/rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace.md))_
-- **matrix-ui**: Evidence matrix DataTable and main-screen strip; evidence-matrix; deliver; dashboard _(id: [rec-3930c283-cde9-4f78-86e1-504b9c9f51df](.artifacts/records/project__work-item/rec-3930c283-cde9-4f78-86e1-504b9c9f51df.md))_
-- **verify-evidence-matrix**: Verify evidence-matrix phase; evidence-matrix; deliver; dashboard _(id: [rec-8432d854-983c-4de9-bb0f-f99b94ecae9a](.artifacts/records/project__work-item/rec-8432d854-983c-4de9-bb0f-f99b94ecae9a.md))_
 
 ### Acceptance
 - **matrix-model**: Matrix helpers return correct row values, tone classes, release blockers, and strip glyphs for seeded evidence including no-specification phases; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py -q -k matrix _(id: [rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d](.artifacts/records/project__acceptance/rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d.md))_

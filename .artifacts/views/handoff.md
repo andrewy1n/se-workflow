@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:fd8d531ef17d80d4eecab43233cfb65673b165c96b3cfffce37d649e643414de
+> Store state: sha256:33e014529614ca64f1451ad4d5f441f7cb4b97e4959d5026138467d3bc40c75d
 
 ## dashboard
 
@@ -9,8 +9,7 @@
 - **dashboard**: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; effort; deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
 ### Position
-- **dashboard**: spec-view done; next up: evidence-matrix; effort _(id: [rec-c165f569-614e-44c7-91e6-4ec73a7514a2](.artifacts/records/project__current-position/rec-c165f569-614e-44c7-91e6-4ec73a7514a2.md))_
-- **evidence-matrix**: evidence-matrix plan approved; ready for execute after prior UX deps; phase _(id: [rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b](.artifacts/records/project__current-position/rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b.md))_
+- **dashboard**: evidence-matrix done; next up: journal-view; effort _(id: [rec-b28084d4-03ea-4388-8cca-07d7072f90db](.artifacts/records/project__current-position/rec-b28084d4-03ea-4388-8cca-07d7072f90db.md))_
 - **journal-view**: journal-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-214e4e33-f72b-4aed-bced-7e71015a63d2](.artifacts/records/project__current-position/rec-214e4e33-f72b-4aed-bced-7e71015a63d2.md))_
 
 ## session-analysis
@@ -41,4 +40,3 @@
 
 ### Position
 - **workflow-loop**: verify-budget done.; effort _(id: [rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178](.artifacts/records/project__current-position/rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178.md))_
-
