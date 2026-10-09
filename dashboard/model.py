@@ -206,7 +206,8 @@ def _derived(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def _recorded_at(record: dict[str, Any]) -> datetime:
-    return datetime.fromisoformat(record["recorded_at"])
+    stamp = record.get("recorded_at")
+    return datetime.fromisoformat(stamp) if stamp else datetime.min.replace(tzinfo=timezone.utc)
 
 
 def _split_csv(value: Any) -> list[str]:
