@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:a478c47f0bc30b77cb1e2b4179bf980ef767c7428a6950fad460d3c67f8d2150
+> Store state: sha256:ed8642f695ffa8a0665359299da0c49721be92d607c77886760c935b50203cbf
 
 ## dashboard-view
 
@@ -379,15 +379,61 @@
 ### Phase
 - **spec-view**: Spec view and decision log, with a pager for derived views; 24; dashboard _(id: [rec-681ec18d-4093-4bd3-9426-5997f25fced6](.artifacts/records/project__phase/rec-681ec18d-4093-4bd3-9426-5997f25fced6.md))_
 
+### Work
+- **spec-model**: Phase detail loaders: tabs, spec/design bodies, decision log; spec-view; deliver; dashboard _(id: [rec-f808c3b5-07ea-4516-9c74-a3cb01132053](.artifacts/records/project__work-item/rec-f808c3b5-07ea-4516-9c74-a3cb01132053.md))_
+- **spec-pager**: Pager helpers: temp file outside store and command choice; spec-view; deliver; dashboard _(id: [rec-f18a04b6-32b6-4908-bb5e-6a2323419831](.artifacts/records/project__work-item/rec-f18a04b6-32b6-4908-bb5e-6a2323419831.md))_
+- **spec-screen**: Tabbed PhaseScreen replacing phase detail; spec-view; deliver; dashboard _(id: [rec-bf13b12a-b42d-46d2-9165-9105a5c84139](.artifacts/records/project__work-item/rec-bf13b12a-b42d-46d2-9165-9105a5c84139.md))_
+- **verify-spec-view**: Verify spec-view phase; spec-view; deliver; dashboard _(id: [rec-79a4e4c1-cfcb-421b-a023-64563ff645f3](.artifacts/records/project__work-item/rec-79a4e4c1-cfcb-421b-a023-64563ff645f3.md))_
+
+### Acceptance
+- **spec-model**: tabs_for returns full tabs for a structured phase and Overview/Spec/Decisions/Tasks for a simple phase or missing specification type; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'phase_screen and tabs' _(id: [rec-7d44b243-444f-4d8f-a42d-2d8bce0f9b6d](.artifacts/records/project__acceptance/rec-7d44b243-444f-4d8f-a42d-2d8bce0f9b6d.md))_
+- **spec-model-decisions**: load_decision_log returns phase-scoped active decisions, effort groups in ordinal order when phase is None, and superseded entries under successors when history is true; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'phase_screen and decision' _(id: [rec-403cd5dd-db5b-4e68-b04b-311599c18032](.artifacts/records/project__acceptance/rec-403cd5dd-db5b-4e68-b04b-311599c18032.md))_
+- **spec-model-simple**: A simple phase's detail carries phase body and constraints for the Spec tab and empty design body; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'phase_screen and simple' _(id: [rec-0227d202-cb23-4c79-97e0-d7d58c3bb952](.artifacts/records/project__acceptance/rec-0227d202-cb23-4c79-97e0-d7d58c3bb952.md))_
+- **spec-pager**: With glow absent and $PAGER set to a stub, the helper writes the tab text outside the store, the stub receives it, and the file is deleted afterwards; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py tests/test_dashboard_pager.py -q -k pager _(id: [rec-05a167b0-042f-4057-b1a0-82dd15d96cbf](.artifacts/records/project__acceptance/rec-05a167b0-042f-4057-b1a0-82dd15d96cbf.md))_
+- **spec-screen**: Phase screen shows the correct tab set; p/s/e open Overview/Spec/Evidence from the main screen; left/right and letter keys switch tabs; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py -q -k "tab or open or key" _(id: [rec-b864e9ae-db02-462b-ae3a-227f4fdf5f0b](.artifacts/records/project__acceptance/rec-b864e9ae-db02-462b-ae3a-227f4fdf5f0b.md))_
+- **spec-screen-content**: Spec and Design render full Markdown; requirement rows open detail; Decisions expand with a/h toggles; Evidence and Tasks match today; Esc returns to the same tab and row; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py -q -k "spec or design or decision or evidence or task or esc" _(id: [rec-fb12c32d-c03a-47d3-8f10-bff1fa09e822](.artifacts/records/project__acceptance/rec-fb12c32d-c03a-47d3-8f10-bff1fa09e822.md))_
+- **spec-screen-pager**: o on the phase screen pages the current tab through the stubbed pager and removes the temp file; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py -q -k pager _(id: [rec-2c20fcfa-8ea0-4f55-b8ba-0fadcb3fe9b0](.artifacts/records/project__acceptance/rec-2c20fcfa-8ea0-4f55-b8ba-0fadcb3fe9b0.md))_
+- **verify-spec-view**: Opening the phase screen from the dashboard entry shows tabs and Spec Markdown for a seeded structured phase; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py tests/test_dashboard_integration.py -q -k "phase_screen or once" _(id: [rec-323fc48e-f2ba-4fcf-bea1-344c61a9f338](.artifacts/records/project__acceptance/rec-323fc48e-f2ba-4fcf-bea1-344c61a9f338.md))_
+- **verify-spec-view-model**: Tab sets, decision log scopes, and superseded links hold in model tests; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k phase_screen _(id: [rec-b45738a2-3a4d-4384-8296-2710d92c7f41](.artifacts/records/project__acceptance/rec-b45738a2-3a4d-4384-8296-2710d92c7f41.md))_
+- **verify-spec-view-suite**: The full non-tmux and tmux test suites pass; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-69e66203-14dc-40b6-97b6-f751fd52a9fb](.artifacts/records/project__acceptance/rec-69e66203-14dc-40b6-97b6-f751fd52a9fb.md))_
+
 ## evidence-matrix
 
 ### Phase
 - **evidence-matrix**: Requirements matrix for the selected phase; 25; dashboard _(id: [rec-0bdee82d-39eb-4e98-9606-407b3f717a02](.artifacts/records/project__phase/rec-0bdee82d-39eb-4e98-9606-407b3f717a02.md))_
 
+### Work
+- **matrix-model**: RequirementRow fields and matrix pure helpers; evidence-matrix; deliver; dashboard _(id: [rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace](.artifacts/records/project__work-item/rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace.md))_
+- **matrix-ui**: Evidence matrix DataTable and main-screen strip; evidence-matrix; deliver; dashboard _(id: [rec-3930c283-cde9-4f78-86e1-504b9c9f51df](.artifacts/records/project__work-item/rec-3930c283-cde9-4f78-86e1-504b9c9f51df.md))_
+- **verify-evidence-matrix**: Verify evidence-matrix phase; evidence-matrix; deliver; dashboard _(id: [rec-8432d854-983c-4de9-bb0f-f99b94ecae9a](.artifacts/records/project__work-item/rec-8432d854-983c-4de9-bb0f-f99b94ecae9a.md))_
+
+### Acceptance
+- **matrix-model**: Matrix helpers return correct row values, tone classes, release blockers, and strip glyphs for seeded evidence including no-specification phases; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py -q -k matrix _(id: [rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d](.artifacts/records/project__acceptance/rec-65e37e8b-25f6-4953-a8b2-9a0c0fddb74d.md))_
+- **matrix-ui**: Evidence tab shows the matrix and release line; Enter opens requirement detail and Esc returns to the same row; columns drop at 55 and 40 width; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee](.artifacts/records/project__acceptance/rec-e60394f4-9d3c-494c-9b2c-e69db0de52ee.md))_
+- **matrix-ui-strip**: Selected structured phase shows coloured requirement glyphs after the R tally; click or e opens Evidence; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_phase_screen.py tests/test_dashboard_app.py -q -k "strip or glyph" _(id: [rec-2803f0e2-8159-46ac-90b0-d9cec7762a4a](.artifacts/records/project__acceptance/rec-2803f0e2-8159-46ac-90b0-d9cec7762a4a.md))_
+- **verify-evidence-matrix**: Matrix row values, tones, blockers, and strip glyphs hold in model tests; pilots cover Enter, width dropping, and strip click; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-44755f3e-cfe0-44bf-8751-6f8850f4700a](.artifacts/records/project__acceptance/rec-44755f3e-cfe0-44bf-8751-6f8850f4700a.md))_
+- **verify-evidence-matrix-suite**: The full non-tmux and tmux test suites pass; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-242ca52f-0229-46fb-8334-e9d041b5c06d](.artifacts/records/project__acceptance/rec-242ca52f-0229-46fb-8334-e9d041b5c06d.md))_
+
 ## journal-view
 
 ### Phase
 - **journal-view**: Journal, kind-based default view, and agent work on task detail; 26; dashboard _(id: [rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3](.artifacts/records/project__phase/rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3.md))_
+
+### Work
+- **journal-agent**: Agent work section on task detail; journal-view; deliver; dashboard _(id: [rec-27ad566b-6186-43df-b8f3-863be5f3fa69](.artifacts/records/project__work-item/rec-27ad566b-6186-43df-b8f3-863be5f3fa69.md))_
+- **journal-model**: Journal load, scope, open-first order, kind panel data; journal-view; deliver; dashboard _(id: [rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc](.artifacts/records/project__work-item/rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc.md))_
+- **journal-panel**: Kind-based Journal panel above task table; journal-view; deliver; dashboard _(id: [rec-0d3ae892-5026-4771-8967-ef3624ec5035](.artifacts/records/project__work-item/rec-0d3ae892-5026-4771-8967-ef3624ec5035.md))_
+- **journal-screen**: JournalScreen with filter, detail, and pager; journal-view; deliver; dashboard _(id: [rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40](.artifacts/records/project__work-item/rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40.md))_
+- **verify-journal-view**: Verify journal-view phase; journal-view; deliver; dashboard _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
+
+### Acceptance
+- **journal-agent**: Task detail Agent work shows latest assignment, amendments, and report collapsed to 8 lines; Enter expands; o pages the focused block; earlier assignments are listed; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k 'agent or collaps' _(id: [rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76](.artifacts/records/project__acceptance/rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76.md))_
+- **journal-model**: load_journal and ordered return correct types, phase scope, open-first ordering, and one-line text for seeded stores; missing types do not error; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py -q -k 'journal and (load or order or scope or missing)' _(id: [rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe](.artifacts/records/project__acceptance/rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe.md))_
+- **journal-model-kind**: Repair and evaluate snapshots carry journal_open for the selected phase; deliver and incidental do not; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'journal and kind' _(id: [rec-ff941da0-90f7-4e86-8d29-fd9593cff4c9](.artifacts/records/project__acceptance/rec-ff941da0-90f7-4e86-8d29-fd9593cff4c9.md))_
+- **journal-panel**: Repair and evaluate efforts show up to 5 open journal rows above the task table; deliver efforts show none; Enter opens detail; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_journal.py -q -k "panel or kind" _(id: [rec-772b35fe-ecde-4213-8bc8-f56eb55a3517](.artifacts/records/project__acceptance/rec-772b35fe-ecde-4213-8bc8-f56eb55a3517.md))_
+- **journal-screen**: J opens the journal for the selected phase; a toggles effort scope; Esc returns; / filters; Enter opens detail; o pages with stub; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py -q -k "screen or filter or detail or pager" _(id: [rec-5ac93260-7e5b-4f29-8ea4-54b09833796f](.artifacts/records/project__acceptance/rec-5ac93260-7e5b-4f29-8ea4-54b09833796f.md))_
+- **verify-journal-view**: Journal scoping, open-first order, kind panel, and agent-work blocks hold in model and pilot tests; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k journal _(id: [rec-23b9ae39-56ef-401b-b2df-9b05b78d4967](.artifacts/records/project__acceptance/rec-23b9ae39-56ef-401b-b2df-9b05b78d4967.md))_
+- **verify-journal-view-suite**: The full non-tmux and tmux test suites pass; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m "not tmux" && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-fea0aa6a-b7e5-4df3-824b-d015bc080c01](.artifacts/records/project__acceptance/rec-fea0aa6a-b7e5-4df3-824b-d015bc080c01.md))_
 
 ## 
 

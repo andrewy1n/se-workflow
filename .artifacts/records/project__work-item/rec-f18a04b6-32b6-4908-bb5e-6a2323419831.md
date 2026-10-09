@@ -1,0 +1,38 @@
+---
+{
+  "base_kind": "task",
+  "id": "rec-f18a04b6-32b6-4908-bb5e-6a2323419831",
+  "identity": "unknown",
+  "lifecycle_state": "planned",
+  "payload": {
+    "assignee": "",
+    "decisions": "pager-temp-file",
+    "effort": "dashboard",
+    "estimate_minutes": 20,
+    "executor": "subagent",
+    "kind": "deliver",
+    "phase": "spec-view",
+    "requirements": "R11",
+    "size": "S",
+    "title": "Pager helpers: temp file outside store and command choice"
+  },
+  "record_type": "project:work-item",
+  "recorded_at": "2026-10-09T20:49:33+00:00",
+  "relationships": {},
+  "revision": "sha256:3efffdebd9e1a6d591cdecf89bf40426abf9beb2e15ddf750b0834a84011ef1d",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "spec-pager"
+}
+---
+
+## Description
+
+Add pure pager helpers that write markdown to a temp file outside the store and choose glow, $PAGER, or less.
+
+## Approach
+
+1. Add `pager_command(path)` returning glow -p, else shlex.split($PAGER)+[path], else less -R.
+2. Add a helper that writes text to NamedTemporaryFile(suffix=.md, delete=False) under the system temp dir (never under .artifacts) and always unlinks in finally.
+3. Cover with a unit test using a stub pager script that records the file path and contents; assert the file is gone afterwards. Do not edit app screens yet.

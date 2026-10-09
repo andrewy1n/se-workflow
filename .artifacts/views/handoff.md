@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:d23960b5f485546c5ea91f3c5660356a2c644c2d65767d7cb81e7469f9eddcc7
+> Store state: sha256:e4ceb247fdac660abec9d050427399c56bcef33c00306cacdf5f37e48968d962
 
 ## dashboard
 
@@ -10,7 +10,15 @@
 
 ### Position
 - **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
+- **evidence-matrix**: evidence-matrix planned; waiting on plan review; phase _(id: [rec-05197b6f-4d9d-4719-99f3-7269b2c23b6d](.artifacts/records/project__current-position/rec-05197b6f-4d9d-4719-99f3-7269b2c23b6d.md))_
 - **human-gates**: human-gates plan approved; blocked on UX plan-before-execute until remaining phases planned; phase _(id: [rec-8ae183e6-1ece-4610-9102-9e3e147be23d](.artifacts/records/project__current-position/rec-8ae183e6-1ece-4610-9102-9e3e147be23d.md))_
+- **journal-view**: journal-view planned; waiting on plan review; phase _(id: [rec-9abd8e4d-983c-4fb3-8deb-37e2cc84f334](.artifacts/records/project__current-position/rec-9abd8e4d-983c-4fb3-8deb-37e2cc84f334.md))_
+- **spec-view**: spec-view planned; waiting on plan review; phase _(id: [rec-fd3fdd37-4968-46bb-8062-512a639a796c](.artifacts/records/project__current-position/rec-fd3fdd37-4968-46bb-8062-512a639a796c.md))_
+
+### Blocking Question
+- **dashboard**: True; plan-review:journal-view _(id: [rec-0ed360b4-e87e-43bd-9dda-bbbad7062652](.artifacts/records/project__continuity-question/rec-0ed360b4-e87e-43bd-9dda-bbbad7062652.md))_
+- **dashboard**: True; plan-review:spec-view _(id: [rec-ab4c4c73-6f25-4ece-ad6d-a7480e753383](.artifacts/records/project__continuity-question/rec-ab4c4c73-6f25-4ece-ad6d-a7480e753383.md))_
+- **dashboard**: True; plan-review:evidence-matrix _(id: [rec-e7b76af5-7663-4f7b-85b6-d49a14c9233d](.artifacts/records/project__continuity-question/rec-e7b76af5-7663-4f7b-85b6-d49a14c9233d.md))_
 
 ## session-analysis
 

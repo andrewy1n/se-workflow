@@ -1,0 +1,31 @@
+---
+{
+  "base_kind": "claim",
+  "epistemic_status": "asserted",
+  "id": "rec-9abd8e4d-983c-4fb3-8deb-37e2cc84f334",
+  "identity": "unknown",
+  "lifecycle_state": "active",
+  "payload": {
+    "effort": "dashboard",
+    "phase": "journal-view",
+    "position": "journal-view planned; waiting on plan review",
+    "scope": "phase"
+  },
+  "record_type": "project:current-position",
+  "recorded_at": "2026-10-09T20:51:22+00:00",
+  "relationships": {
+    "supersedes": [
+      "rec-e34ebd50-7ece-45dc-9087-5354409d6ec7"
+    ]
+  },
+  "revision": "sha256:6cbe429fb6ef76c1073a04af32ab944650d1476bf00473e1c6b3e7b59b1aedd6",
+  "stewardship": {
+    "steward": "agent"
+  },
+  "subject": "journal-view",
+  "time": {
+    "as_of": "2026-10-09T20:51:22+00:00"
+  }
+}
+---
+

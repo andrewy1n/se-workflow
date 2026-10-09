@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:7b48ff3a3ba304d30f8929c9066fe659bda21b375ed47dc58f4a05d515a824fa
+> Store state: sha256:d337c00ca3f144a3a14c2eb62fdc6a52c754e17b3ac508790a15c083eae55924
 
 ## dashboard-view
 
@@ -260,6 +260,30 @@
 - **gates-ui**: Next-step line, copy prompt, and new-item alerts; human-gates; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
 - **gates-vocab**: Gate vocabulary: labels, prompts, next step, quiet; human-gates; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
 - **verify-human-gates**: Verify human-gates phase; human-gates; deliver; dashboard; state: planned; ready: False; wave: 4; criteria: 0 pass / 0 fail _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
+
+## spec-view
+
+### Work
+- **spec-model**: Phase detail loaders: tabs, spec/design bodies, decision log; spec-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-f808c3b5-07ea-4516-9c74-a3cb01132053](.artifacts/records/project__work-item/rec-f808c3b5-07ea-4516-9c74-a3cb01132053.md))_
+- **spec-pager**: Pager helpers: temp file outside store and command choice; spec-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-f18a04b6-32b6-4908-bb5e-6a2323419831](.artifacts/records/project__work-item/rec-f18a04b6-32b6-4908-bb5e-6a2323419831.md))_
+- **spec-screen**: Tabbed PhaseScreen replacing phase detail; spec-view; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-bf13b12a-b42d-46d2-9165-9105a5c84139](.artifacts/records/project__work-item/rec-bf13b12a-b42d-46d2-9165-9105a5c84139.md))_
+- **verify-spec-view**: Verify spec-view phase; spec-view; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-79a4e4c1-cfcb-421b-a023-64563ff645f3](.artifacts/records/project__work-item/rec-79a4e4c1-cfcb-421b-a023-64563ff645f3.md))_
+
+## evidence-matrix
+
+### Work
+- **matrix-model**: RequirementRow fields and matrix pure helpers; evidence-matrix; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace](.artifacts/records/project__work-item/rec-0f99fdee-de15-4595-a563-0bf0ba9c3ace.md))_
+- **matrix-ui**: Evidence matrix DataTable and main-screen strip; evidence-matrix; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-3930c283-cde9-4f78-86e1-504b9c9f51df](.artifacts/records/project__work-item/rec-3930c283-cde9-4f78-86e1-504b9c9f51df.md))_
+- **verify-evidence-matrix**: Verify evidence-matrix phase; evidence-matrix; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-8432d854-983c-4de9-bb0f-f99b94ecae9a](.artifacts/records/project__work-item/rec-8432d854-983c-4de9-bb0f-f99b94ecae9a.md))_
+
+## journal-view
+
+### Work
+- **journal-agent**: Agent work section on task detail; journal-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-27ad566b-6186-43df-b8f3-863be5f3fa69](.artifacts/records/project__work-item/rec-27ad566b-6186-43df-b8f3-863be5f3fa69.md))_
+- **journal-model**: Journal load, scope, open-first order, kind panel data; journal-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc](.artifacts/records/project__work-item/rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc.md))_
+- **journal-panel**: Kind-based Journal panel above task table; journal-view; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-0d3ae892-5026-4771-8967-ef3624ec5035](.artifacts/records/project__work-item/rec-0d3ae892-5026-4771-8967-ef3624ec5035.md))_
+- **journal-screen**: JournalScreen with filter, detail, and pager; journal-view; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40](.artifacts/records/project__work-item/rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40.md))_
+- **verify-journal-view**: Verify journal-view phase; journal-view; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
 
 ## 
 
