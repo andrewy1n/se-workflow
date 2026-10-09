@@ -1,26 +1,25 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:1666c3277af39b0cb71b067048b5927715c75dd3f3ed24f6f78832db73a43742
+> Store state: sha256:b6df86c1bf81bb745c38c5e24bcad142b31109a6035a7c354ebb88fcd92d01da
 
 ## dashboard
 
 ### Goal
 - **dashboard**: goal: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; scope: effort; kind: deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
-### Done Recent
-- **estimate-chips**: title: Show size, minutes, and executor as task detail chips; phase: estimate-view _(id: [rec-a5afd59d-ced8-4b93-a273-77482086696d](.artifacts/records/project__work-item/rec-a5afd59d-ced8-4b93-a273-77482086696d.md))_
-- **estimate-contract**: title: Allow size and estimate_minutes on work-items; phase: run-facts _(id: [rec-06631dac-f66b-4c00-bc9f-f0fcd3d9b071](.artifacts/records/project__work-item/rec-06631dac-f66b-4c00-bc9f-f0fcd3d9b071.md))_
-- **estimate-model**: title: Load size and estimate minutes into the dashboard model; phase: estimate-view _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
-- **estimate-skill**: title: Require plan-phase to record size and estimate_minutes; phase: run-facts _(id: [rec-035c4162-7907-4319-9655-154cdbbe7062](.artifacts/records/project__work-item/rec-035c4162-7907-4319-9655-154cdbbe7062.md))_
-- **estimate-table**: title: Show estimates on the phase header and task title; phase: estimate-view _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
-- **evidence-model**: title: Load evidence-loop records into the dashboard model; phase: evidence-view _(id: [rec-cd9dccf6-ffc0-4aaa-a157-b54aa7d10fa7](.artifacts/records/project__work-item/rec-cd9dccf6-ffc0-4aaa-a157-b54aa7d10fa7.md))_
-- **evidence-surfaces**: title: Show evidence on the main pane, phase detail, Needs you, and activity; phase: evidence-view _(id: [rec-eae64d17-f10b-415e-b311-d01de72be53c](.artifacts/records/project__work-item/rec-eae64d17-f10b-415e-b311-d01de72be53c.md))_
-- **requirement-links**: title: Open the requirement screen from phase detail, Needs you, and task detail; phase: evidence-view _(id: [rec-53721903-e653-4295-a5fa-aa6d774d9442](.artifacts/records/project__work-item/rec-53721903-e653-4295-a5fa-aa6d774d9442.md))_
-- **requirement-screen**: title: Requirement detail screen; phase: evidence-view _(id: [rec-84297b1d-931b-4155-a7db-defae8356207](.artifacts/records/project__work-item/rec-84297b1d-931b-4155-a7db-defae8356207.md))_
-- **verify-estimate-view**: title: Verify size and time estimates on the task table; phase: estimate-view _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
-- **verify-evidence-view**: title: Verify the evidence view; phase: evidence-view _(id: [rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e](.artifacts/records/project__work-item/rec-f1c9b3ac-caa5-4eaf-831b-bf8c2fae6f8e.md))_
-- **verify-run-facts**: title: Verify run-facts; phase: run-facts _(id: [rec-1644993c-06a8-4178-9ca9-ea39b522dce4](.artifacts/records/project__work-item/rec-1644993c-06a8-4178-9ca9-ea39b522dce4.md))_
+### Phase
+- **human-gates**: title: Show the human gates: action labels, copy prompt, next step, landing; ordinal: 23 _(id: [rec-c52c1f18-8b64-4731-9d21-2e74eabf7366](.artifacts/records/project__phase/rec-c52c1f18-8b64-4731-9d21-2e74eabf7366.md))_
+
+### Ready
+- **gates-landing**: title: Read-only phase Landing git state; phase: human-gates _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
+- **gates-vocab**: title: Gate vocabulary: labels, prompts, next step, quiet; phase: human-gates _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
+
+### Waiting
+- **gates-model**: title: Wire landing merge, last_record_at, and quiet into the model; phase: human-gates _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
+- **gates-status**: title: tmux status-right needs-you count segment; phase: human-gates _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
+- **gates-ui**: title: Next-step line, copy prompt, and new-item alerts; phase: human-gates _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
+- **verify-human-gates**: title: Verify human-gates phase; phase: human-gates _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
 
 ## session-analysis
 
@@ -47,13 +46,3 @@
 
 ### Goal
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
-
-### Done Recent
-- **assess-route**: title: Assess evidence and choose the next stage; phase: evidence-loop _(id: [rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58](.artifacts/records/project__work-item/rec-ff520a97-9aeb-4abf-a227-2af9bbc2cd58.md))_
-- **contract-loop**: title: Add evidence-loop record types; phase: evidence-loop _(id: [rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6](.artifacts/records/project__work-item/rec-2ff3de0f-4884-4df0-973b-2d94bc0919d6.md))_
-- **integrate-execute**: title: Record semantic integration after parallel execution; phase: evidence-loop _(id: [rec-32979a5f-7e1e-426d-a07b-648f806bf77e](.artifacts/records/project__work-item/rec-32979a5f-7e1e-426d-a07b-648f806bf77e.md))_
-- **loop-scenarios**: title: Test the evidence loop through the CLI; phase: evidence-loop _(id: [rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba](.artifacts/records/project__work-item/rec-84aec53d-9d7a-4ab3-8a2a-02318e951bba.md))_
-- **readme-lifecycle**: title: Document the evidence loop; phase: evidence-loop _(id: [rec-0a346ce9-d543-40c6-bffd-977250e063c5](.artifacts/records/project__work-item/rec-0a346ce9-d543-40c6-bffd-977250e063c5.md))_
-- **specify-design**: title: Write specification and design from discuss; phase: evidence-loop _(id: [rec-c38456f3-9e59-46f8-a9a4-5c05961544e8](.artifacts/records/project__work-item/rec-c38456f3-9e59-46f8-a9a4-5c05961544e8.md))_
-- **trace-plan**: title: Stamp tasks with requirements and decisions; phase: evidence-loop _(id: [rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c](.artifacts/records/project__work-item/rec-07bdba9f-ea31-402b-ace5-9f21b6c8930c.md))_
-- **verify-evidence-loop**: title: Verify the evidence loop; phase: evidence-loop _(id: [rec-1ed5449a-0cff-4806-aea0-c527992f2e80](.artifacts/records/project__work-item/rec-1ed5449a-0cff-4806-aea0-c527992f2e80.md))_

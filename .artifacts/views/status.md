@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:43edcff7bc16cea6b65769b763b0ebae7e89867dd52f79a1effd1a329c61ea91
+> Store state: sha256:a419a48c43c05fb396f4ef20a45cae9eaf61ee41611c8ebdf0d17ed268180e4f
 
 ## dashboard-view
 
@@ -240,6 +240,26 @@
 - **estimate-model**: Load size and estimate minutes into the dashboard model; estimate-view; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 5 pass / 5 fail _(id: [rec-0459fa1d-222c-4107-8749-78e7268070bc](.artifacts/records/project__work-item/rec-0459fa1d-222c-4107-8749-78e7268070bc.md))_
 - **estimate-table**: Show estimates on the phase header and task title; estimate-view; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 5 pass / 5 fail _(id: [rec-da0b731d-b175-40af-83ed-117bd79bfc74](.artifacts/records/project__work-item/rec-da0b731d-b175-40af-83ed-117bd79bfc74.md))_
 - **verify-estimate-view**: Verify size and time estimates on the task table; estimate-view; deliver; dashboard; state: done; ready: True; wave: 4; criteria: 7 pass / 1 fail _(id: [rec-5a9871bf-f6d1-4c04-8724-09143892ca29](.artifacts/records/project__work-item/rec-5a9871bf-f6d1-4c04-8724-09143892ca29.md))_
+
+## phase-selector
+
+### Work
+- **phase-model-selection**: Model selection state, defaults, and merged activity; phase-selector; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 4 pass / 0 fail _(id: [rec-a1b4c43c-2f76-4ab0-8df2-487384946295](.artifacts/records/project__work-item/rec-a1b4c43c-2f76-4ab0-8df2-487384946295.md))_
+- **phase-once-render**: Update --once output with selector and wave strip; phase-selector; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-58dbc2cf-4754-4436-897f-5105f49d5841](.artifacts/records/project__work-item/rec-58dbc2cf-4754-4436-897f-5105f49d5841.md))_
+- **phase-selector-ui**: Selector line, picker, wave strip, and key bindings; phase-selector; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 7 pass / 0 fail _(id: [rec-affbd326-1d9c-4b01-a825-6b416748141a](.artifacts/records/project__work-item/rec-affbd326-1d9c-4b01-a825-6b416748141a.md))_
+- **phase-table-scope**: Scope task table, counts, and progress to the selected phase; phase-selector; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 2 pass / 0 fail _(id: [rec-7f9ed306-ee0a-4bc3-a5cd-e71985b62b41](.artifacts/records/project__work-item/rec-7f9ed306-ee0a-4bc3-a5cd-e71985b62b41.md))_
+- **verify-phase-selector**: Verify phase-selector phase; phase-selector; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 4 pass / 1 fail _(id: [rec-0ad32d43-ce74-4881-8d43-29910711b9dd](.artifacts/records/project__work-item/rec-0ad32d43-ce74-4881-8d43-29910711b9dd.md))_
+- **verify-phase-selector**: Verify phase-selector phase; phase-selector; deliver; dashboard; state: withdrawn; ready: True; wave: 2; criteria: 4 pass / 1 fail _(id: [rec-1a70ed96-1881-46d3-b5f7-60f8c646d884](.artifacts/records/project__work-item/rec-1a70ed96-1881-46d3-b5f7-60f8c646d884.md))_
+
+## human-gates
+
+### Work
+- **gates-landing**: Read-only phase Landing git state; human-gates; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
+- **gates-model**: Wire landing merge, last_record_at, and quiet into the model; human-gates; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
+- **gates-status**: tmux status-right needs-you count segment; human-gates; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
+- **gates-ui**: Next-step line, copy prompt, and new-item alerts; human-gates; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5](.artifacts/records/project__work-item/rec-6230a7c9-c054-4825-8f76-92e8f21bdcd5.md))_
+- **gates-vocab**: Gate vocabulary: labels, prompts, next step, quiet; human-gates; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03](.artifacts/records/project__work-item/rec-72a1fc93-f49b-4f59-bc6a-e45cd50e7d03.md))_
+- **verify-human-gates**: Verify human-gates phase; human-gates; deliver; dashboard; state: planned; ready: False; wave: 4; criteria: 0 pass / 0 fail _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
 
 ## 
 

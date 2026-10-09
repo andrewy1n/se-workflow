@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:c0ba9f09492a3851b1de7c0e217ded25fb2b12275df757697d817fc9ad8b799c
+> Store state: sha256:eddcec6f68d8902b955564c4ea81625b9896cba180e8ca2af7a1b4efe9ce2cc1
 
 ## dashboard
 
@@ -10,6 +10,7 @@
 
 ### Position
 - **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
+- **human-gates**: Planning human-gates tasks from settled discuss decisions; phase _(id: [rec-a8cc4e42-4584-4690-ae9a-0779c8fcfff3](.artifacts/records/project__current-position/rec-a8cc4e42-4584-4690-ae9a-0779c8fcfff3.md))_
 
 ## session-analysis
 
