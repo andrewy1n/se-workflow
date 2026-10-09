@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:b773b6c81efc13a57225ab9ccfe42caf38723f8d3fd14fb8b46273a520e26e1b
+> Store state: sha256:db21784507ef3188a173719eacc28b6348e5576ab83fbebe2c858cc9024a1b4c
 
 ## dashboard
 
@@ -11,7 +11,7 @@
 ### Position
 - **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
 - **evidence-matrix**: evidence-matrix plan approved; ready for execute after prior UX deps; phase _(id: [rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b](.artifacts/records/project__current-position/rec-0b1d1d93-6cfa-4a53-9c95-1f70dba0fc2b.md))_
-- **human-gates**: human-gates plan approved; blocked on UX plan-before-execute until remaining phases planned; phase _(id: [rec-8ae183e6-1ece-4610-9102-9e3e147be23d](.artifacts/records/project__current-position/rec-8ae183e6-1ece-4610-9102-9e3e147be23d.md))_
+- **human-gates**: human-gates plan approved; UX plan-before-execute cleared; ready for execute-phase; phase _(id: [rec-1ff7689f-ebef-400b-832d-5c27059f77c3](.artifacts/records/project__current-position/rec-1ff7689f-ebef-400b-832d-5c27059f77c3.md))_
 - **journal-view**: journal-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-214e4e33-f72b-4aed-bced-7e71015a63d2](.artifacts/records/project__current-position/rec-214e4e33-f72b-4aed-bced-7e71015a63d2.md))_
 - **spec-view**: spec-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-df06b9c4-1371-47b2-8db5-29e582d40101](.artifacts/records/project__current-position/rec-df06b9c4-1371-47b2-8db5-29e582d40101.md))_
 
