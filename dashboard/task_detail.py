@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
+from contextlib import nullcontext
 from datetime import datetime, timezone
 
 from rich.text import Text
@@ -17,12 +18,14 @@ from textual.widget import Widget
 from textual.widgets import Collapsible, Footer, Markdown, OptionList, Static
 from textual.widgets.option_list import Option
 
-from dashboard import artifact_store, model
+from dashboard import artifact_store, model, pager
 from dashboard.commit import CommitScreen, latest_revision, load_commit, stat_width
 from dashboard.display import (
     ACTIVITY_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, palette_from, relative_time, slug,
 )
 from dashboard.tasks import PHASE_PREFIX, status_label
+
+COLLAPSE_LINES = 8
 
 
 def detail_chips(detail: model.TaskDetail, colors: dict[str, str], width: int = 100, now: datetime | None = None) -> Text:
@@ -168,6 +171,122 @@ class LinkList(OptionList):
             self.screen.set_focus(self.screen.query_one("#detail"))
 
 
+class CollapsibleBlock(Static, can_focus=True):
+    """Assignment/report text collapsed to *lines* with Enter toggle and pager_text for o."""
+
+    BINDINGS = [
+        Binding("enter", "toggle", "expand", show=False),
+    ]
+
+    def __init__(self, title: str, text: str, lines: int = COLLAPSE_LINES, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.block_title = title
+        self.full_text = text
+        self.preview_lines = lines
+        self.expanded = False
+
+    def pager_text(self) -> str:
+        return self.full_text
+
+    def action_toggle(self) -> None:
+        self.expanded = not self.expanded
+        self.refresh()
+
+    def render(self) -> Text:
+        colors = palette_from(self.app.get_css_variables()) if self.app else {}
+        muted = colors.get("muted", "dim")
+        out = Text()
+        out.append(self.block_title, style="bold")
+        out.append("\n")
+        lines = self.full_text.splitlines() or [""]
+        if self.expanded or len(lines) <= self.preview_lines:
+            out.append(self.full_text)
+        else:
+            out.append("\n".join(lines[: self.preview_lines]))
+            out.append(f"\n+{len(lines) - self.preview_lines} lines", style=muted)
+        return out
+
+
+def report_block_text(report: model.AgentReport) -> str:
+    header = f"result: {report.result}\nverdict: {report.verdict}"
+    body = report.body.strip()
+    return f"{header}\n\n{body}" if body else header
+
+
+def agent_block_specs(work: model.AgentWork) -> list[tuple[str, str]]:
+    blocks: list[tuple[str, str]] = []
+    if work.assignment.orientation:
+        blocks.append(("Orientation", work.assignment.orientation))
+    if work.assignment.body:
+        blocks.append(("Assignment", work.assignment.body))
+    for amendment in work.amendments:
+        if amendment.correction:
+            blocks.append(("Correction", amendment.correction))
+    if work.report is not None:
+        blocks.append(("Report", report_block_text(work.report)))
+    return blocks
+
+
+def earlier_label(work: model.AgentWork, now: datetime) -> str:
+    stamp = work.assignment.recorded_at.astimezone().strftime("%H:%M")
+    when = relative_time(work.assignment.recorded_at, now)
+    result = work.report.result if work.report is not None else "—"
+    executor = work.assignment.executor or "subagent"
+    return f"{stamp} {when} · {executor} · {result}"
+
+
+class EarlierList(OptionList):
+    BINDINGS = [
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+    ]
+
+
+class AgentWorkPanel(Vertical):
+    """Latest assignment blocks plus a list of earlier assignments."""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.works: tuple[model.AgentWork, ...] = ()
+        self.selected = 0
+
+    async def show(self, works: tuple[model.AgentWork, ...], now: datetime, colors: dict[str, str]) -> None:
+        self.works = works
+        if self.selected >= len(works):
+            self.selected = 0
+        await self.rebuild(now, colors)
+
+    async def select(self, index: int, now: datetime, colors: dict[str, str]) -> None:
+        if index < 0 or index >= len(self.works):
+            return
+        self.selected = index
+        await self.rebuild(now, colors)
+
+    async def rebuild(self, now: datetime, colors: dict[str, str]) -> None:
+        await self.remove_children()
+        if not self.works:
+            self.display = False
+            return
+        self.display = True
+        work = self.works[self.selected]
+        widgets: list[Widget] = [
+            CollapsibleBlock(title, text, id=f"agent-block-{index}", classes="agent-block")
+            for index, (title, text) in enumerate(agent_block_specs(work))
+        ]
+        earlier = [
+            (index, item) for index, item in enumerate(self.works) if index != self.selected
+        ]
+        if earlier:
+            heading = Static(Text("Earlier assignments", style=colors["muted"]), classes="earlier-heading")
+            options = [
+                Option(earlier_label(item, now), id=f"agent:{index}")
+                for index, item in earlier
+            ]
+            listing = EarlierList(*options, id="agent-earlier", classes="earlier-list")
+            widgets.extend([heading, listing])
+        await self.mount_all(widgets)
+
+
 class TaskDetailScreen(Screen[None]):
     CSS = """
     #detail-bar { height: 1; padding: 0 1; background: $panel; }
@@ -197,6 +316,13 @@ class TaskDetailScreen(Screen[None]):
     Markdown > MarkdownBlock { margin: 1 0 0 0; }
     Markdown > MarkdownHeader { margin: 0; }
     Markdown > MarkdownBlock:first-child { margin-top: 0; }
+    CollapsibleBlock { height: auto; margin-bottom: 1; padding: 0; }
+    CollapsibleBlock:focus { background: $block-cursor-background 30%; }
+    .earlier-heading { margin-top: 1; height: auto; }
+    #agent-earlier { height: auto; margin-top: 0; border: none; padding: 0; background: transparent; }
+    #agent-earlier:focus { border: none; background-tint: $foreground 0%; }
+    #agent-earlier > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
+    #agent-earlier:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
     """
     AUTO_FOCUS = "#detail"
     BINDINGS = [
@@ -205,6 +331,7 @@ class TaskDetailScreen(Screen[None]):
         Binding("c", "app.copy_slug", "copy"),
         Binding("g", "commit", "commit"),
         Binding("r", "app.refresh", "refresh"),
+        Binding("o", "page_block", "pager", show=False),
     ]
 
     def __init__(self, target: artifact_store.Target, task_id: str) -> None:
@@ -233,6 +360,9 @@ class TaskDetailScreen(Screen[None]):
                 acceptances = Vertical(id="acceptances", classes="panel")
                 acceptances.border_title = "Acceptance"
                 yield acceptances
+                agent = AgentWorkPanel(id="agent-work", classes="panel")
+                agent.border_title = "Agent work"
+                yield agent
                 timeline = Vertical(id="timeline", classes="panel")
                 timeline.border_title = "Timeline"
                 yield timeline
@@ -257,6 +387,15 @@ class TaskDetailScreen(Screen[None]):
         links.focus()
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        if isinstance(event.option_list, EarlierList):
+            event.stop()
+            key = event.option.id or ""
+            if key.startswith("agent:"):
+                index = int(key[len("agent:"):])
+                colors = palette_from(self.app.get_css_variables())
+                now = datetime.now(timezone.utc)
+                self.run_worker(self.query_one("#agent-work", AgentWorkPanel).select(index, now, colors))
+            return
         if not isinstance(event.option_list, LinkList) or self.detail is None:
             return
         event.stop()
@@ -275,6 +414,19 @@ class TaskDetailScreen(Screen[None]):
                 self.app.push_screen(
                     RequirementDetailScreen(self.target, self.detail.effort, phase, requirement)
                 )
+
+    def action_page_block(self) -> None:
+        focused = self.focused
+        if not isinstance(focused, CollapsibleBlock):
+            return
+        text = focused.pager_text()
+        suspend = getattr(self.app, "suspend", None)
+        context = suspend() if callable(suspend) else nullcontext()
+        try:
+            with context:
+                pager.page_text(text)
+        except Exception:
+            pager.page_text(text)
 
     def action_commit(self) -> None:
         if self.detail is None:
@@ -342,6 +494,7 @@ class TaskDetailScreen(Screen[None]):
         self.query_one("#detail-links", LinkList).fill(link_options(detail, colors))
         await self.query_one("#description Markdown", Markdown).update(description_source(detail.body))
         await self.fill_acceptances(detail, colors)
+        await self.query_one("#agent-work", AgentWorkPanel).show(detail.agent_work, now, colors)
         await self.fill_timeline(detail, now, colors)
         if not self.is_attached or not self.query("#related"):
             return
