@@ -262,9 +262,9 @@ class TaskDetailScreen(Screen[None]):
         event.stop()
         key = event.option.id or ""
         if key.startswith(PHASE_PREFIX):
-            from dashboard.app import PhaseDetailScreen
+            from dashboard.phase_screen import PhaseScreen
 
-            self.app.push_screen(PhaseDetailScreen(self.target, self.detail.effort, key[len(PHASE_PREFIX):]))
+            self.app.push_screen(PhaseScreen(self.target, self.detail.effort, key[len(PHASE_PREFIX):]))
         elif key.startswith("task:"):
             self.app.push_screen(TaskDetailScreen(self.target, key[len("task:"):]))
         elif key.startswith("req:"):

@@ -6,7 +6,6 @@ import argparse
 import os
 import subprocess
 import sys
-import textwrap
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,8 +17,9 @@ from dashboard import selection
 from dashboard.commit import CommitScreen
 from dashboard.landing import Landing
 from dashboard.display import (
-    ANSI_PALETTE, PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, WIDE, clip, palette_from, relative_time, slug,
+    ANSI_PALETTE, PHASE_GLYPH, REDRAW_SECONDS, WIDE, clip, palette_from, relative_time, slug,
 )
+from dashboard.phase_screen import PhaseScreen
 from dashboard.task_detail import TaskDetailScreen
 from dashboard.tasks import (
     FOLD_KEY, PHASE_PREFIX, STATUS_TABS, SectionRow, TaskFilter, TaskTable, counts, empty_text, phase_progress,
@@ -32,7 +32,6 @@ from textual import events, work
 from textual.binding import Binding
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
-from textual.geometry import Region
 from textual.screen import Screen
 from textual.widgets._tabbed_content import ContentTabs
 from textual.widgets import (
@@ -41,11 +40,12 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 RESULT_GLYPH = {"pass": "✓", "fail": "✗"}
-STAGE_NAMES = ("specify", "design", "plan", "execute", "integrate", "verify", "assess", "release")
 NEEDS_TEXT_TITLE = {
     "blocking-question": "Question", "open-question": "Question", "needs-human": "Claim", "unsigned-check": "Check",
     "loop-route": "Assessment", "integration": "Report", "merge-branch": "Branch",
 }
+# Compat for tests and task_detail that still import the old name.
+PhaseDetailScreen = PhaseScreen
 
 
 def effort_progress(view: model.EffortView) -> tuple[int, int]:
@@ -120,46 +120,6 @@ def tab_label(view: model.EffortView) -> str:
     return label
 
 
-def stage_strip(stage: str, colors: dict[str, str], width: int) -> Text:
-    width = max(width, 8)
-    text = Text()
-    used = 0
-    for name in STAGE_NAMES:
-        style = "bold " + colors["primary"] if name == stage else colors["muted"]
-        gap = 3 if used else 0
-        if used and used + gap + len(name) > width:
-            text.append("\n")
-            used = 0
-            gap = 0
-        if gap:
-            text.append(" · ", style=colors["muted"])
-            used += 3
-        text.append(name, style=style)
-        used += len(name)
-    return text
-
-
-def wrap_block(text: str, width: int) -> str:
-    width = max(width, 8)
-    return "\n".join(
-        "\n".join(textwrap.wrap(paragraph, width) or [""])
-        for paragraph in text.splitlines() or [""]
-    )
-
-
-def requirement_line(row: model.RequirementRow, width: int) -> Text:
-    parts = [row.id, row.status]
-    if row.next:
-        parts.append(row.next)
-    parts.append(str(row.tasks))
-    text = Text("  ".join(parts), no_wrap=True, overflow="ellipsis")
-    if row.status == "unassessed" and row.latest_check is not None:
-        text.append("  ")
-        text.append(row.latest_check.result, style="dim")
-    text.truncate(max(width, 8), overflow="ellipsis")
-    return text
-
-
 
 def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console: Console) -> None:
     colors = ANSI_PALETTE
@@ -211,24 +171,6 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
             for line in lines:
                 console.print(line)
 
-
-def phase_chips(detail: model.PhaseDetail, colors: dict[str, str]) -> Text:
-    done = sum(task.status == "done" for task in detail.tasks)
-    total = sum(task.status != "withdrawn" for task in detail.tasks)
-    text = Text()
-    text.append(f"{PHASE_GLYPH.get(detail.state, '·')} {detail.state}", style=colors["muted"])
-    if detail.awaiting_signoff:
-        text.append(" · ", style=colors["muted"])
-        text.append("awaiting sign-off", style=colors["warning"])
-    text.append(f" · {done}/{total} tasks", style=colors["muted"])
-    return text
-
-
-def phase_task_line(task: model.TaskRow, colors: dict[str, str]) -> Text:
-    text = Text(no_wrap=True, overflow="ellipsis")
-    text.append(f"{STATUS_GLYPH.get(task.status, '·')} ", style=colors.get(task.status, colors["muted"]))
-    text.append(task.title or task.subject)
-    return text
 
 
 class PhaseSelector(Static):
@@ -455,244 +397,6 @@ class NeedsList(OptionList):
         return self.items[self.highlighted]
 
 
-class PhaseTaskList(OptionList):
-    BINDINGS = [
-        Binding("j", "cursor_down", "down", show=False),
-        Binding("k", "cursor_up", "up", show=False),
-        Binding("pageup", "scroll_phase('page_up')", "page up", show=False),
-        Binding("pagedown", "scroll_phase('page_down')", "page down", show=False),
-        Binding("home", "scroll_phase('home')", "top", show=False),
-        Binding("end", "scroll_phase('end')", "bottom", show=False),
-    ]
-
-    def __init__(self, id: str) -> None:
-        super().__init__(id=id)
-        self.tasks: list[model.TaskRow] = []
-
-    def fill(self, tasks: list[model.TaskRow], colors: dict[str, str]) -> None:
-        kept = self.tasks[self.highlighted].id if self.highlighted is not None and self.highlighted < len(self.tasks) else None
-        self.tasks = list(tasks)
-        self.clear_options()
-        self.add_options(Option(phase_task_line(task, colors), id=task.id) for task in self.tasks)
-        ids = [task.id for task in self.tasks]
-        if ids:
-            self.highlighted = ids.index(kept) if kept in ids else 0
-
-    def action_scroll_phase(self, where: str) -> None:
-        getattr(self.screen.query_one("#phase", VerticalScroll), f"scroll_{where}")(animate=False)
-
-    def action_cursor_down(self) -> None:
-        super().action_cursor_down()
-        self.follow()
-
-    def action_cursor_up(self) -> None:
-        super().action_cursor_up()
-        self.follow()
-
-    def follow(self) -> None:
-        if self.highlighted is None:
-            return
-        scroll = self.screen.query_one("#phase", VerticalScroll)
-        top = self.content_region.y - scroll.content_region.y + int(scroll.scroll_y) + self.highlighted
-        scroll.scroll_to_region(Region(0, top, 1, 1), animate=False, immediate=True)
-
-
-class RequirementList(OptionList):
-    def __init__(self, id: str) -> None:
-        super().__init__(id=id)
-        self.rows: list[model.RequirementRow] = []
-
-    def fill(self, rows, width: int) -> None:
-        self.rows = list(rows)
-        self.clear_options()
-        for row in self.rows:
-            self.add_option(Option(requirement_line(row, width), id=row.id))
-
-
-class PhaseDetailScreen(Screen[None]):
-    CSS = """
-    #phase-bar { height: 1; padding: 0 1; background: $panel; }
-    #phase-error { height: auto; padding: 0 1; background: $error 20%; color: $error; display: none; }
-    #phase { padding: 0 1; scrollbar-gutter: stable; }
-    #phase-loading { margin-top: 1; color: $text-muted; }
-    #phase-content { height: auto; display: none; }
-    #phase-title { margin-top: 1; text-style: bold; }
-    .phase-panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
-    #phase-body Markdown { margin: 0; padding: 0; background: transparent; }
-    #phase-body Markdown > MarkdownBlock { margin: 1 0 0 0; }
-    #phase-body Markdown > MarkdownHeader { margin: 0; }
-    #phase-body Markdown > MarkdownBlock:first-child { margin-top: 0; }
-    #phase-tasks { height: auto; max-height: 1000; background: transparent; }
-    #phase-tasks:focus { border: round $accent; }
-    #phase-stage { height: auto; margin-top: 1; }
-    #phase-requirements { height: auto; max-height: 1000; background: transparent; }
-    #phase-requirements:focus { border: round $accent; }
-    """
-    AUTO_FOCUS = "#phase"
-    BINDINGS = [
-        Binding("escape", "back", "back"),
-        Binding("c", "app.copy_slug", "copy"),
-        Binding("r", "app.refresh", "refresh"),
-    ]
-
-    def __init__(self, target: artifact_store.Target, effort: str, phase_subject: str) -> None:
-        super().__init__()
-        self.target = target
-        self.effort = effort
-        self.phase_subject = phase_subject
-        self.detail: model.PhaseDetail | None = None
-        self.loaded = False
-        self.token: str | None = None
-        self.loaded_at = 0.0
-
-    def compose(self) -> ComposeResult:
-        yield Static(id="phase-bar")
-        yield Static(id="phase-error")
-        with VerticalScroll(id="phase"):
-            yield Static("Loading…", id="phase-loading")
-            with Vertical(id="phase-content"):
-                yield Static(id="phase-title")
-                yield Static(id="phase-chips")
-                stage = Static(id="phase-stage")
-                stage.display = False
-                yield stage
-                for name, label in (("spec", "Specification"), ("design", "Design"), ("integration", "Integration")):
-                    panel = Static(id=f"phase-{name}", classes="phase-panel")
-                    panel.border_title = label
-                    panel.display = False
-                    yield panel
-                requirements = RequirementList(id="phase-requirements")
-                requirements.add_class("phase-panel")
-                requirements.border_title = "Requirements"
-                requirements.display = False
-                yield requirements
-                for name, label in (("body", "Phase"), ("decisions", "Decisions"), ("constraints", "Constraints"), ("tasks", "Tasks")):
-                    if name == "body":
-                        panel = Vertical(Markdown(), id="phase-body", classes="phase-panel")
-                    elif name == "tasks":
-                        panel = PhaseTaskList(id="phase-tasks")
-                        panel.add_class("phase-panel")
-                    else:
-                        panel = Static(id=f"phase-{name}", classes="phase-panel")
-                    panel.border_title = label
-                    yield panel
-        yield Footer()
-
-    def on_mount(self) -> None:
-        self.load()
-
-    def action_back(self) -> None:
-        self.app.pop_screen()
-        self.app.call_after_refresh(self.app.focus_tasks)
-
-    @work(thread=True, exclusive=True, group="phase-detail")
-    def load(self) -> None:
-        self.loaded_at = time.monotonic()
-        try:
-            self.token = model.change_token(self.target)
-            detail = model.load_phase_detail(self.target, self.effort, self.phase_subject)
-        except (OSError, model.ModelError) as exc:
-            self.app.call_from_thread(self.show_error, str(exc))
-            return
-        self.app.call_from_thread(self.apply, detail)
-
-    def poll(self, token: str) -> None:
-        if token != self.token or time.monotonic() - self.loaded_at > REDRAW_SECONDS:
-            self.load()
-
-    def show_error(self, message: str) -> None:
-        if not self.is_attached:
-            return
-        banner = self.query_one("#phase-error", Static)
-        banner.update(Text(message.splitlines()[0] if message else "error", no_wrap=True, overflow="ellipsis"))
-        banner.display = True
-
-    async def apply(self, detail: model.PhaseDetail) -> None:
-        if not self.is_attached:
-            return
-        colors = palette_from(self.app.get_css_variables())
-        self.detail = detail
-        self.query_one("#phase-error", Static).display = False
-        self.query_one("#phase-loading", Static).display = False
-        self.query_one("#phase-content").display = True
-        bar = Text(no_wrap=True, overflow="ellipsis")
-        bar.append(detail.title or detail.subject, style="bold")
-        bar.append(f"  {detail.effort}", style=colors["muted"])
-        self.query_one("#phase-bar", Static).update(bar)
-        self.query_one("#phase-title", Static).update(Text(detail.title or detail.subject, style="bold"))
-        self.query_one("#phase-chips", Static).update(phase_chips(detail, colors))
-        self._show_evidence(detail, colors)
-        body = self.query_one("#phase-body")
-        body.display = bool(detail.body.strip())
-        await self.query_one("#phase-body Markdown", Markdown).update(detail.body.strip())
-        for name, records in (("decisions", detail.decisions), ("constraints", detail.constraints)):
-            panel = self.query_one(f"#phase-{name}", Static)
-            panel.display = bool(records)
-            panel.update(Text("\n".join(record.text for record in records)))
-        tasks = self.query_one("#phase-tasks", PhaseTaskList)
-        tasks.display = bool(detail.tasks)
-        tasks.fill(detail.tasks, colors)
-        if not self.loaded and detail.tasks:
-            tasks.focus(scroll_visible=False)
-        self.loaded = True
-
-
-    def _evidence_width(self) -> int:
-        pane = self.query_one("#phase")
-        width = pane.scrollable_content_region.width
-        if width <= 0:
-            width = max(self.size.width - 4, 20)
-        return width
-
-    def _show_evidence(self, detail: model.PhaseDetail, colors: dict[str, str]) -> None:
-        evidence = detail.evidence
-        width = self._evidence_width()
-        inner = max(width - 4, 8)
-        stage = self.query_one("#phase-stage", Static)
-        spec = self.query_one("#phase-spec", Static)
-        design = self.query_one("#phase-design", Static)
-        integration = self.query_one("#phase-integration", Static)
-        requirements = self.query_one("#phase-requirements", RequirementList)
-        stage.display = evidence is not None
-        spec.display = evidence is not None
-        design.display = evidence is not None and bool(evidence.decisions)
-        integration.display = evidence is not None and evidence.integration is not None
-        requirements.display = evidence is not None and bool(evidence.requirements)
-        if evidence is None:
-            return
-        stage.update(stage_strip(evidence.stage, colors, width))
-        spec_text = evidence.weight
-        if evidence.non_goals.strip():
-            spec_text = f"{spec_text}\n{evidence.non_goals.strip()}"
-        spec.update(wrap_block(spec_text, inner))
-        if design.display:
-            design.update(wrap_block(
-                "\n".join(f"{item.subject}: {item.choice}" for item in evidence.decisions), inner,
-            ))
-        if integration.display and evidence.integration is not None:
-            report = evidence.integration
-            integration.update(wrap_block(f"{report.result}\nConflicts\n{report.conflicts}", inner))
-        if requirements.display:
-            requirements.fill(evidence.requirements, inner)
-
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        selected = event.option_list
-        if isinstance(selected, RequirementList):
-            if event.option_index >= len(selected.rows):
-                return
-            event.stop()
-            from dashboard.requirement_detail import RequirementDetailScreen
-
-            row = selected.rows[event.option_index]
-            self.app.push_screen(
-                RequirementDetailScreen(self.target, self.effort, self.phase_subject, row.id)
-            )
-            return
-        if not isinstance(selected, PhaseTaskList) or event.option_index >= len(selected.tasks):
-            return
-        event.stop()
-        self.app.push_screen(TaskDetailScreen(self.target, selected.tasks[event.option_index].id))
-
 
 class NeedsYouDetailScreen(Screen[None]):
     CSS = """
@@ -901,7 +605,9 @@ class DashboardApp(App[None]):
         Binding("r", "refresh", "refresh", show=False),
         Binding("c", "copy_slug", "copy"),
         Binding("enter", "open_task", "open", show=False),
-        Binding("p", "open_phase", "phase"),
+        Binding("p", "open_phase('overview')", "phase"),
+        Binding("s", "open_phase('spec')", "spec", show=False),
+        Binding("e", "open_phase('evidence')", "evidence", show=False),
         Binding("n", "focus_needs", "needs"),
         Binding("slash", "filter", "filter"),
         Binding("1", "status_tab('active')", "status", key_display="1-6"),
@@ -1202,7 +908,7 @@ class DashboardApp(App[None]):
             return None
         return table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
 
-    def action_open_phase(self) -> None:
+    def action_open_phase(self, tab: str = "overview") -> None:
         pane = self.active_pane()
         if pane is None or self.snapshot is None:
             return
@@ -1210,19 +916,23 @@ class DashboardApp(App[None]):
         if view is None:
             return
         selected = selection.resolve_selection(view, self.selections.get(pane.effort, selection.PhaseSelection()))
-        if selected is not None:
-            if not isinstance(self.screen, DETAIL_SCREENS):
-                self.push_screen(PhaseDetailScreen(self.target, pane.effort, selected))
+        subject = selected
+        if subject is None:
+            key = self.cursor_key()
+            if key is None or key == FOLD_KEY:
+                return
+            if key.startswith(PHASE_PREFIX):
+                subject = key[len(PHASE_PREFIX):]
+            else:
+                subject = next((t.phase for v in self.snapshot.efforts for t in v.tasks if t.id == key), "")
+        if not subject or isinstance(self.screen, DETAIL_SCREENS):
             return
-        key = self.cursor_key()
-        if key is None or key == FOLD_KEY:
-            return
-        if key.startswith(PHASE_PREFIX):
-            subject = key[len(PHASE_PREFIX):]
-        else:
-            subject = next((t.phase for v in self.snapshot.efforts for t in v.tasks if t.id == key), "")
-        if subject and not isinstance(self.screen, DETAIL_SCREENS):
-            self.push_screen(PhaseDetailScreen(self.target, pane.effort, subject))
+        open_tab = tab
+        if tab == "evidence":
+            phase_row = next((p for p in view.phases if p.subject == subject), None)
+            if phase_row is None or phase_row.evidence is None:
+                open_tab = "overview"
+        self.push_screen(PhaseScreen(self.target, pane.effort, subject, tab=open_tab))
 
     def select_phase(self, effort: str, target: str | None) -> None:
         pane = self.panes.get(effort)

@@ -160,12 +160,22 @@ def _run(target: Target, *args: str) -> dict[str, Any]:
         raise ModelError(f"{label} returned unreadable output") from exc
 
 
-def _list(target: Target, record_type: str, *, state: str | None = None) -> list[dict[str, Any]]:
+def _list(
+    target: Target,
+    record_type: str,
+    *,
+    state: str | None = None,
+    where: tuple[str, ...] = (),
+    full: bool | None = None,
+) -> list[dict[str, Any]]:
     args = ["list", "--type", record_type]
-    if record_type in FULL_TYPES:
+    use_full = record_type in FULL_TYPES if full is None else full
+    if use_full:
         args.append("--full")
     if state:
         args.extend(["--state", state])
+    for clause in where:
+        args.extend(["--where", clause])
     try:
         output = _run(target, *args)
     except ModelError:
@@ -1145,6 +1155,26 @@ def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
     )
 
 
+TABS = ("overview", "spec", "design", "decisions", "evidence", "tasks")
+SIMPLE_TABS = ("overview", "spec", "decisions", "tasks")
+
+
+@dataclass(frozen=True)
+class DecisionEntry:
+    subject: str
+    phase: str
+    choice: str
+    alternatives: str
+    rationale: str
+    counter: str
+    superseded: tuple["DecisionEntry", ...] = ()
+
+
+@dataclass(frozen=True)
+class DecisionLog:
+    groups: tuple[tuple[str, tuple[DecisionEntry, ...]], ...]
+
+
 @dataclass(frozen=True)
 class PhaseDetail:
     subject: str
@@ -1157,6 +1187,97 @@ class PhaseDetail:
     constraints: list[RelatedRecord]
     tasks: list[TaskRow]
     evidence: PhaseEvidence | None = None
+    spec_body: str = ""
+    design_body: str = ""
+    structured: bool = False
+
+
+def tabs_for(detail: PhaseDetail) -> tuple[str, ...]:
+    """Full tab set for a structured phase; simple set otherwise (R1)."""
+    return TABS if detail.structured else SIMPLE_TABS
+
+
+def _decision_entry(
+    record: dict[str, Any],
+    by_id: dict[str, dict[str, Any]],
+    history: bool,
+) -> DecisionEntry:
+    payload = _payload(record)
+    body = record.get("body") or ""
+    superseded: tuple[DecisionEntry, ...] = ()
+    if history:
+        kids = []
+        for ref in (record.get("relationships") or {}).get("supersedes") or []:
+            predecessor = by_id.get(ref)
+            if predecessor is not None:
+                kids.append(_decision_entry(predecessor, by_id, history))
+        superseded = tuple(kids)
+    return DecisionEntry(
+        subject=record["subject"],
+        phase=payload.get("phase", ""),
+        choice=payload.get("choice", ""),
+        alternatives=payload.get("alternatives", "") or "",
+        rationale=_section(body, "Rationale"),
+        counter=_section(body, "Counter-argument"),
+        superseded=superseded,
+    )
+
+
+def load_decision_log(
+    target: Target, effort: str, phase: str | None, history: bool,
+) -> DecisionLog:
+    """Phase- or effort-scoped decisions, with optional superseded chains (R7)."""
+    aliases = _merge_aliases(_list(target, "project:active-goal"))
+    phase_records = [
+        record for record in _remapped(_list(target, "project:phase"), aliases)
+        if _payload(record).get("effort") == effort
+    ]
+    phase_records.sort(key=lambda record: (_payload(record).get("ordinal", 0), record["subject"]))
+    titles = {
+        record["subject"]: _payload(record).get("title") or record["subject"]
+        for record in phase_records
+    }
+
+    listed = _remapped(
+        _list(target, "project:decision", where=(f"payload.effort={effort}",), full=True),
+        aliases,
+    )
+    by_id = {record["id"]: record for record in listed}
+    if history:
+        for record in _remapped(
+            _list(
+                target, "project:decision", state="superseded",
+                where=(f"payload.effort={effort}",), full=True,
+            ),
+            aliases,
+        ):
+            by_id.setdefault(record["id"], record)
+
+    active = [
+        record for record in by_id.values()
+        if record.get("lifecycle_state") not in INACTIVE_STATES
+        and _payload(record).get("effort") in (None, "", effort)
+        and (phase is None or _payload(record).get("phase") == phase)
+    ]
+    active.sort(key=lambda record: (record["subject"], record["id"]))
+
+    grouped: dict[str, list[DecisionEntry]] = {}
+    for record in active:
+        phase_subject = _payload(record).get("phase") or ""
+        title = titles.get(phase_subject, phase_subject)
+        grouped.setdefault(title, []).append(_decision_entry(record, by_id, history))
+
+    ordered_titles = [
+        titles[record["subject"]]
+        for record in phase_records
+        if titles[record["subject"]] in grouped
+    ]
+    for title in grouped:
+        if title not in ordered_titles:
+            ordered_titles.append(title)
+    return DecisionLog(tuple(
+        (title, tuple(grouped[title])) for title in ordered_titles
+    ))
 
 
 def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseDetail:
@@ -1179,10 +1300,20 @@ def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseD
         (p for p in _phase_rows([record], tasks, effort_acceptances, effort_checks)),
         None,
     )
+    phase_specs = _remapped(
+        _list(target, "project:specification", where=(f"payload.phase={phase_subject}",), full=True),
+        aliases,
+    )
+    phase_designs = _remapped(
+        _list(target, "project:design", where=(f"payload.phase={phase_subject}",), full=True),
+        aliases,
+    )
+    spec = _newest(_for_phase(phase_specs, phase_subject, effort))
+    design = _newest(_for_phase(phase_designs, phase_subject, effort))
     evidence = _phase_evidence(
         phase_subject, effort,
-        by_effort("project:specification").get(effort, []),
-        by_effort("project:design").get(effort, []),
+        phase_specs,
+        phase_designs,
         decision_records, tasks, effort_acceptances, effort_checks,
         by_effort("project:assessment").get(effort, []),
         by_effort("project:integration-report").get(effort, []),
@@ -1205,6 +1336,9 @@ def load_phase_detail(target: Target, effort: str, phase_subject: str) -> PhaseD
         decisions=decisions, constraints=constraints,
         tasks=[t for t in _task_rows(tasks) if t.phase == phase_subject],
         evidence=evidence,
+        spec_body=(spec.get("body") or "") if spec else "",
+        design_body=(design.get("body") or "") if design else "",
+        structured=spec is not None,
     )
 
 

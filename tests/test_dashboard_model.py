@@ -1075,6 +1075,119 @@ def test_evidence_simple_phase_adds_no_items(store, cli, defs):
     assert model.load_phase_detail(_target(store), "alpha", "p-simple").evidence is None
 
 
+def test_phase_screen_tabs_for_structured_and_simple_phases(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-full", 1, "in_progress")
+    _phase(cli, defs, "alpha", "p-plain", 2, "in_progress")
+    _spec(cli, defs, "p-full", "R1", body=_body(defs, "project:specification", {
+        "Requirements": "R1: structured holds",
+        "Non-goals": "none",
+    }))
+    design_body = _body(defs, "project:design", {"Architecture": "one pane per tab"})
+    _record(cli, defs, "project:design", "p-full", {
+        "phase": "p-full", "effort": "alpha", "decisions": "pick-cols",
+    }, design_body)
+    full = model.load_phase_detail(_target(store), "alpha", "p-full")
+    plain = model.load_phase_detail(_target(store), "alpha", "p-plain")
+    assert full.structured is True
+    assert "structured holds" in full.spec_body
+    assert "one pane per tab" in full.design_body
+    assert model.tabs_for(full) == model.TABS
+    assert model.tabs_for(full) == (
+        "overview", "spec", "design", "decisions", "evidence", "tasks",
+    )
+    assert plain.structured is False
+    assert model.tabs_for(plain) == model.SIMPLE_TABS
+    assert model.tabs_for(plain) == ("overview", "spec", "decisions", "tasks")
+
+
+def test_phase_screen_tabs_when_specification_type_is_missing():
+    import shutil
+
+    design = json.loads(CONTRACT_PATH.read_text())
+    drop = {"specification", "design", "assessment", "integration-report", "release"}
+    design["records"] = [record for record in design["records"] if record["name"] not in drop]
+    root = make_git_repo()
+    try:
+        artifacts = root / ".artifacts"
+        artifacts.mkdir()
+        (artifacts / "project-design.json").write_text(json.dumps(design))
+        assert run_cli("resolve", root=root).returncode == 0
+        assert run_cli("init", root=root).returncode == 0
+        defs = h.record_defs_by_id(json.loads((artifacts / "resolved-contract.json").read_text()))
+
+        def cli(*args):
+            return run_cli(*args, root=root)
+
+        _goal(cli, defs, "alpha")
+        _phase(cli, defs, "alpha", "legacy-phase", 1, "in_progress")
+        detail = model.load_phase_detail(_target(root), "alpha", "legacy-phase")
+        assert detail.structured is False
+        assert detail.spec_body == ""
+        assert detail.design_body == ""
+        assert model.tabs_for(detail) == ("overview", "spec", "decisions", "tasks")
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_phase_screen_simple_detail_carries_body_and_constraints(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-simple", 1, "in_progress")
+    _record(cli, defs, "project:constraint", "simple-limit", {
+        "statement": "stay offline", "applies_to": "p-simple", "effort": "alpha",
+    })
+    detail = model.load_phase_detail(_target(store), "alpha", "p-simple")
+    assert detail.structured is False
+    assert "placeholder text for Problem" in detail.body
+    assert [c.text for c in detail.constraints] == ["stay offline"]
+    assert detail.spec_body == ""
+    assert detail.design_body == ""
+    assert model.tabs_for(detail) == ("overview", "spec", "decisions", "tasks")
+
+
+def test_phase_screen_decision_log_scopes_and_history(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-early", 1, "in_progress")
+    _phase(cli, defs, "alpha", "p-late", 2, "in_progress")
+    early_body = _body(defs, "project:decision", {
+        "Rationale": "early wins", "Counter-argument": "maybe late",
+    })
+    late_body = _body(defs, "project:decision", {
+        "Rationale": "late wins", "Counter-argument": "maybe early",
+    })
+    _record(cli, defs, "project:decision", "choose-early", {
+        "choice": "left", "alternatives": "right", "effort": "alpha", "phase": "p-early",
+    }, early_body)
+    first = _record(cli, defs, "project:decision", "choose-late", {
+        "choice": "old", "alternatives": "new", "effort": "alpha", "phase": "p-late",
+    }, late_body)
+    second = _supersede(cli, defs, "project:decision", first, {"choice": "new"})
+
+    phase_log = model.load_decision_log(_target(store), "alpha", "p-late", history=False)
+    assert [title for title, _ in phase_log.groups] == ["title of p-late"]
+    entries = phase_log.groups[0][1]
+    assert [(e.subject, e.choice, e.alternatives, e.rationale, e.counter, e.superseded) for e in entries] == [
+        ("choose-late", "new", "new", "placeholder.", "placeholder.", ()),
+    ]
+
+    effort_log = model.load_decision_log(_target(store), "alpha", None, history=False)
+    assert [title for title, _ in effort_log.groups] == ["title of p-early", "title of p-late"]
+    assert [e.subject for e in effort_log.groups[0][1]] == ["choose-early"]
+    assert effort_log.groups[0][1][0].rationale == "early wins"
+    assert effort_log.groups[0][1][0].counter == "maybe late"
+
+    history_log = model.load_decision_log(_target(store), "alpha", "p-late", history=True)
+    active = history_log.groups[0][1][0]
+    assert active.subject == "choose-late"
+    assert active.choice == "new"
+    assert len(active.superseded) == 1
+    prior = active.superseded[0]
+    assert (prior.subject, prior.choice) == ("choose-late", "old")
+    assert prior.rationale == "late wins"
+    assert prior.superseded == ()
+    assert second["id"] != first["id"]
+
+
 def test_evidence_legacy_store_loads_when_types_are_rejected(monkeypatch):
     import shutil
 

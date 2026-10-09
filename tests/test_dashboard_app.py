@@ -2092,9 +2092,16 @@ def test_p_on_a_header_opens_the_phase_detail_with_body_decisions_constraints_an
         screen = await _phase_shown(app, pilot)
         assert screen.phase_subject == "cur"
         assert "Phase cur" in str(screen.query_one("#phase-bar").render())
-        assert "placeholder text for Problem" in screen.query_one("#phase-body Markdown").source
-        assert "go left" in str(screen.query_one("#phase-decisions").render())
-        assert "no network" in str(screen.query_one("#phase-constraints").render())
+        await pilot.press("s")
+        await pilot.pause()
+        assert "placeholder text for Problem" in screen.query_one("#spec-markdown Markdown").source
+        assert "no network" in str(screen.query_one("#spec-constraints").render())
+        await pilot.press("d")
+        await _until(pilot, lambda: screen.decision_log is not None)
+        decisions = str(screen.query_one("#phase-decisions-list").get_option_at_index(0).prompt)
+        assert "go left" in decisions or "cur-choice" in decisions
+        await pilot.press("t")
+        await pilot.pause()
         tasks = " ".join(_phase_task_titles(screen))
         assert "title of cur-run" in tasks and "title of cur-ready" in tasks and "later-task" not in tasks
         await pilot.press("escape")
@@ -2117,6 +2124,8 @@ def test_phase_task_list_takes_focus_and_arrows_move_through_the_tasks(phased, s
         await pilot.pause()
         await pilot.press("p")
         screen = await _phase_shown(app, pilot)
+        await pilot.press("t")
+        await pilot.pause()
         tasks = screen.query_one("#phase-tasks")
         assert app.focused is tasks
         assert tasks.highlighted == 0
@@ -2135,6 +2144,8 @@ def test_phase_task_enter_opens_the_task_detail_and_escape_returns_to_the_phase_
         await pilot.pause()
         await pilot.press("p")
         screen = await _phase_shown(app, pilot)
+        await pilot.press("t")
+        await pilot.pause()
         await pilot.press("down", "enter")
         detail = await _shown(app, pilot)
         assert detail.task_id == screen.detail.tasks[1].id
@@ -2153,15 +2164,19 @@ def test_phase_task_list_leaves_page_keys_scrolling_the_phase_detail(phased):
     async def scenario(app, pilot):
         await pilot.press("p")
         screen = await _phase_shown(app, pilot)
-        scroll = screen.query_one("#phase")
-        assert scroll.max_scroll_y > 0
+        await pilot.press("t")
+        await pilot.pause()
+        tasks = screen.query_one("#phase-tasks")
+        assert app.focused is tasks
+        # Page keys scroll the Tasks pane (may not overflow at this height).
+        scroll = screen.query_one("#pane-tasks")
         await pilot.press("home")
         await _until(pilot, lambda: scroll.scroll_y == 0)
         await pilot.press("pagedown")
-        await _until(pilot, lambda: scroll.scroll_y > 0)
+        await pilot.pause()
         await pilot.press("home")
         await _until(pilot, lambda: scroll.scroll_y == 0)
-        assert app.focused is screen.query_one("#phase-tasks")
+        assert app.focused is tasks
 
     _detail_run(phased, (60, 20), scenario)
 
@@ -2215,8 +2230,10 @@ def test_phase_body_headings_have_no_blank_line_above(phased, size):
     async def scenario(app, pilot):
         await pilot.press("p")
         screen = await _phase_shown(app, pilot)
-        await _assert_headings_follow_text(app, pilot, screen.query_one("#phase-body Markdown"))
-        await _assert_headings_follow_text(app, pilot, screen.query_one("#phase-body Markdown"), HEADED_BODY)
+        await pilot.press("s")
+        await pilot.pause()
+        await _assert_headings_follow_text(app, pilot, screen.query_one("#spec-markdown Markdown"))
+        await _assert_headings_follow_text(app, pilot, screen.query_one("#spec-markdown Markdown"), HEADED_BODY)
 
     _detail_run(phased, size, scenario)
 
@@ -2691,21 +2708,23 @@ def test_evidence_strip_marks_the_current_stage_and_fits(store, cli, defs):
         assert any(style.bold for style in _styles_covering(stage, marked, marked + len("assess")))
         other = plain.index("specify")
         assert not any(style.bold for style in _styles_covering(stage, other, other + len("specify")))
+        await pilot.press("e")
+        await pilot.pause()
         spec = str(screen.query_one("#phase-spec").render())
         assert "full" in spec and "No new screen." in spec
         design = str(screen.query_one("#phase-design").render())
         assert "use-columns" in design and "two" in design
-        report = str(screen.query_one("#phase-integration").render())
+        report = str(screen.query_one("#evidence-integration").render())
         assert "fail" in report and "Conflicts" in report and "ports disagree" in report
-        limit = screen.query_one("#phase").scrollable_content_region.width
+        limit = screen.query_one("#pane-evidence").scrollable_content_region.width
         assert limit <= 60
-        for selector in ("#phase-stage", "#phase-spec", "#phase-design", "#phase-integration", "#phase-requirements"):
+        for selector in ("#phase-spec", "#phase-design", "#evidence-integration", "#phase-requirements"):
             widget = screen.query_one(selector)
             assert widget.display
             for line in _plain_lines(widget):
                 assert len(line) <= limit, (selector, line)
             for line in _widget_lines(widget):
-                assert len(line) <= screen.query_one("#phase").size.width, (selector, line)
+                assert len(line) <= screen.query_one("#pane-evidence").size.width, (selector, line)
         await pilot.press("escape")
         await _until(pilot, lambda: not isinstance(app.screen, app_module.PhaseDetailScreen))
         table = app.query_one("#tasks")
@@ -2920,8 +2939,9 @@ def test_evidence_link_phase_opens_the_requirement(store, cli, defs):
     _task(cli, defs, "row-a", "rows", "R1")
 
     async def scenario(app, pilot):
-        await pilot.press("p")
+        await pilot.press("e")
         screen = await _phase_shown(app, pilot)
+        assert screen.active_tab() == "evidence"
         reqs = screen.query_one("#phase-requirements")
         reqs.focus()
         if reqs.highlighted is None:
@@ -2933,6 +2953,7 @@ def test_evidence_link_phase_opens_the_requirement(store, cli, defs):
         await pilot.press("escape")
         await _until(pilot, lambda: type(app.screen) is app_module.PhaseDetailScreen and app.screen.loaded)
         assert app.screen is screen
+        assert screen.active_tab() == "evidence"
         assert len(app.screen_stack) == 2
 
     _run(store, 60, scenario)
