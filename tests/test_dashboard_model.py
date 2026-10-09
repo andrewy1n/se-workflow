@@ -1075,6 +1075,76 @@ def test_evidence_simple_phase_adds_no_items(store, cli, defs):
     assert model.load_phase_detail(_target(store), "alpha", "p-simple").evidence is None
 
 
+def test_matrix_row_fields_tones_glyphs_blockers_and_release_line(store, cli, defs):
+    from dashboard import matrix as matrix_mod
+
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-matrix", 1, "in_progress")
+    _spec(cli, defs, "p-matrix", "R1, R2, R3, R4, R5", weight="full", body=_body(defs, "project:specification", {
+        "Requirements": "\n".join([
+            "R1: verified row",
+            "R2: failed check row",
+            "R3: blocked row",
+            "R4: upstream row",
+            "R5: unassessed row",
+        ]),
+        "Non-goals": "none",
+    }))
+    _design(cli, defs, "p-matrix", "matrix-cols")
+    _task(cli, defs, "m-a", "p-matrix", "R1", done=True)
+    _task(cli, defs, "m-b", "p-matrix", "R1")
+    _task(cli, defs, "m-c", "p-matrix", "R2")
+    _assessment(cli, defs, "p-matrix", "R1", status="verified", next="release", confidence="high")
+    _assessment(cli, defs, "p-matrix", "R2", status="failed", level="implementation", next="execute", confidence="high")
+    _assessment(cli, defs, "p-matrix", "R3", status="blocked", level="plan", next="plan", confidence="high")
+    _assessment(cli, defs, "p-matrix", "R4", status="failed", level="design", next="design", confidence="high")
+    acc = _accept(cli, defs, "m-r2-acc", "p-matrix", "R2")
+    _check(cli, defs, "m-r2-fail", acc["id"], "fail", "R2", "integration")
+    _release(cli, defs, "p-matrix", "failed")
+
+    evidence = _effort(model.load_snapshot(_target(store)), "alpha").phases[0].evidence
+    assert evidence is not None
+    assert evidence.release_state == "failed"
+    by_id = {row.id: row for row in evidence.requirements}
+    assert list(by_id) == ["R1", "R2", "R3", "R4", "R5"]
+
+    r1 = by_id["R1"]
+    assert (r1.text, r1.status, r1.next, r1.tasks, r1.tasks_done, r1.confidence) == (
+        "verified row", "verified", "", 2, 1, "high",
+    )
+    assert r1.check_kind == "" and r1.check_at is None and r1.latest_check is None
+
+    r2 = by_id["R2"]
+    assert r2.latest_check is not None and r2.latest_check.result == "fail"
+    assert r2.check_kind == "integration" and r2.check_at == r2.latest_check.recorded_at
+
+    r5 = by_id["R5"]
+    assert (r5.status, r5.next, r5.confidence, r5.tasks, r5.tasks_done) == ("unassessed", "", "", 0, 0)
+
+    assert [matrix_mod.row_tone(by_id[rid]) for rid in by_id] == [
+        "default", "error", "error", "warning", "muted",
+    ]
+    assert [matrix_mod.glyph(by_id[rid]) for rid in by_id] == ["✓", "✗", "✗", "↑", "◌"]
+    assert matrix_mod.blockers(evidence) == [
+        "R2 → execute", "R3 → plan", "R4 → design", "R5 unassessed",
+    ]
+    wide = matrix_mod.release_line(evidence, 120).plain
+    assert wide.startswith("failed · 1/5 verified · ")
+    assert "R2 → execute" in wide and "R5 unassessed" in wide
+    narrow = matrix_mod.release_line(evidence, 40).plain
+    assert narrow.startswith("failed · 1/5 verified")
+    assert "+3 more" in narrow or "+4 more" in narrow
+    assert len(narrow) <= 40
+
+
+def test_matrix_no_specification_has_no_evidence(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _phase(cli, defs, "alpha", "p-plain", 1, "in_progress")
+    detail = model.load_phase_detail(_target(store), "alpha", "p-plain")
+    assert detail.evidence is None
+    assert "evidence" not in model.tabs_for(detail)
+
+
 def test_phase_screen_tabs_for_structured_and_simple_phases(store, cli, defs):
     _goal(cli, defs, "alpha")
     _phase(cli, defs, "alpha", "p-full", 1, "in_progress")

@@ -8,7 +8,7 @@ from typing import Any
 
 from rich.text import Text
 
-from dashboard import gates, model
+from dashboard import gates, matrix as matrix_mod, model
 from dashboard.display import (
     ACTIVITY_GLYPH, ACTIVITY_LINES, ANSI_PALETTE, PHASE_GLYPH, STATUS_GLYPH, clip, relative_time,
 )
@@ -145,6 +145,21 @@ def _phase_segment(
     return text
 
 
+def _requirement_strip(phase: model.PhaseRow, colors: dict[str, str]) -> Text | None:
+    evidence = phase.evidence
+    if evidence is None or not evidence.requirements:
+        return None
+    verified = sum(row.status == "verified" for row in evidence.requirements)
+    total = len(evidence.requirements)
+    text = Text(f"R {verified}/{total} verified ", style=colors["muted"])
+    for row in evidence.requirements:
+        tone = matrix_mod.row_tone(row)
+        style = "" if tone == "default" else colors.get(tone, "")
+        text.append(matrix_mod.glyph(row), style=style)
+    text.apply_meta({"target": f"evidence:{phase.subject}"})
+    return text
+
+
 def selector_segments(
     view: model.EffortView, selected: str | None, colors: dict[str, str],
     landing_suffix: str = "",
@@ -156,6 +171,9 @@ def selector_segments(
 
     if selected_phase is not None and selected_phase.state == "done":
         segments.append(_phase_segment(selected_phase, selected, colors, landing_suffix=landing_suffix))
+        strip = _requirement_strip(selected_phase, colors)
+        if strip is not None:
+            segments.append(strip)
     elif done_phases:
         done_text = Text(f"{len(done_phases)} done", style=colors["muted"])
         done_text.apply_meta({"target": "picker"})
@@ -164,11 +182,19 @@ def selector_segments(
     for phase in view.phases:
         if phase.state == "in_progress":
             segments.append(_phase_segment(phase, selected, colors, landing_suffix=landing_suffix))
+            if phase.subject == selected:
+                strip = _requirement_strip(phase, colors)
+                if strip is not None:
+                    segments.append(strip)
 
     planned = [phase for phase in view.phases if phase.state == "planned"]
     if planned:
         next_phase = min(planned, key=lambda phase: (phase.ordinal, phase.subject))
         segments.append(_phase_segment(next_phase, selected, colors, planned=True, landing_suffix=landing_suffix))
+        if next_phase.subject == selected:
+            strip = _requirement_strip(next_phase, colors)
+            if strip is not None:
+                segments.append(strip)
 
     all_style = colors["primary"] if selected is None else colors["muted"]
     all_text = Text("All phases", style=all_style)

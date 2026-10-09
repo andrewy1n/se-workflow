@@ -238,8 +238,9 @@ def test_prefix_a_popup_evidence_view_shows_unassessed_then_a_design_route_then_
         tmux.press("A")
         shown("Evidence phase", "· design", absent=("Needs you", "Release ready", "unassessed"))
         press(b"]", "R 0/2 verified", absent=("unassessed",))
-        press(b"[", "· design", absent=("R 0/2 verified",))
-        press(b"p", "unassessed", "R1", "R2", absent=("Needs you", "Release ready"))
+        # Selected-phase stepper keeps R n/m verified + glyphs (evidence-matrix R7).
+        press(b"[", "· design", "R 0/2 verified")
+        press(b"e", "unassessed", "R1", "R2", absent=("Needs you", "Release ready"))
         press(b"\x1b", "· design", absent=("unassessed",))
 
         tmux.output = b""

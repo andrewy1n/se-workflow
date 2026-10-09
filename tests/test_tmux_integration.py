@@ -347,7 +347,8 @@ def test_prefix_a_popup_keys_only_walks_tabs_phase_sections_phase_detail_and_det
         press(b"\x1b[A", "px-later 0/2")
     press(b"\r", "Phase px-later", "title of px-first", "title of px-second")
 
-    press(b"p", "planned · 0/2 tasks", "title of px-first", "title of px-second", absent=("px-later 0/2",))
+    press(b"p", "planned · 0/2 tasks", absent=("px-later 0/2",))
+    press(b"t", "title of px-first", "title of px-second")
     press(b"\x1b", "▾ ○ Phase px-later 0/2", "title of px-first", "title of px-second", absent=("planned · 0/2 tasks",))
 
     press(b"j", "px-later 0/2")
@@ -369,13 +370,14 @@ def test_prefix_a_popup_keys_only_walks_tabs_phase_sections_phase_detail_and_det
                   absent=("title of px-second", "Depends on:"))
     focus_links()
     press(pick(first, "Phase: px-later", "Blocks:"))
-    phase = press(b"\r", "planned · 0/2 tasks", "─ Tasks", "title of px-first", "title of px-second", absent=("Loading…", "Blocks:", "Description"))
+    press(b"\r", "planned · 0/2 tasks", absent=("Loading…", "Blocks:", "Description"))
+    phase = press(b"t", "title of px-first", "title of px-second")
     time.sleep(0.5)
     press(pick(phase, "title of px-second", "title of px-first"))
     press(b"\r", "px-second tmuxfx", "Depends on:", "Description", absent=("planned · 0/2 tasks", "Blocks:"))
 
-    press(b"\x1b", "planned · 0/2 tasks", absent=("Description",))
-    press(b"\x1b", "px-first tmuxfx", "Blocks:", absent=("planned · 0/2 tasks",))
+    press(b"\x1b", "title of px-first", "title of px-second", absent=("Description",))
+    press(b"\x1b", "px-first tmuxfx", "Blocks:", absent=("title of px-second",))
     press(b"\x1b", "px-second tmuxfx", "Depends on:", absent=("Blocks:",))
     press(b"\x1b", "▾ ○ Phase px-later 0/2", "title of px-first", "title of px-second", absent=("Description",))
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1

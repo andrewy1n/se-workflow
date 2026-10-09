@@ -5,6 +5,7 @@ from __future__ import annotations
 import textwrap
 import time
 from contextlib import nullcontext
+from datetime import datetime, timezone
 
 from rich.text import Text
 from textual import work
@@ -13,14 +14,17 @@ from textual.containers import Vertical, VerticalScroll
 from textual.geometry import Region
 from textual.screen import Screen
 from textual.widget import Widget
-from textual.widgets import Footer, Markdown, OptionList, ProgressBar, Static, TabbedContent, TabPane
+from textual.widgets import (
+    DataTable, Footer, Markdown, OptionList, ProgressBar, Static, TabbedContent, TabPane,
+)
 from textual.widgets.option_list import Option
 
 from dashboard import artifact_store
 from dashboard import gates
+from dashboard import matrix as matrix_mod
 from dashboard import model
 from dashboard import pager
-from dashboard.display import PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, palette_from
+from dashboard.display import PHASE_GLYPH, REDRAW_SECONDS, STATUS_GLYPH, elapsed, palette_from
 from dashboard.task_detail import TaskDetailScreen
 
 STAGE_NAMES = ("specify", "design", "plan", "execute", "integrate", "verify", "assess", "release")
@@ -159,27 +163,103 @@ class PhaseTaskList(OptionList):
         scroll.scroll_to_region(Region(0, top, 1, 1), animate=False, immediate=True)
 
 
-class RequirementList(OptionList):
+COLUMN_LABELS = {
+    "id": "id",
+    "text": "text",
+    "tasks": "tasks",
+    "check": "✓",
+    "kind": "kind",
+    "age": "age",
+    "status": "status",
+    "next": "next",
+}
+
+
+def _check_glyph(row: model.RequirementRow) -> str:
+    if row.latest_check is None:
+        return ""
+    if row.latest_check.result == "pass":
+        return "✓"
+    if row.latest_check.result == "fail":
+        return "✗"
+    return row.latest_check.result
+
+
+def _check_age(row: model.RequirementRow, now: datetime) -> str:
+    if row.check_at is None:
+        return ""
+    return elapsed(row.check_at, now)
+
+
+def _tone_style(tone: str, colors: dict[str, str]) -> str:
+    if tone == "default":
+        return ""
+    return colors.get(tone, "")
+
+
+def matrix_cell(row: model.RequirementRow, column: str, colors: dict[str, str], now: datetime) -> Text:
+    style = _tone_style(matrix_mod.row_tone(row), colors)
+    if column == "id":
+        value = row.id
+    elif column == "text":
+        value = row.text
+    elif column == "tasks":
+        value = f"{row.tasks_done}/{row.tasks}"
+    elif column == "check":
+        value = _check_glyph(row)
+    elif column == "kind":
+        value = row.check_kind
+    elif column == "age":
+        value = _check_age(row, now)
+    elif column == "status":
+        value = row.status
+    elif column == "next":
+        value = row.next
+    else:
+        value = ""
+    return Text(value, style=style, no_wrap=True, overflow="ellipsis")
+
+
+class RequirementMatrix(DataTable):
     BINDINGS = [
+        Binding("enter", "select_cursor", "open", show=False),
         Binding("j", "cursor_down", "down", show=False),
         Binding("k", "cursor_up", "up", show=False),
     ]
 
     def __init__(self, id: str) -> None:
-        super().__init__(id=id)
-        self.rows: list[model.RequirementRow] = []
+        super().__init__(id=id, cursor_type="row", zebra_stripes=False)
+        self.requirements: list[model.RequirementRow] = []
+        self._column_names: list[str] = []
 
-    def fill(self, rows: list[model.RequirementRow] | tuple[model.RequirementRow, ...], width: int) -> None:
-        kept = self.rows[self.highlighted].id if self.highlighted is not None and self.highlighted < len(self.rows) else None
-        self.rows = list(rows)
-        self.clear_options()
-        for row in self.rows:
-            self.add_option(Option(requirement_line(row, width), id=row.id))
-        ids = [row.id for row in self.rows]
-        if kept is not None and kept in ids:
-            self.highlighted = ids.index(kept)
-        elif ids:
-            self.highlighted = 0
+    def fill(
+        self,
+        rows: list[model.RequirementRow] | tuple[model.RequirementRow, ...],
+        width: int,
+        colors: dict[str, str],
+        now: datetime | None = None,
+    ) -> None:
+        now = now or datetime.now(timezone.utc)
+        kept = None
+        if (
+            self.row_count
+            and self.cursor_row is not None
+            and self.cursor_row < len(self.requirements)
+        ):
+            kept = self.requirements[self.cursor_row].id
+        self.requirements = list(rows)
+        columns = matrix_mod.matrix_columns(width)
+        self.clear(columns=True)
+        self._column_names = columns
+        for name in columns:
+            self.add_column(COLUMN_LABELS[name], key=name)
+        for row in self.requirements:
+            cells = [matrix_cell(row, name, colors, now) for name in columns]
+            self.add_row(*cells, key=row.id)
+        if kept is not None and kept in {row.id for row in self.requirements}:
+            self.move_cursor(row=self.get_row_index(kept))
+        elif self.requirements:
+            self.move_cursor(row=0)
 
 
 class SpecRequirementList(OptionList):
@@ -498,26 +578,31 @@ class EvidencePane(VerticalScroll):
         design.border_title = "Design"
         design.display = False
         yield design
-        integration = Static(id="evidence-integration", classes="phase-panel")
-        integration.border_title = "Integration"
-        integration.display = False
-        yield integration
-        requirements = RequirementList(id="phase-requirements")
+        release = Static(id="evidence-release")
+        release.display = False
+        yield release
+        requirements = RequirementMatrix(id="phase-requirements")
         requirements.add_class("phase-panel")
         requirements.border_title = "Requirements"
         requirements.display = False
         yield requirements
+        integration = Static(id="evidence-integration", classes="phase-panel")
+        integration.border_title = "Integration"
+        integration.display = False
+        yield integration
 
     def show(self, detail: model.PhaseDetail, colors: dict[str, str], width: int) -> None:
         evidence = detail.evidence
         inner = max(width - 4, 8)
         spec = self.query_one("#phase-spec", Static)
         design = self.query_one("#phase-design", Static)
+        release = self.query_one("#evidence-release", Static)
         integration = self.query_one("#evidence-integration", Static)
-        requirements = self.query_one("#phase-requirements", RequirementList)
+        requirements = self.query_one("#phase-requirements", RequirementMatrix)
         if evidence is None:
             spec.display = False
             design.display = False
+            release.display = False
             integration.display = False
             requirements.display = False
             return
@@ -532,13 +617,15 @@ class EvidencePane(VerticalScroll):
             design.update(wrap_block(
                 "\n".join(f"{item.subject}: {item.choice}" for item in evidence.decisions), inner,
             ))
+        release.display = True
+        release.update(matrix_mod.release_line(evidence, inner))
+        requirements.display = bool(evidence.requirements)
+        if requirements.display:
+            requirements.fill(evidence.requirements, inner, colors)
         integration.display = evidence.integration is not None
         if integration.display and evidence.integration is not None:
             report = evidence.integration
             integration.update(wrap_block(f"{report.result}\nConflicts\n{report.conflicts}", inner))
-        requirements.display = bool(evidence.requirements)
-        if requirements.display:
-            requirements.fill(evidence.requirements, inner)
 
     def pager_text(self) -> str:
         detail = self.screen.detail if isinstance(self.screen, PhaseScreen) else None
@@ -548,11 +635,16 @@ class EvidencePane(VerticalScroll):
         lines = ["# Evidence", "", f"Weight: {evidence.weight}", ""]
         if evidence.non_goals.strip():
             lines.extend(["## Non-goals", "", evidence.non_goals.strip(), ""])
+        lines.append(matrix_mod.release_line(evidence, 120).plain)
+        lines.append("")
         if evidence.requirements:
             lines.append("## Requirements")
             lines.append("")
             for row in evidence.requirements:
-                lines.append(f"- {row.id} {row.text} ({row.status})")
+                lines.append(
+                    f"- {row.id} {row.text} ({row.tasks_done}/{row.tasks}) "
+                    f"{_check_glyph(row)} {row.status} {row.next}".rstrip()
+                )
             lines.append("")
         if evidence.integration is not None:
             lines.extend([
@@ -617,6 +709,7 @@ class PhaseScreen(Screen[None]):
     #design-markdown MarkdownHeader { margin: 0; }
     #phase-tasks { height: auto; max-height: 1000; background: transparent; }
     #phase-tasks:focus { border: round $accent; }
+    #evidence-release { margin-top: 1; }
     #phase-requirements { height: auto; max-height: 1000; background: transparent; }
     #phase-requirements:focus { border: round $accent; }
     #spec-requirements { height: auto; max-height: 1000; background: transparent; }
@@ -741,6 +834,8 @@ class PhaseScreen(Screen[None]):
             self.initial_tab = want
             if want == "tasks" and detail.tasks:
                 self.query_one("#phase-tasks", PhaseTaskList).focus(scroll_visible=False)
+            elif want == "evidence" and detail.evidence and detail.evidence.requirements:
+                self.query_one("#phase-requirements", RequirementMatrix).focus(scroll_visible=False)
             elif want == "decisions":
                 self.load_decisions()
         else:
@@ -770,6 +865,13 @@ class PhaseScreen(Screen[None]):
             self.load_decisions()
         elif name == "tasks" and self.detail and self.detail.tasks:
             self.query_one("#phase-tasks", PhaseTaskList).focus(scroll_visible=False)
+        elif (
+            name == "evidence"
+            and self.detail
+            and self.detail.evidence
+            and self.detail.evidence.requirements
+        ):
+            self.query_one("#phase-requirements", RequirementMatrix).focus(scroll_visible=False)
 
     def action_step_tab(self, delta: int) -> None:
         if not self.available_tabs:
@@ -869,17 +971,6 @@ class PhaseScreen(Screen[None]):
                 RequirementDetailScreen(self.target, self.effort, self.phase_subject, row.id)
             )
             return
-        if isinstance(selected, RequirementList):
-            if event.option_index >= len(selected.rows):
-                return
-            event.stop()
-            from dashboard.requirement_detail import RequirementDetailScreen
-
-            row = selected.rows[event.option_index]
-            self.app.push_screen(
-                RequirementDetailScreen(self.target, self.effort, self.phase_subject, row.id)
-            )
-            return
         if isinstance(selected, DecisionsList):
             event.stop()
             selected.action_toggle_expand()
@@ -888,6 +979,20 @@ class PhaseScreen(Screen[None]):
             return
         event.stop()
         self.app.push_screen(TaskDetailScreen(self.target, selected.tasks[event.option_index].id))
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        table = event.data_table
+        if not isinstance(table, RequirementMatrix):
+            return
+        event.stop()
+        key = event.row_key.value if event.row_key is not None else None
+        if not key:
+            return
+        from dashboard.requirement_detail import RequirementDetailScreen
+
+        self.app.push_screen(
+            RequirementDetailScreen(self.target, self.effort, self.phase_subject, str(key))
+        )
 
 
 # Backward-compatible name used by older tests and task_detail imports.

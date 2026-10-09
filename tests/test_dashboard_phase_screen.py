@@ -384,8 +384,9 @@ def test_evidence_and_task_match_today_and_esc_keeps_tab_row(structured):
         screen = await _phase_shown(app, pilot)
         assert screen.active_tab() == "evidence"
         reqs = screen.query_one("#phase-requirements")
-        assert reqs.option_count >= 1
+        assert reqs.row_count >= 1
         assert screen.query_one("#evidence-integration").display
+        assert screen.query_one("#evidence-release").display
         await pilot.press("t")
         await pilot.pause()
         tasks = screen.query_one("#phase-tasks")
@@ -403,6 +404,152 @@ def test_evidence_and_task_match_today_and_esc_keeps_tab_row(structured):
         assert screen.query_one("#phase-tasks").highlighted == 1
 
     _run(structured, scenario)
+
+
+def _matrix_seed(cli, defs):
+    from test_dashboard_model import _assessment, _accept, _check, _release
+
+    _goal(cli, defs)
+    _phase(cli, defs, "alpha", "matrix", 1, "in_progress")
+    _spec(cli, defs, "matrix", "R1, R2, R3", weight="full", body="""## Non-goals
+
+none
+
+## Requirements
+
+R1: verified holds
+R2: failed holds
+R3: unassessed holds
+
+## Acceptance criteria
+
+ok
+
+## Constraints
+
+ok
+
+## Invariants
+
+ok
+
+## Assumptions
+
+ok
+""")
+    _task(cli, defs, "m-a", "matrix", "R1", done=True)
+    _task(cli, defs, "m-b", "matrix", "R2")
+    _assessment(cli, defs, "matrix", "R1", status="verified", next="release", confidence="high")
+    _assessment(cli, defs, "matrix", "R2", status="failed", level="design", next="design", confidence="high")
+    acc = _accept(cli, defs, "m-r2", "matrix", "R2")
+    _check(cli, defs, "m-r2-fail", acc["id"], "fail", "R2", "integration")
+    _report(cli, defs, "matrix", "pass", "none")
+    _release(cli, defs, "matrix", "failed")
+
+
+@pytest.fixture()
+def matrix_store(store, cli, defs):
+    stamped_store(store, "matrix-ui", lambda root, c, d: _matrix_seed(c, d))
+    return store
+
+
+def test_matrix_shows_release_line_and_columns_at_widths(matrix_store):
+    async def scenario(app, pilot):
+        app.select_phase("alpha", "matrix")
+        await pilot.pause()
+        await pilot.press("e")
+        screen = await _phase_shown(app, pilot)
+        release = str(screen.query_one("#evidence-release").render())
+        assert "failed" in release and "1/3 verified" in release
+        assert screen.query_one("#evidence-integration").display
+        table = screen.query_one("#phase-requirements")
+        assert table.row_count == 3
+
+        def labels():
+            return [
+                (col.label.plain if hasattr(col.label, "plain") else str(col.label))
+                for col in table.columns.values()
+            ]
+
+        assert labels() == ["id", "text", "tasks", "✓", "kind", "age", "status", "next"]
+        assert "verified holds" in str(table.get_row_at(0)[1])
+        await pilot.resize_terminal(55, 40)
+        await pilot.pause(0.2)
+        width = max(screen.size.width - 4, 20)
+        colors = phase_module.palette_from(app.get_css_variables())
+        screen.query_one("#pane-evidence").show(screen.detail, colors, width)
+        await pilot.pause()
+        cols_55 = labels()
+        assert "text" not in cols_55
+        assert "kind" in cols_55 and "age" in cols_55
+        await pilot.resize_terminal(40, 40)
+        await pilot.pause(0.2)
+        width = max(screen.size.width - 4, 20)
+        screen.query_one("#pane-evidence").show(screen.detail, colors, width)
+        await pilot.pause()
+        assert labels() == ["id", "tasks", "✓", "status", "next"]
+
+    _run(matrix_store, scenario, size=(100, 40))
+
+
+def test_matrix_enter_opens_requirement_and_esc_returns_same_row(matrix_store):
+    async def scenario(app, pilot):
+        app.select_phase("alpha", "matrix")
+        await pilot.pause()
+        await pilot.press("e")
+        screen = await _phase_shown(app, pilot)
+        table = screen.query_one("#phase-requirements")
+        table.focus()
+        table.move_cursor(row=1)
+        await pilot.press("enter")
+        await _until(
+            pilot,
+            lambda: isinstance(app.screen, req_module.RequirementDetailScreen) and app.screen.loaded,
+        )
+        opened = app.screen
+        assert (opened.effort, opened.phase, opened.requirement) == ("alpha", "matrix", "R2")
+        await pilot.press("escape")
+        await _until(pilot, lambda: app.screen is screen)
+        assert screen.active_tab() == "evidence"
+        assert screen.query_one("#phase-requirements").cursor_row == 1
+
+    _run(matrix_store, scenario, size=(100, 40))
+
+
+def test_matrix_strip_glyphs_after_tally_and_click_opens_evidence(matrix_store):
+    from dashboard import selection as selection_mod
+    from dashboard.display import ANSI_PALETTE
+
+    async def scenario(app, pilot):
+        app.select_phase("alpha", "matrix")
+        await pilot.pause()
+        stepper = str(app.query_one("#stepper").render())
+        assert "R 1/3 verified" in stepper
+        assert "✓" in stepper and "✗" in stepper and "◌" in stepper
+        assert stepper.index("R 1/3 verified") < stepper.index("✓")
+        view = app.effort_view("alpha")
+        segments = selection_mod.selector_segments(view, "matrix", ANSI_PALETTE)
+        strip = next(seg for seg in segments if "R 1/3 verified" in seg.plain)
+        assert any(
+            getattr(style, "meta", {}).get("target") == "evidence:matrix"
+            for _start, _end, style in strip._spans
+            if not isinstance(style, str)
+        )
+
+        class _Click:
+            def __init__(self, target: str) -> None:
+                self.style = type("S", (), {"meta": {"target": target}})()
+
+        app.query_one("#stepper").on_click(_Click("evidence:matrix"))
+        screen = await _phase_shown(app, pilot)
+        assert screen.active_tab() == "evidence"
+        await pilot.press("escape")
+        await _until(pilot, lambda: not isinstance(app.screen, phase_module.PhaseScreen))
+        await pilot.press("e")
+        again = await _phase_shown(app, pilot)
+        assert again.active_tab() == "evidence"
+
+    _run(matrix_store, scenario, size=(120, 40))
 
 
 def test_bracket_keys_move_to_neighbour_phase_keeping_tab(structured):

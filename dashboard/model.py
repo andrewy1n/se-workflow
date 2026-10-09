@@ -741,6 +741,10 @@ class RequirementRow:
     next: str
     latest_check: "CheckRun | None"
     tasks: int
+    tasks_done: int = 0
+    confidence: str = ""
+    check_kind: str = ""
+    check_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -753,6 +757,7 @@ class PhaseEvidence:
     release_ready: bool
     decisions: tuple[DecisionChoice, ...]
     non_goals: str
+    release_state: str = ""
 
 
 @dataclass(frozen=True)
@@ -849,13 +854,20 @@ def _phase_evidence(
     for requirement in spec_ids:
         assessment = latest.get(requirement)
         if assessment is None:
-            status, nxt = "unassessed", ""
+            status, nxt, confidence = "unassessed", "", ""
         else:
-            status, nxt = _payload(assessment).get("status", ""), _payload(assessment).get("next", "")
+            payload = _payload(assessment)
+            status = payload.get("status", "")
+            nxt = "" if status == "verified" else payload.get("next", "")
+            confidence = payload.get("confidence", "")
+        traced = _traced_records(tasks, phase, requirement)
+        check = _latest_requirement_check(requirement, phase, acceptances, checks)
         rows.append(RequirementRow(
-            phase, requirement, texts.get(requirement, ""), status, nxt,
-            _latest_requirement_check(requirement, phase, acceptances, checks),
-            len(_traced_records(tasks, phase, requirement)),
+            phase, requirement, texts.get(requirement, ""), status, nxt, check, len(traced),
+            tasks_done=sum(1 for task in traced if task.get("lifecycle_state") == "done"),
+            confidence=confidence,
+            check_kind=check.evidence_kind if check else "",
+            check_at=check.recorded_at if check else None,
         ))
     design = _newest(_for_phase(designs, phase, effort))
     subjects = _split_csv(_payload(design).get("decisions")) if design else []
@@ -866,9 +878,12 @@ def _phase_evidence(
     stage, release_ready = _stage(
         phase, effort, spec_ids, designs, tasks, acceptances, checks, assessments, reports, releases,
     )
+    latest_release = _newest(_for_phase(releases, phase, effort))
+    release_state = _payload(latest_release).get("state", "") if latest_release else ""
     return PhaseEvidence(
         phase, _payload(spec).get("weight", ""), tuple(rows), stage, integration, release_ready,
         _choices(subjects, decisions), _section(spec.get("body") or "", "Non-goals"),
+        release_state=release_state,
     )
 
 

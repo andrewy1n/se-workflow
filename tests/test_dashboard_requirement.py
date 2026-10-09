@@ -310,3 +310,59 @@ def test_requirement_screen_redraws_when_the_store_changes(seeded, cli, defs, wi
         await _until(pilot, lambda: _acceptance_rows(screen) == ["✗ pilot shows the requirement\nfail · integration"])
 
     _run(store, width, scenario, interval=0.3)
+
+
+def _matrix_row(**fields) -> model_module.RequirementRow:
+    from datetime import datetime, timezone
+
+    fail_check = fields.pop("fail_check", False)
+    defaults = dict(
+        phase="p", id="R1", text="text", status="unassessed", next="",
+        latest_check=None, tasks=0, tasks_done=0, confidence="", check_kind="", check_at=None,
+    )
+    defaults.update(fields)
+    if fail_check:
+        defaults["latest_check"] = model_module.CheckRun(
+            "c1", "fail", "check", "ayin", "dirty",
+            datetime(2026, 1, 1, tzinfo=timezone.utc), "unit",
+        )
+    return model_module.RequirementRow(**defaults)
+
+
+def test_matrix_helpers_tones_glyphs_columns_and_no_release():
+    from dashboard import matrix as matrix_mod
+
+    verified = _matrix_row(status="verified", confidence="high")
+    failed = _matrix_row(status="failed", next="execute", fail_check=True, confidence="high")
+    blocked = _matrix_row(status="blocked", next="verify", confidence="high")
+    upstream = _matrix_row(status="failed", next="design", confidence="high")
+    low = _matrix_row(status="failed", next="execute", confidence="low")
+    unassessed = _matrix_row()
+    otherwise = _matrix_row(status="failed", next="execute", confidence="high")
+
+    assert matrix_mod.row_tone(verified) == "default"
+    assert matrix_mod.row_tone(failed) == "error"
+    assert matrix_mod.row_tone(blocked) == "error"
+    assert matrix_mod.row_tone(upstream) == "warning"
+    assert matrix_mod.row_tone(low) == "warning"
+    assert matrix_mod.row_tone(unassessed) == "muted"
+
+    assert matrix_mod.glyph(verified) == "✓"
+    assert matrix_mod.glyph(failed) == "✗"
+    assert matrix_mod.glyph(blocked) == "✗"
+    assert matrix_mod.glyph(upstream) == "↑"
+    assert matrix_mod.glyph(unassessed) == "◌"
+    assert matrix_mod.glyph(otherwise) == "·"
+
+    assert matrix_mod.matrix_columns(80) == [
+        "id", "text", "tasks", "check", "kind", "age", "status", "next",
+    ]
+    assert "text" not in matrix_mod.matrix_columns(59)
+    assert matrix_mod.matrix_columns(44) == ["id", "tasks", "check", "status", "next"]
+
+    empty = model_module.PhaseEvidence(
+        phase="p", weight="", requirements=(unassessed, verified), stage="",
+        integration=None, release_ready=False, decisions=(), non_goals="",
+    )
+    assert matrix_mod.blockers(empty) == ["R1 unassessed"]
+    assert matrix_mod.release_line(empty, 80).plain == "no release · 1/2 verified · R1 unassessed"

@@ -2718,13 +2718,16 @@ def test_evidence_strip_marks_the_current_stage_and_fits(store, cli, defs):
         assert "fail" in report and "Conflicts" in report and "ports disagree" in report
         limit = screen.query_one("#pane-evidence").scrollable_content_region.width
         assert limit <= 60
-        for selector in ("#phase-spec", "#phase-design", "#evidence-integration", "#phase-requirements"):
+        for selector in ("#phase-spec", "#phase-design", "#evidence-integration", "#evidence-release"):
             widget = screen.query_one(selector)
             assert widget.display
             for line in _plain_lines(widget):
                 assert len(line) <= limit, (selector, line)
             for line in _widget_lines(widget):
                 assert len(line) <= screen.query_one("#pane-evidence").size.width, (selector, line)
+        matrix = screen.query_one("#phase-requirements")
+        assert matrix.display and matrix.row_count >= 1
+        assert matrix.size.width <= screen.query_one("#pane-evidence").size.width
         await pilot.press("escape")
         await _until(pilot, lambda: not isinstance(app.screen, app_module.PhaseDetailScreen))
         table = app.query_one("#tasks")
@@ -2799,19 +2802,22 @@ def test_evidence_requirement_list_shows_status_next_and_dim_check(store, cli, d
     _check(cli, defs, "row-c-fail", own["id"], "fail", "R2", "integration")
 
     async def scenario(app, pilot):
-        await pilot.press("p")
+        await pilot.press("e")
         screen = await _phase_shown(app, pilot)
         reqs = screen.query_one("#phase-requirements")
-        prompts = [reqs.get_option_at_index(index).prompt for index in range(reqs.option_count)]
-        by_id = {prompt.plain.split()[0]: prompt for prompt in prompts}
+        assert reqs.row_count == 2
+        by_id = {}
+        for index in range(reqs.row_count):
+            row = reqs.get_row_at(index)
+            cells = [cell.plain if hasattr(cell, "plain") else str(cell) for cell in row]
+            by_id[cells[0]] = cells
         assert set(by_id) == {"R1", "R2"}
-        assert by_id["R1"].plain.split() == ["R1", "failed", "design", "2"]
-        assert by_id["R2"].plain.split()[:3] == ["R2", "unassessed", "1"]
-        assert by_id["R2"].plain.split()[-1] == "fail"
-        start = by_id["R2"].plain.rindex("fail")
-        assert any(_is_dim(span.style) for span in by_id["R2"].spans if span.start <= start < span.end)
-        failed_at = by_id["R1"].plain.index("failed")
-        assert not any(_is_dim(span.style) for span in by_id["R1"].spans if span.start <= failed_at < span.end)
+        assert by_id["R1"][0] == "R1"
+        assert "failed" in by_id["R1"]
+        assert "design" in by_id["R1"]
+        assert by_id["R2"][0] == "R2"
+        assert "unassessed" in by_id["R2"]
+        assert "✗" in by_id["R2"]
 
     _run(store, 60, scenario)
 
@@ -2834,8 +2840,11 @@ def test_evidence_simple_phase_matches_the_previous_frame(seeded):
         screen = await _phase_shown(app, pilot)
         assert "Phase two" in str(screen.query_one("#phase-bar").render())
         assert "in_progress" in str(screen.query_one("#phase-chips").render())
-        for selector in ("#phase-stage", "#phase-spec", "#phase-design", "#phase-integration", "#phase-requirements"):
-            assert not screen.query_one(selector).display
+        assert not screen.query_one("#phase-stage").display
+        assert not screen.query_one("#phase-integration").display
+        tab_ids = [pane.id for pane in screen.query_one("#phase-tabs").query("TabPane")]
+        assert tab_ids == list(model_module.SIMPLE_TABS)
+        assert "evidence" not in tab_ids and "design" not in tab_ids
 
     _run(seeded, 60, scenario)
     result = subprocess.run(
@@ -2944,8 +2953,8 @@ def test_evidence_link_phase_opens_the_requirement(store, cli, defs):
         assert screen.active_tab() == "evidence"
         reqs = screen.query_one("#phase-requirements")
         reqs.focus()
-        if reqs.highlighted is None:
-            reqs.highlighted = 0
+        if reqs.cursor_row is None:
+            reqs.move_cursor(row=0)
         await pilot.press("enter")
         opened = await _requirement_shown(app, pilot)
         assert (opened.effort, opened.phase, opened.requirement) == ("alpha", "rows", "R1")

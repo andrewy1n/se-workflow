@@ -181,8 +181,18 @@ class PhaseSelector(Static):
             return
         if target == "picker":
             self.app.push_screen(PhasePickerScreen(pane.effort))
-        else:
-            self.app.select_phase(pane.effort, None if target == "all" else target)
+            return
+        if target == "all":
+            self.app.select_phase(pane.effort, None)
+            return
+        if isinstance(target, str) and target.startswith("evidence:"):
+            self.app.select_phase(pane.effort, target[len("evidence:"):])
+            self.app.action_open_phase("evidence")
+            return
+        if isinstance(target, str) and target.startswith("phase:"):
+            self.app.select_phase(pane.effort, target[len("phase:"):])
+            return
+        self.app.select_phase(pane.effort, target)
 
 
 class EffortPane(VerticalScroll):
