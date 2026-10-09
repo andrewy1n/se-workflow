@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:65775c86381780424e9a1c0d187b2f5cc7127348e0dff9102e2926778e74cc13
+> Store state: sha256:4e4bc6f42546b3f228256de63da19807de491aad2f783d3b794a33f50f67f436
 
 ## dashboard
 
@@ -13,11 +13,6 @@
 - **human-gates**: title: Show the human gates: action labels, copy prompt, next step, landing; ordinal: 23 _(id: [rec-c52c1f18-8b64-4731-9d21-2e74eabf7366](.artifacts/records/project__phase/rec-c52c1f18-8b64-4731-9d21-2e74eabf7366.md))_
 - **journal-view**: title: Journal, kind-based default view, and agent work on task detail; ordinal: 26 _(id: [rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3](.artifacts/records/project__phase/rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3.md))_
 - **spec-view**: title: Spec view and decision log, with a pager for derived views; ordinal: 24 _(id: [rec-681ec18d-4093-4bd3-9426-5997f25fced6](.artifacts/records/project__phase/rec-681ec18d-4093-4bd3-9426-5997f25fced6.md))_
-
-### Blocking Question
-- **dashboard**: blocking: True; scope: plan-review:journal-view _(id: [rec-0ed360b4-e87e-43bd-9dda-bbbad7062652](.artifacts/records/project__continuity-question/rec-0ed360b4-e87e-43bd-9dda-bbbad7062652.md))_
-- **dashboard**: blocking: True; scope: plan-review:spec-view _(id: [rec-ab4c4c73-6f25-4ece-ad6d-a7480e753383](.artifacts/records/project__continuity-question/rec-ab4c4c73-6f25-4ece-ad6d-a7480e753383.md))_
-- **dashboard**: blocking: True; scope: plan-review:evidence-matrix _(id: [rec-e7b76af5-7663-4f7b-85b6-d49a14c9233d](.artifacts/records/project__continuity-question/rec-e7b76af5-7663-4f7b-85b6-d49a14c9233d.md))_
 
 ### Ready
 - **gates-landing**: title: Read-only phase Landing git state; phase: human-gates _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_

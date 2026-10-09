@@ -3,16 +3,16 @@
   "base_kind": "question",
   "id": "rec-0ed360b4-e87e-43bd-9dda-bbbad7062652",
   "identity": "unknown",
-  "lifecycle_state": "open",
+  "lifecycle_state": "answered",
   "payload": {
     "blocking": true,
     "owner": "user",
     "scope": "plan-review:journal-view"
   },
   "record_type": "project:continuity-question",
-  "recorded_at": "2026-10-09T20:51:22+00:00",
+  "recorded_at": "2026-10-09T20:54:06+00:00",
   "relationships": {},
-  "revision": "sha256:92aec579023350f9f6b582e90a6f4f3d9939220bf7f4746f992270875235b061",
+  "revision": "sha256:bee2f70c246743b9e7db2be40f9fee8f0b2b87d2f46adf78d933c74186f1e678",
   "stewardship": {
     "steward": "agent"
   },

@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:d337c00ca3f144a3a14c2eb62fdc6a52c754e17b3ac508790a15c083eae55924
+> Store state: sha256:299f5985bcad8e4c0dcd7c50a9233d60033c2aab9127ae9b6fc46540a9e924c2
 
 ## dashboard-view
 
