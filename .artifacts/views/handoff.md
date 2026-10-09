@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:3393f4199d39341126405044b4112ef7ea0f9d848b98a8209fc1269a6d0ed282
+> Store state: sha256:d23960b5f485546c5ea91f3c5660356a2c644c2d65767d7cb81e7469f9eddcc7
 
 ## dashboard
 
@@ -10,10 +10,7 @@
 
 ### Position
 - **dashboard**: phase-selector done; next up: human-gates; effort _(id: [rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3](.artifacts/records/project__current-position/rec-52fdd613-97d9-4cc3-ba41-e90707b45dc3.md))_
-- **human-gates**: human-gates planned; waiting on plan review; phase _(id: [rec-fe6acabf-320c-403c-bba4-b1b4abba441b](.artifacts/records/project__current-position/rec-fe6acabf-320c-403c-bba4-b1b4abba441b.md))_
-
-### Blocking Question
-- **dashboard**: True; plan-review:human-gates _(id: [rec-07847953-98b1-4631-89d9-67a5550af646](.artifacts/records/project__continuity-question/rec-07847953-98b1-4631-89d9-67a5550af646.md))_
+- **human-gates**: human-gates plan approved; blocked on UX plan-before-execute until remaining phases planned; phase _(id: [rec-8ae183e6-1ece-4610-9102-9e3e147be23d](.artifacts/records/project__current-position/rec-8ae183e6-1ece-4610-9102-9e3e147be23d.md))_
 
 ## session-analysis
 

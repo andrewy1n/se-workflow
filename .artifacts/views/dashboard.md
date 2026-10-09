@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:4ea9e8e63f4c65de831dec86b837a1885c20d5bc5d83ce29a6b18b7a409273fd
+> Store state: sha256:b6df86c1bf81bb745c38c5e24bcad142b31109a6035a7c354ebb88fcd92d01da
 
 ## dashboard
 
@@ -10,9 +10,6 @@
 
 ### Phase
 - **human-gates**: title: Show the human gates: action labels, copy prompt, next step, landing; ordinal: 23 _(id: [rec-c52c1f18-8b64-4731-9d21-2e74eabf7366](.artifacts/records/project__phase/rec-c52c1f18-8b64-4731-9d21-2e74eabf7366.md))_
-
-### Blocking Question
-- **dashboard**: blocking: True; scope: plan-review:human-gates _(id: [rec-07847953-98b1-4631-89d9-67a5550af646](.artifacts/records/project__continuity-question/rec-07847953-98b1-4631-89d9-67a5550af646.md))_
 
 ### Ready
 - **gates-landing**: title: Read-only phase Landing git state; phase: human-gates _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
