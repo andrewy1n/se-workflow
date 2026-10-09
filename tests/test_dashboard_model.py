@@ -17,10 +17,10 @@ from dashboard import model  # noqa: E402
 from dashboard import selection  # noqa: E402
 
 
-def _goal(cli, defs, effort: str) -> None:
+def _goal(cli, defs, effort: str, kind: str = "deliver") -> None:
     h.create_generic_record(
         cli, defs, "project:active-goal", subject=effort,
-        extra_payload={"goal": f"ship {effort}", "kind": "deliver"},
+        extra_payload={"goal": f"ship {effort}", "kind": kind},
     )
 
 
@@ -1954,3 +1954,63 @@ def test_gates_phase_body_and_last_record_at_on_running_task(store, cli, defs):
     running = {t.subject: t for t in view.tasks}["land-run"]
     assert running.running_since is not None
     assert running.last_record_at == datetime.fromisoformat(amendment["recorded_at"])
+
+
+def test_journal_kind_repair_and_evaluate_carry_journal_open(store, cli, defs):
+    from dashboard import journal as journal_mod
+    from dashboard import selection
+
+    for effort, kind in (("repair-e", "repair"), ("eval-e", "evaluate")):
+        _goal(cli, defs, effort, kind=kind)
+        _phase(cli, defs, effort, f"{effort}-phase", 1, "in_progress")
+        _work_item(cli, defs, effort, f"{effort}-task", f"{effort}-phase")
+        _record(
+            cli, defs, "project:finding", f"{effort}-task",
+            {"claim": f"{effort} claim", "basis": "b", "needs": "human", "effort": effort, "invalidated_when": "w"},
+        )
+        _record(
+            cli, defs, "project:continuity-question", effort,
+            {"owner": "user", "blocking": False, "scope": "effort-open"},
+        )
+
+    snapshot = model.load_snapshot(_target(store))
+    for effort, kind in (("repair-e", "repair"), ("eval-e", "evaluate")):
+        view = _effort(snapshot, effort)
+        assert view.kind == kind
+        assert view.journal_open
+        assert all(item.open for item in view.journal_open)
+        scoped = selection.scoped(view, f"{effort}-phase")
+        assert all(
+            item.phase == f"{effort}-phase"
+            or (item.phase is None and item.record_type == "project:continuity-question")
+            for item in scoped.journal_open
+        )
+        open_items, _ = journal_mod.ordered(journal_mod.load_journal(_target(store), effort))
+        assert [item.id for item in view.journal_open] == [item.id for item in open_items]
+
+
+def test_journal_kind_deliver_and_incidental_skip_journal_open(store, cli, defs, monkeypatch):
+    from dashboard import journal as journal_mod
+
+    for effort, kind in (("deliver-e", "deliver"), ("incidental-e", "incidental")):
+        _goal(cli, defs, effort, kind=kind)
+        _phase(cli, defs, effort, f"{effort}-phase", 1, "in_progress")
+        _work_item(cli, defs, effort, f"{effort}-task", f"{effort}-phase")
+        _record(
+            cli, defs, "project:finding", f"{effort}-task",
+            {"claim": f"{effort} claim", "basis": "b", "needs": "human", "effort": effort, "invalidated_when": "w"},
+        )
+
+    calls = []
+
+    def boom(target, effort):
+        calls.append(effort)
+        raise AssertionError("load_journal must not run for deliver/incidental")
+
+    monkeypatch.setattr(journal_mod, "load_journal", boom)
+    snapshot = model.load_snapshot(_target(store))
+    for effort, kind in (("deliver-e", "deliver"), ("incidental-e", "incidental")):
+        view = _effort(snapshot, effort)
+        assert view.kind == kind
+        assert view.journal_open == []
+    assert calls == []

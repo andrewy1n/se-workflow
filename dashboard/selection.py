@@ -106,6 +106,8 @@ def step_selection(view: model.EffortView, selection: PhaseSelection, delta: int
 
 def scoped(view: model.EffortView, subject: str | None) -> model.EffortView:
     """Return a view whose task list is scoped to one phase, or the original for All phases."""
+    from dashboard.journal import journal_scope
+
     if subject is None:
         return view
     return model.EffortView(
@@ -117,6 +119,8 @@ def scoped(view: model.EffortView, subject: str | None) -> model.EffortView:
         activity=view.activity[:],
         release_ready=view.release_ready,
         position=view.position,
+        kind=view.kind,
+        journal_open=journal_scope(list(view.journal_open or []), subject),
     )
 
 

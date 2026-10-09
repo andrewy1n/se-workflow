@@ -109,6 +109,8 @@ class EffortView:
     activity: list[ActivityItem] = field(default_factory=list)
     release_ready: bool = False
     position: str = ""
+    kind: str = ""
+    journal_open: list = field(default_factory=list)
 
     @property
     def finished(self) -> bool:
@@ -246,6 +248,21 @@ def _section(body: str, heading: str) -> str:
         if collecting:
             collected.append(line)
     return "\n".join(collected).strip()
+
+
+def _without_section(body: str, heading: str) -> str:
+    """Body with one ## heading section removed; other text kept as stored."""
+    kept: list[str] = []
+    skipping = False
+    target = heading.strip().lower()
+    for line in (body or "").splitlines():
+        if line.startswith("## "):
+            skipping = line[3:].strip().lower() == target
+            if skipping:
+                continue
+        if not skipping:
+            kept.append(line)
+    return "\n".join(kept).strip()
 
 
 def _requirement_texts(body: str) -> dict[str, str]:
@@ -936,6 +953,8 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         and _payload(record).get("status") != "closed"
         and _payload(record).get("scope") == "effort"
     }
+    from dashboard.journal import KIND_JOURNAL, load_journal, ordered as journal_ordered
+
     efforts = []
     for goal in sorted(goals, key=lambda record: record["subject"]):
         effort = goal["subject"]
@@ -957,6 +976,11 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
         phase_rows = _phase_rows(
             phases.get(effort, []), effort_tasks, effort_acceptances, effort_checks, evidence_by_phase,
         )
+        kind = _payload(goal).get("kind") or ""
+        journal_open = []
+        if kind in KIND_JOURNAL:
+            open_items, _ = journal_ordered(load_journal(target, effort))
+            journal_open = open_items
         efforts.append(EffortView(
             effort=effort,
             goal=_payload(goal).get("goal", ""),
@@ -976,6 +1000,8 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             activity=activity.get(effort, []),
             release_ready=any(row.evidence is not None and row.evidence.release_ready for row in phase_rows),
             position=positions.get(effort, ""),
+            kind=kind,
+            journal_open=journal_open,
         ))
     efforts.sort(key=lambda view: view.finished)
     return Snapshot(efforts, token, now)
@@ -1029,6 +1055,39 @@ class RelatedRecord:
 
 
 @dataclass(frozen=True)
+class AgentAssignment:
+    id: str
+    subject: str
+    recorded_at: datetime
+    executor: str
+    orientation: str
+    body: str
+
+
+@dataclass(frozen=True)
+class AgentAmendment:
+    id: str
+    recorded_at: datetime
+    correction: str
+
+
+@dataclass(frozen=True)
+class AgentReport:
+    id: str
+    recorded_at: datetime
+    result: str
+    verdict: str
+    body: str
+
+
+@dataclass(frozen=True)
+class AgentWork:
+    assignment: AgentAssignment
+    amendments: tuple[AgentAmendment, ...]
+    report: AgentReport | None
+
+
+@dataclass(frozen=True)
 class TaskDetail:
     id: str
     subject: str
@@ -1050,6 +1109,7 @@ class TaskDetail:
     size: str = ""
     estimate_minutes: int | None = None
     executor: str = "subagent"
+    agent_work: tuple[AgentWork, ...] = ()
 
 
 RELATED_TEXT = {
@@ -1115,6 +1175,63 @@ def _timeline(
     return timeline
 
 
+def _amendments_for(
+    assignment: dict[str, Any], amendments: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    keys = {assignment["id"], assignment["subject"]}
+    matched = [record for record in amendments if _payload(record).get("assignment") in keys]
+    matched.sort(key=_recorded_at)
+    return matched
+
+
+def _report_for(
+    assignment: dict[str, Any], reports: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    keys = {assignment["id"], assignment["subject"]}
+    matched = [record for record in reports if _payload(record).get("assignment") in keys]
+    return max(matched, key=_recorded_at) if matched else None
+
+
+def _agent_work(
+    assignments: list[dict[str, Any]],
+    amendments: list[dict[str, Any]],
+    reports: list[dict[str, Any]],
+) -> tuple[AgentWork, ...]:
+    """Group assignment bodies, amendments by payload.assignment, and reports; newest first."""
+    works: list[AgentWork] = []
+    for record in sorted(assignments, key=_recorded_at, reverse=True):
+        body = record.get("body") or ""
+        assignment = AgentAssignment(
+            id=record["id"],
+            subject=record["subject"],
+            recorded_at=_recorded_at(record),
+            executor=_payload(record).get("executor", ""),
+            orientation=_section(body, "Orientation"),
+            body=_without_section(body, "Orientation"),
+        )
+        amend_rows = tuple(
+            AgentAmendment(
+                record_a["id"],
+                _recorded_at(record_a),
+                _section(record_a.get("body") or "", "Correction"),
+            )
+            for record_a in _amendments_for(record, amendments)
+        )
+        report_record = _report_for(record, reports)
+        report = None
+        if report_record is not None:
+            payload = _payload(report_record)
+            report = AgentReport(
+                id=report_record["id"],
+                recorded_at=_recorded_at(report_record),
+                result=payload.get("result", ""),
+                verdict=payload.get("verdict", ""),
+                body=report_record.get("body") or "",
+            )
+        works.append(AgentWork(assignment, amend_rows, report))
+    return tuple(works)
+
+
 def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
     """Load one task's records with four CLI calls.
 
@@ -1167,6 +1284,7 @@ def load_task_detail(target: Target, work_item_id: str) -> TaskDetail:
         running_since=max(map(_recorded_at, assignments), default=None) if status == "running" else None,
         requirements=payload.get("requirements") or "", decisions=payload.get("decisions") or "",
         size=_size(payload), estimate_minutes=_estimate_minutes(payload), executor=_executor(payload),
+        agent_work=_agent_work(assignments, amendments, reports),
     )
 
 
