@@ -161,8 +161,7 @@ def task_suffix(task: model.TaskRow) -> str:
 
 def title_cell(task: model.TaskRow, width: int, colors: dict[str, str], indent: str = "") -> Text:
     title = task.title or task.subject
-    note = f"  waits on {', '.join(sorted(task.waits_on))}" if task.status == "waiting" and task.waits_on else ""
-    tail = task_suffix(task) + note
+    tail = task_suffix(task)
     room = width - len(indent)
     shown = "…" if len(tail) >= room else clip(title, room - len(tail))
     text = Text(indent + shown + tail)
