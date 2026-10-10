@@ -101,7 +101,17 @@ adaptive-artifacts create --type project:finding \
 
    `needs` is `human` when this finding needs a maintainer call before
    the task can close (it then surfaces in `handoff`'s Needs Human
-   section), else `none`. If this finding overturns a prior
+   section), else `none`. When the user decides a `needs` `human`
+   finding, clear it at the event (kinds-and-focus, Needs-you clears):
+
+```bash
+adaptive-artifacts supersede --type project:finding --id <finding-id> \
+  --expected-revision <revision> \
+  --payload '{"claim":"<claim>","basis":"<basis>","invalidated_when":"<when>","effort":"<effort-slug>","needs":"none"}' \
+  --body-file "<finding-body.md>"
+```
+
+   If this finding overturns a prior
    `project:decision`, add `--rel contradicts:<decision-record-id>` to
    the `create` call above — `contradict` (the subcommand) only works
    on record types with `contradiction: separate_record`, which is
@@ -150,8 +160,18 @@ adaptive-artifacts create --type project:check-run \
    they've reviewed a `manual` check-run's evidence; leave it `""`
    only while still awaiting that review — a `method=manual` check-run
    with `signed_by=""` surfaces under `handoff`'s Unsigned Manual
-   Check role and stays there until someone signs it. `tdd`/`check`
-   results don't need a signer; leave `signed_by` `""` for those.
+   Check role and stays there until someone signs it. When the user
+   signs it, clear the unsigned gate at the event (kinds-and-focus,
+   Needs-you clears) — prefer `correct` on the existing check-run over
+   rewriting `signed_by` only in a new create:
+
+```bash
+adaptive-artifacts correct --type project:check-run --id <check-run-id> \
+  --payload '{"signed_by":"<signer>"}'
+```
+
+   `tdd`/`check` results don't need a signer; leave `signed_by` `""`
+   for those.
 
    That example is simple work: `result` is `pass` or `fail`, and the
    payload has no `requirement` and no `evidence_kind`. `result` is
@@ -388,6 +408,19 @@ adaptive-artifacts create --type project:finding \
 ## Follow-up
 
 <what the human must answer>"
+```
+
+When the user answers the question or decides the finding, clear each
+at the event (kinds-and-focus, Needs-you clears):
+
+```bash
+adaptive-artifacts update --type project:continuity-question --id <question-id> \
+  --transition answered --expected-revision <revision>
+
+adaptive-artifacts supersede --type project:finding --id <finding-id> \
+  --expected-revision <revision> \
+  --payload '{"claim":"<claim>","basis":"<basis>","invalidated_when":"<when>","effort":"<effort-slug>","needs":"none"}' \
+  --body-file "<finding-body.md>"
 ```
 
 ### Release

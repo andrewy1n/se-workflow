@@ -49,8 +49,15 @@ return evidence and do not call `adaptive-artifacts`.
    `continuity-question`s for that subject. Do not dispatch while a
    blocking question is open on this focus. A question whose `scope`
    is `plan-review:<phase-slug>` is the plan review gate: it blocks
-   only that phase, and the user clears it by approving the plan. Do
-   not dispatch another effort's tasks.
+   only that phase, and the user clears it by approving the plan.
+   When they approve, clear it at the event:
+
+```bash
+adaptive-artifacts update --type project:continuity-question --id <question-id> \
+  --transition answered --expected-revision <revision>
+```
+
+   Do not dispatch another effort's tasks.
 2. Select dispatchable work-items directly — `project:plan`'s rendered
    view does not carry `derived.ready`/`wave`, so query the store:
 
@@ -347,6 +354,14 @@ adaptive-artifacts list --type project:check-run \
    - Every active phase acceptance has a check-run, and the latest
      check-run per `criterion_id` has a passing `result`.
    - Every `method=manual` latest check-run has `signed_by` set.
+
+   When the user signs an unsigned manual check, clear it at the event
+   (kinds-and-focus, Needs-you clears):
+
+```bash
+adaptive-artifacts correct --type project:check-run --id <check-run-id> \
+  --payload '{"signed_by":"<signer>"}'
+```
 
    If the gate does not hold, leave the phase `in_progress`. Tell the
    user which criterion has no check-run, a failing latest check-run,

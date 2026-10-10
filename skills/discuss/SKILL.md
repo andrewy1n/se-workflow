@@ -169,6 +169,14 @@ adaptive-artifacts create --type project:continuity-question \
   --payload '{"owner":"<who answers>","blocking":true,"scope":"<what it blocks>"}'
 ```
 
+   When the user answers it, clear it at the event (kinds-and-focus,
+   Needs-you clears):
+
+```bash
+adaptive-artifacts update --type project:continuity-question --id <question-id> \
+  --transition answered --expected-revision <revision>
+```
+
 10. Regenerate views and `adaptive-artifacts validate`. Show the user
     the specification, the design, the decisions, and the phase
     approach. Next is `plan-phase` for this phase, including after a

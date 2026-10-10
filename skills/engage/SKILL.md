@@ -52,6 +52,15 @@ Do not plan, implement, or verify in this skill.
      kinds-and-focus).
 
    Do not rename another effort’s subject to steal its goal.
+
+   After focus is named, list open **human-dismissible** Needs-you
+   items for that effort (open `continuity-question`s, `finding`s with
+   `needs` `human`, unsigned manual `check-run`s with empty
+   `signed_by`). Read them from the `## <focus>` handoff section
+   (Needs Human, Unsigned Manual Check, and open questions). Remind
+   yourself to clear each one when the user settles it (kinds-and-focus,
+   Needs-you clears). Do not refuse to route solely because those items
+   are open — list and remind, then continue routing.
 4. Records?
 
    A `project:feedback` record is new intent for the effort it names
