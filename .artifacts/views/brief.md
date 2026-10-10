@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:793ef7e5b8ff54a1188beb972c9f5d43109458abca05d6cdaef36159b0cdb830
+> Store state: sha256:163a41375d0794a23a5188f6385623ae38a6d5124b983e0142acd23127c62e90
 
 ## activity-failures
 
@@ -132,7 +132,7 @@
 ## dashboard
 
 ### Position
-- **dashboard**: evidence-matrix done; next up: journal-view; effort _(id: [rec-b28084d4-03ea-4388-8cca-07d7072f90db](.artifacts/records/project__current-position/rec-b28084d4-03ea-4388-8cca-07d7072f90db.md))_
+- **dashboard**: journal-view done; no further phase planned; effort _(id: [rec-ac987d09-adc2-4741-a635-f1d9aebd01a1](.artifacts/records/project__current-position/rec-ac987d09-adc2-4741-a635-f1d9aebd01a1.md))_
 
 ## dashboard-app
 
@@ -523,16 +523,10 @@
 
 ## journal-agent
 
-### Work
-- **journal-agent**: Agent work section on task detail; journal-view; deliver; dashboard _(id: [rec-27ad566b-6186-43df-b8f3-863be5f3fa69](.artifacts/records/project__work-item/rec-27ad566b-6186-43df-b8f3-863be5f3fa69.md))_
-
 ### Acceptance
 - **journal-agent**: Task detail Agent work shows latest assignment, amendments, and report collapsed to 8 lines; Enter expands; o pages the focused block; earlier assignments are listed; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k 'agent or collaps' _(id: [rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76](.artifacts/records/project__acceptance/rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76.md))_
 
 ## journal-model
-
-### Work
-- **journal-model**: Journal load, scope, open-first order, kind panel data; journal-view; deliver; dashboard _(id: [rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc](.artifacts/records/project__work-item/rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc.md))_
 
 ### Acceptance
 - **journal-model**: load_journal and ordered return correct types, phase scope, open-first ordering, and one-line text for seeded stores; missing types do not error; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py -q -k 'journal and (load or order or scope or missing)' _(id: [rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe](.artifacts/records/project__acceptance/rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe.md))_
@@ -544,24 +538,13 @@
 
 ## journal-panel
 
-### Work
-- **journal-panel**: Kind-based Journal panel above task table; journal-view; deliver; dashboard _(id: [rec-0d3ae892-5026-4771-8967-ef3624ec5035](.artifacts/records/project__work-item/rec-0d3ae892-5026-4771-8967-ef3624ec5035.md))_
-
 ### Acceptance
 - **journal-panel**: Repair and evaluate efforts show up to 5 open journal rows above the task table; deliver efforts show none; Enter opens detail; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_journal.py -q -k "panel or kind" _(id: [rec-772b35fe-ecde-4213-8bc8-f56eb55a3517](.artifacts/records/project__acceptance/rec-772b35fe-ecde-4213-8bc8-f56eb55a3517.md))_
 
 ## journal-screen
 
-### Work
-- **journal-screen**: JournalScreen with filter, detail, and pager; journal-view; deliver; dashboard _(id: [rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40](.artifacts/records/project__work-item/rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40.md))_
-
 ### Acceptance
 - **journal-screen**: J opens the journal for the selected phase; a toggles effort scope; Esc returns; / filters; Enter opens detail; o pages with stub; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py -q -k "screen or filter or detail or pager" _(id: [rec-5ac93260-7e5b-4f29-8ea4-54b09833796f](.artifacts/records/project__acceptance/rec-5ac93260-7e5b-4f29-8ea4-54b09833796f.md))_
-
-## journal-view
-
-### Position
-- **journal-view**: journal-view plan approved; ready for execute after prior UX deps; phase _(id: [rec-214e4e33-f72b-4aed-bced-7e71015a63d2](.artifacts/records/project__current-position/rec-214e4e33-f72b-4aed-bced-7e71015a63d2.md))_
 
 ## keyboard-focus
 
@@ -1209,9 +1192,6 @@ print("phase checks only")
 - **verify-human-gates-tmux**: The status-right needs-you segment appears in a real tmux server when enabled; check; dashboard; uv run --with textual --with pytest python -m pytest tests -q -m tmux -k "status and (gates or needs or segment)" _(id: [rec-fa10fcaa-3669-4d69-a554-844faf4d41b6](.artifacts/records/project__acceptance/rec-fa10fcaa-3669-4d69-a554-844faf4d41b6.md))_
 
 ## verify-journal-view
-
-### Work
-- **verify-journal-view**: Verify journal-view phase; journal-view; deliver; dashboard _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
 
 ### Acceptance
 - **verify-journal-view**: Journal scoping, open-first order, kind panel, and agent-work blocks hold in model and pilot tests; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k journal _(id: [rec-23b9ae39-56ef-401b-b2df-9b05b78d4967](.artifacts/records/project__acceptance/rec-23b9ae39-56ef-401b-b2df-9b05b78d4967.md))_
