@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:9b290e48ab655eaf81e58f6ac4daadadae857a94f780442d7b7eb76654a2d990
+> Store state: sha256:b24eb65146818f591acc52b55504a6178c5a6982b796dc255e746ff927793181
 
 ## dashboard-view
 
@@ -240,9 +240,6 @@ print("phase checks only")
 - **verify-needs-you-close-skills**: Skill contract consistency and engage/clear documentation tests pass; check; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py -q _(id: [rec-53401a27-dd75-4ef2-adbb-a699505dc9fc](.artifacts/records/project__acceptance/rec-53401a27-dd75-4ef2-adbb-a699505dc9fc.md))_
 
 ## backlog-capture
-
-### Phase
-- **backlog-capture**: Capture deferred work as backlog items; 12; workflow-loop _(id: [rec-333cb02a-745f-437e-acad-4401d65f1dd3](.artifacts/records/project__phase/rec-333cb02a-745f-437e-acad-4401d65f1dd3.md))_
 
 ### Acceptance
 - **backlog-lifecycle**: Through adaptive-artifacts CLI on a seeded store, create open backlog-item with effort, list it by status=open, and reject create without effort; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2](.artifacts/records/project__acceptance/rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2.md))_

@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:b3554bee480a9fe96777f06aad123cdff98a42d1f489ceb021cb79575906e0f9
+> Store state: sha256:7e67e75371284b25fd8f9e65249c26cd3ec20c4d168c1b38777f1bd590d47aeb
 
 ## dashboard
 
@@ -44,9 +44,6 @@
 
 ### Goal
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
-
-### Phase
-- **backlog-capture**: title: Capture deferred work as backlog items; ordinal: 12 _(id: [rec-333cb02a-745f-437e-acad-4401d65f1dd3](.artifacts/records/project__phase/rec-333cb02a-745f-437e-acad-4401d65f1dd3.md))_
 
 ### Done Recent
 - **backlog-lifecycle**: title: CLI create list promote dismiss for backlog-item; phase: backlog-capture _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
