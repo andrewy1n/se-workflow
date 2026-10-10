@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:d9872c8ef5fff910a008354bb7c2fa88018327ff4977806470cb81832342c0d7
+> Store state: sha256:c257b1a08c2adbf406e2678919e09509612ad4ddb967d6a7b6e999b2a84bb3e0
 
 ## dashboard
 
@@ -30,8 +30,4 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **backlog-capture**: Plan revised: dashboard Backlog panel task added; awaiting plan-review; phase _(id: [rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc](.artifacts/records/project__current-position/rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc.md))_
-- **workflow-loop**: needs-you-close done; no further phase planned; effort _(id: [rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35](.artifacts/records/project__current-position/rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35.md))_
-
-### Blocking Question
-- **workflow-loop**: True; plan-review:backlog-capture _(id: [rec-5d8bef30-f576-4d7d-978e-002e4f9ea099](.artifacts/records/project__continuity-question/rec-5d8bef30-f576-4d7d-978e-002e4f9ea099.md))_
+- **workflow-loop**: backlog-capture done; no further phase planned; effort _(id: [rec-bc86a0e3-6390-4b11-af25-7dda630cebd0](.artifacts/records/project__current-position/rec-bc86a0e3-6390-4b11-af25-7dda630cebd0.md))_

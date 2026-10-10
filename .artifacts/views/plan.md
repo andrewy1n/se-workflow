@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:dcf180cd7cc1d7f7646271caa9d5e3d2008d3f73d39ba499121248f9be1be8d6
+> Store state: sha256:9b290e48ab655eaf81e58f6ac4daadadae857a94f780442d7b7eb76654a2d990
 
 ## dashboard-view
 
@@ -243,13 +243,6 @@ print("phase checks only")
 
 ### Phase
 - **backlog-capture**: Capture deferred work as backlog items; 12; workflow-loop _(id: [rec-333cb02a-745f-437e-acad-4401d65f1dd3](.artifacts/records/project__phase/rec-333cb02a-745f-437e-acad-4401d65f1dd3.md))_
-
-### Work
-- **backlog-lifecycle**: CLI create list promote dismiss for backlog-item; backlog-capture; deliver; workflow-loop _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
-- **contract-backlog**: Add backlog-item to the contract; backlog-capture; deliver; workflow-loop _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_
-- **dashboard-backlog**: Backlog panel on the dashboard; backlog-capture; deliver; workflow-loop _(id: [rec-ba7d3142-27f2-4033-ad4a-92cab9634df5](.artifacts/records/project__work-item/rec-ba7d3142-27f2-4033-ad4a-92cab9634df5.md))_
-- **skills-backlog**: Document backlog capture and promote in skills; backlog-capture; deliver; workflow-loop _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
-- **verify-backlog-capture**: Verify backlog-capture; backlog-capture; deliver; workflow-loop _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
 
 ### Acceptance
 - **backlog-lifecycle**: Through adaptive-artifacts CLI on a seeded store, create open backlog-item with effort, list it by status=open, and reject create without effort; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2](.artifacts/records/project__acceptance/rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2.md))_

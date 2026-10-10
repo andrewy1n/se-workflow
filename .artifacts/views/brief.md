@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:9f38fef2a8e2268dad29ea75c6420edf42c18c6cfae0685ab2b6d633a189c9b7
+> Store state: sha256:7db515538cfc292cdcfda6d9a2eb79aa1a50e3d81a82f70eaeeeec2597b467bf
 
 ## activity-failures
 
@@ -83,11 +83,6 @@
 
 ### Acceptance
 - **assess-route**: verify-work keeps level and next off the check-run, raises implementation to design only when a repeat adds no evidence, and writes release ready only when every requirement is verified. test_assess_routing.py passes.; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_assess_routing.py -q _(id: [rec-fb7cdbf9-8de6-4066-a413-41f688ed3792](.artifacts/records/project__acceptance/rec-fb7cdbf9-8de6-4066-a413-41f688ed3792.md))_
-
-## backlog-capture
-
-### Position
-- **backlog-capture**: Plan revised: dashboard Backlog panel task added; awaiting plan-review; phase _(id: [rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc](.artifacts/records/project__current-position/rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc.md))_
 
 ## backlog-lifecycle
 
@@ -1120,9 +1115,6 @@ print("phase checks only")
 
 ## verify-backlog-capture
 
-### Work
-- **verify-backlog-capture**: Verify backlog-capture; backlog-capture; deliver; workflow-loop _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
-
 ### Acceptance
 - **verify-backlog-capture**: Through the adaptive-artifacts CLI on a seeded store, create/list/promote/dismiss backlog-item works and is distinct from feedback; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-91696e19-7aa5-4cf8-8215-8d8cf9f668df](.artifacts/records/project__acceptance/rec-91696e19-7aa5-4cf8-8215-8d8cf9f668df.md))_
 
@@ -1634,4 +1626,4 @@ print("phase checks only")
 ## workflow-loop
 
 ### Position
-- **workflow-loop**: needs-you-close done; no further phase planned; effort _(id: [rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35](.artifacts/records/project__current-position/rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35.md))_
+- **workflow-loop**: backlog-capture done; no further phase planned; effort _(id: [rec-bc86a0e3-6390-4b11-af25-7dda630cebd0](.artifacts/records/project__current-position/rec-bc86a0e3-6390-4b11-af25-7dda630cebd0.md))_

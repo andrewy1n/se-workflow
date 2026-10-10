@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:eeee814b2314205166e44dbdbadfc126e908f351bb99d6ab9a9849162034567c
+> Store state: sha256:23f8b63ca584ba096cbe53230a4257039fefb1bcecdc28be21dba660c7d95282
 
 ## activity-failures
 
@@ -123,15 +123,24 @@
 ### Acceptance
 - **backlog-lifecycle**: Through adaptive-artifacts CLI on a seeded store, create open backlog-item with effort, list it by status=open, and reject create without effort; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2](.artifacts/records/project__acceptance/rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2.md))_
 
+### Check
+- **backlog-lifecycle**: rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2; 0f7181ef59251f8135db5a71258471f92a972e7c; pass; tdd _(id: [rec-2dd9b20c-e93b-47b5-bd83-b464826e2221](.artifacts/records/project__check-run/rec-2dd9b20c-e93b-47b5-bd83-b464826e2221.md))_
+
 ## backlog-lifecycle-promote
 
 ### Acceptance
 - **backlog-lifecycle-promote**: Promote and dismiss paths use backlog-item supersede, not feedback; feedback create/list still works as an observation signal; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-a19b9909-b798-4b7d-a0e1-c2eac876dc42](.artifacts/records/project__acceptance/rec-a19b9909-b798-4b7d-a0e1-c2eac876dc42.md))_
 
+### Check
+- **backlog-lifecycle-promote**: rec-a19b9909-b798-4b7d-a0e1-c2eac876dc42; 0f7181ef59251f8135db5a71258471f92a972e7c; pass; tdd _(id: [rec-9c7db177-6ef9-41d0-87e7-c2d124d1cd8d](.artifacts/records/project__check-run/rec-9c7db177-6ef9-41d0-87e7-c2d124d1cd8d.md))_
+
 ## backlog-lifecycle-status
 
 ### Acceptance
 - **backlog-lifecycle-status**: CLI supersede to promoted and dismissed removes items from open lists while leaving active successors with the new status; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-f5bbe8ab-d0e6-4929-9293-f23518096569](.artifacts/records/project__acceptance/rec-f5bbe8ab-d0e6-4929-9293-f23518096569.md))_
+
+### Check
+- **backlog-lifecycle-status**: rec-f5bbe8ab-d0e6-4929-9293-f23518096569; 0f7181ef59251f8135db5a71258471f92a972e7c; pass; tdd _(id: [rec-a90020f0-ba81-4c5a-8b9a-ed62eb58e42d](.artifacts/records/project__check-run/rec-a90020f0-ba81-4c5a-8b9a-ed62eb58e42d.md))_
 
 ## budget-instructions
 
@@ -203,15 +212,24 @@
 ### Acceptance
 - **contract-backlog**: The bundled contract resolves project:backlog-item as current-status with status open|promoted|dismissed and effort required, still resolves project:feedback, and a generic create/read of backlog-item validates; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-23b30985-3712-43f6-b1e4-f9240d9a632c](.artifacts/records/project__acceptance/rec-23b30985-3712-43f6-b1e4-f9240d9a632c.md))_
 
+### Check
+- **contract-backlog**: rec-23b30985-3712-43f6-b1e4-f9240d9a632c; 150d4cf3ea0e2c0d34718cc9645613ed33a8430b; pass; check _(id: [rec-131906fa-23a5-4e07-9669-db912f63c0e2](.artifacts/records/project__check-run/rec-131906fa-23a5-4e07-9669-db912f63c0e2.md))_
+
 ## contract-backlog-effort
 
 ### Acceptance
 - **contract-backlog-effort**: backlog-item payload requires effort; optional source and phase are declared; create without effort fails validation; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-1686fb83-3253-4571-8f6d-9b927f916c77](.artifacts/records/project__acceptance/rec-1686fb83-3253-4571-8f6d-9b927f916c77.md))_
 
+### Check
+- **contract-backlog-effort**: rec-1686fb83-3253-4571-8f6d-9b927f916c77; 150d4cf3ea0e2c0d34718cc9645613ed33a8430b; pass; check _(id: [rec-3dd98e54-6a65-4576-8783-42412165c962](.artifacts/records/project__check-run/rec-3dd98e54-6a65-4576-8783-42412165c962.md))_
+
 ## contract-backlog-status
 
 ### Acceptance
 - **contract-backlog-status**: backlog-item status enum is open|promoted|dismissed and handoff selects only status equals open; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-7f83aff0-87bd-4dfa-9d94-12920f3a46aa](.artifacts/records/project__acceptance/rec-7f83aff0-87bd-4dfa-9d94-12920f3a46aa.md))_
+
+### Check
+- **contract-backlog-status**: rec-7f83aff0-87bd-4dfa-9d94-12920f3a46aa; 150d4cf3ea0e2c0d34718cc9645613ed33a8430b; pass; check _(id: [rec-c6be4c30-1d8a-4ecb-968a-7572136c150f](.artifacts/records/project__check-run/rec-c6be4c30-1d8a-4ecb-968a-7572136c150f.md))_
 
 ## contract-loop
 
@@ -242,10 +260,16 @@
 ### Acceptance
 - **dashboard-backlog**: EffortView / snapshot includes only open backlog-items for that effort; Needs you does not list them; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k backlog _(id: [rec-00466274-876f-4c8b-a54e-a8db1e61fbda](.artifacts/records/project__acceptance/rec-00466274-876f-4c8b-a54e-a8db1e61fbda.md))_
 
+### Check
+- **dashboard-backlog**: rec-00466274-876f-4c8b-a54e-a8db1e61fbda; 2ba3f658a6c7a374ef157640f4dd4a3024588e90; pass; tdd _(id: [rec-0adb36e3-2686-4672-81d9-8173f848bb8d](.artifacts/records/project__check-run/rec-0adb36e3-2686-4672-81d9-8173f848bb8d.md))_
+
 ## dashboard-backlog-actions
 
 ### Acceptance
 - **dashboard-backlog-actions**: App pilots: Backlog panel shows open items; promote and dismiss call CLI supersede; promote copies an agent prompt; Needs you unchanged; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k backlog _(id: [rec-644805a3-42e4-4437-8ffc-cd772a363cea](.artifacts/records/project__acceptance/rec-644805a3-42e4-4437-8ffc-cd772a363cea.md))_
+
+### Check
+- **dashboard-backlog-actions**: rec-644805a3-42e4-4437-8ffc-cd772a363cea; 2ba3f658a6c7a374ef157640f4dd4a3024588e90; pass; tdd _(id: [rec-4b35e98c-e1c7-4fd6-9afa-664703d80eab](.artifacts/records/project__check-run/rec-4b35e98c-e1c7-4fd6-9afa-664703d80eab.md))_
 
 ## dashboard-closed-goals
 
@@ -1317,10 +1341,16 @@ print("phase checks only")
 ### Acceptance
 - **skills-backlog**: engage and README still say do not collect or create feedback, and document backlog-item list/create/promote; skill/contract consistency passes for every adaptive-artifacts invocation added; check; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_assess_routing.py -q _(id: [rec-95459f66-4633-441b-a73b-d1aa7b68957a](.artifacts/records/project__acceptance/rec-95459f66-4633-441b-a73b-d1aa7b68957a.md))_
 
+### Check
+- **skills-backlog**: rec-95459f66-4633-441b-a73b-d1aa7b68957a; cdb10d65ed56a425a426d5c291c0f5c1a8e69b71; pass; check _(id: [rec-e8570fcb-09a4-4c71-92bd-8d44ce81ac88](.artifacts/records/project__check-run/rec-e8570fcb-09a4-4c71-92bd-8d44ce81ac88.md))_
+
 ## skills-backlog-promote
 
 ### Acceptance
 - **skills-backlog-promote**: engage documents promote as supersede to promoted then discuss/new phase or incidental, and dismiss as supersede to dismissed, with no GitHub scrape; check; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_assess_routing.py -q _(id: [rec-9dcc1726-0246-424d-a8f7-edd8b8c98ea6](.artifacts/records/project__acceptance/rec-9dcc1726-0246-424d-a8f7-edd8b8c98ea6.md))_
+
+### Check
+- **skills-backlog-promote**: rec-9dcc1726-0246-424d-a8f7-edd8b8c98ea6; cdb10d65ed56a425a426d5c291c0f5c1a8e69b71; pass; check _(id: [rec-0821a163-8752-41df-a60a-9421a9b67f50](.artifacts/records/project__check-run/rec-0821a163-8752-41df-a60a-9421a9b67f50.md))_
 
 ## spec-model
 
@@ -1616,20 +1646,32 @@ print("phase checks only")
 ### Acceptance
 - **verify-backlog-capture**: Through the adaptive-artifacts CLI on a seeded store, create/list/promote/dismiss backlog-item works and is distinct from feedback; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-91696e19-7aa5-4cf8-8215-8d8cf9f668df](.artifacts/records/project__acceptance/rec-91696e19-7aa5-4cf8-8215-8d8cf9f668df.md))_
 
+### Check
+- **verify-backlog-capture**: rec-91696e19-7aa5-4cf8-8215-8d8cf9f668df; 2ba3f658a6c7a374ef157640f4dd4a3024588e90; pass; tdd _(id: [rec-47c792b2-2a4c-4abb-90cb-10c624a2c9fd](.artifacts/records/project__check-run/rec-47c792b2-2a4c-4abb-90cb-10c624a2c9fd.md))_
+
 ## verify-backlog-capture-contract
 
 ### Acceptance
 - **verify-backlog-capture-contract**: Bundled contract resolves project:backlog-item and project:feedback; contract self-consistency suite passes; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48](.artifacts/records/project__acceptance/rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48.md))_
+
+### Check
+- **verify-backlog-capture-contract**: rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48; 2ba3f658a6c7a374ef157640f4dd4a3024588e90; pass; check _(id: [rec-97baaa14-fc25-4b83-a734-e53b49728765](.artifacts/records/project__check-run/rec-97baaa14-fc25-4b83-a734-e53b49728765.md))_
 
 ## verify-backlog-capture-dashboard
 
 ### Acceptance
 - **verify-backlog-capture-dashboard**: Dashboard Backlog panel shows open items for an effort and promote/dismiss work via CLI; Needs you does not list backlog; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_app.py -q -k backlog _(id: [rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec](.artifacts/records/project__acceptance/rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec.md))_
 
+### Check
+- **verify-backlog-capture-dashboard**: rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec; 2ba3f658a6c7a374ef157640f4dd4a3024588e90; pass; tdd _(id: [rec-3ef4a9ef-2227-41b5-be04-18243536b5cc](.artifacts/records/project__check-run/rec-3ef4a9ef-2227-41b5-be04-18243536b5cc.md))_
+
 ## verify-backlog-capture-skills
 
 ### Acceptance
 - **verify-backlog-capture-skills**: Skill/contract consistency and engage feedback-vs-backlog documentation checks pass; check; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_assess_routing.py -q _(id: [rec-f9cf16cd-69d0-4a84-86aa-b134b078c167](.artifacts/records/project__acceptance/rec-f9cf16cd-69d0-4a84-86aa-b134b078c167.md))_
+
+### Check
+- **verify-backlog-capture-skills**: rec-f9cf16cd-69d0-4a84-86aa-b134b078c167; 2ba3f658a6c7a374ef157640f4dd4a3024588e90; pass; check _(id: [rec-077b461e-5d00-4c30-8e8d-b8fab0b2e996](.artifacts/records/project__check-run/rec-077b461e-5d00-4c30-8e8d-b8fab0b2e996.md))_
 
 ## verify-dashboard-actions-phase
 

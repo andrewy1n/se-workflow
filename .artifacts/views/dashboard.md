@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:0d5af06b787f8235375cba43b0ca12a698dd3b84096fd41efbd1582ce712b6d0
+> Store state: sha256:b3554bee480a9fe96777f06aad123cdff98a42d1f489ceb021cb79575906e0f9
 
 ## dashboard
 
@@ -48,22 +48,15 @@
 ### Phase
 - **backlog-capture**: title: Capture deferred work as backlog items; ordinal: 12 _(id: [rec-333cb02a-745f-437e-acad-4401d65f1dd3](.artifacts/records/project__phase/rec-333cb02a-745f-437e-acad-4401d65f1dd3.md))_
 
-### Blocking Question
-- **workflow-loop**: blocking: True; scope: plan-review:backlog-capture _(id: [rec-5d8bef30-f576-4d7d-978e-002e4f9ea099](.artifacts/records/project__continuity-question/rec-5d8bef30-f576-4d7d-978e-002e4f9ea099.md))_
-
-### Ready
-- **contract-backlog**: title: Add backlog-item to the contract; phase: backlog-capture _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_
-
-### Waiting
-- **backlog-lifecycle**: title: CLI create list promote dismiss for backlog-item; phase: backlog-capture _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
-- **dashboard-backlog**: title: Backlog panel on the dashboard; phase: backlog-capture _(id: [rec-ba7d3142-27f2-4033-ad4a-92cab9634df5](.artifacts/records/project__work-item/rec-ba7d3142-27f2-4033-ad4a-92cab9634df5.md))_
-- **skills-backlog**: title: Document backlog capture and promote in skills; phase: backlog-capture _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
-- **verify-backlog-capture**: title: Verify backlog-capture; phase: backlog-capture _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
-
 ### Done Recent
+- **backlog-lifecycle**: title: CLI create list promote dismiss for backlog-item; phase: backlog-capture _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
 - **budget-instructions**: title: Limit verification instructions to phase checks; phase: verify-budget _(id: [rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d](.artifacts/records/project__work-item/rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d.md))_
+- **contract-backlog**: title: Add backlog-item to the contract; phase: backlog-capture _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_
+- **dashboard-backlog**: title: Backlog panel on the dashboard; phase: backlog-capture _(id: [rec-ba7d3142-27f2-4033-ad4a-92cab9634df5](.artifacts/records/project__work-item/rec-ba7d3142-27f2-4033-ad4a-92cab9634df5.md))_
 - **dashboard-dismiss**: title: Dismiss human Needs-you via CLI; phase: needs-you-close _(id: [rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c](.artifacts/records/project__work-item/rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c.md))_
 - **narrow-planned**: title: Drop the full suite from planned verification tasks; phase: verify-budget _(id: [rec-c3192771-4d24-4963-af0e-77b888939bfa](.artifacts/records/project__work-item/rec-c3192771-4d24-4963-af0e-77b888939bfa.md))_
 - **skill-needs-clear**: title: Document Needs-you clears and engage remind; phase: needs-you-close _(id: [rec-8d09c5b9-ff58-4415-9682-ac6d363781cd](.artifacts/records/project__work-item/rec-8d09c5b9-ff58-4415-9682-ac6d363781cd.md))_
+- **skills-backlog**: title: Document backlog capture and promote in skills; phase: backlog-capture _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
+- **verify-backlog-capture**: title: Verify backlog-capture; phase: backlog-capture _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
 - **verify-needs-you-close**: title: Verify Needs you closes when answered; phase: needs-you-close _(id: [rec-687162fe-2287-44e4-bfab-f5d5e746b908](.artifacts/records/project__work-item/rec-687162fe-2287-44e4-bfab-f5d5e746b908.md))_
 - **verify-verify-budget**: title: Verify the 10 minute verification budget; phase: verify-budget _(id: [rec-35f5aeaa-43d5-4280-a8f3-40c7927b135a](.artifacts/records/project__work-item/rec-35f5aeaa-43d5-4280-a8f3-40c7927b135a.md))_
