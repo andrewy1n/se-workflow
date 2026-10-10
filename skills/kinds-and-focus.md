@@ -116,25 +116,24 @@ a separate dismiss cache.
 | Kind | Source | Clear at the event |
 |---|---|---|
 | `blocking-question` / `open-question` | `project:continuity-question` still open | `update --transition answered` |
-| `needs-human` | active `project:finding` with `needs` `human` | `supersede` with `needs` `none` (restated claim/basis/invalidated_when) |
+| `needs-human` | active `project:finding` with `needs` `human` | `update` with `needs` `none` |
 | `unsigned-check` | latest `method=manual` `project:check-run` with empty `signed_by` | `correct` setting `signed_by` |
 
 ```bash
 adaptive-artifacts update --type project:continuity-question --id <question-id> \
   --transition answered --expected-revision <revision>
 
-adaptive-artifacts supersede --type project:finding --id <finding-id> \
+adaptive-artifacts update --type project:finding --id <finding-id> \
   --expected-revision <revision> \
-  --payload '{"claim":"<claim>","basis":"<basis>","invalidated_when":"<when>","effort":"<effort-slug>","needs":"none"}' \
-  --body-file "<finding-body.md>"
+  --payload '{"needs":"none"}'
 
 adaptive-artifacts correct --type project:check-run --id <check-run-id> \
   --payload '{"signed_by":"<signer>"}'
 ```
 
-`<finding-body.md>` keeps the required `## Evidence`, `## Consequence`,
-and `## Follow-up` sections. Signer identity comes from config, env, or
-a short prompt.
+Findings advertise a supersedes relationship but have no superseded
+lifecycle state, so clear with `update` (same as dashboard dismiss).
+Signer identity comes from config, env, or a short prompt.
 
 ## Writer
 
