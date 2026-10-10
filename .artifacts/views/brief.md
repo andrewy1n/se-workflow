@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:0e8c78f9bfc98e82759e9500ec690c752772acd0ef9cc6e02c32ccf5b1f8b7e0
+> Store state: sha256:9f38fef2a8e2268dad29ea75c6420edf42c18c6cfae0685ab2b6d633a189c9b7
 
 ## activity-failures
 
@@ -91,9 +91,6 @@
 
 ## backlog-lifecycle
 
-### Work
-- **backlog-lifecycle**: CLI create list promote dismiss for backlog-item; backlog-capture; deliver; workflow-loop _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
-
 ### Acceptance
 - **backlog-lifecycle**: Through adaptive-artifacts CLI on a seeded store, create open backlog-item with effort, list it by status=open, and reject create without effort; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_backlog_item.py -q _(id: [rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2](.artifacts/records/project__acceptance/rec-fc666597-85d7-42c1-a7e9-3f67d996e0c2.md))_
 
@@ -144,9 +141,6 @@
 
 ## contract-backlog
 
-### Work
-- **contract-backlog**: Add backlog-item to the contract; backlog-capture; deliver; workflow-loop _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_
-
 ### Acceptance
 - **contract-backlog**: The bundled contract resolves project:backlog-item as current-status with status open|promoted|dismissed and effort required, still resolves project:feedback, and a generic create/read of backlog-item validates; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-23b30985-3712-43f6-b1e4-f9240d9a632c](.artifacts/records/project__acceptance/rec-23b30985-3712-43f6-b1e4-f9240d9a632c.md))_
 
@@ -194,9 +188,6 @@
 - **dashboard-autonomy-dashboard-features**: Plan and promote each next phase without asking once the current one closes; stop only for failures, needs-human findings, or a push or merge; dashboard-features; dashboard _(id: [rec-b67f5d65-3a49-440a-b695-c02c2b1bd644](.artifacts/records/project__constraint/rec-b67f5d65-3a49-440a-b695-c02c2b1bd644.md))_
 
 ## dashboard-backlog
-
-### Work
-- **dashboard-backlog**: Backlog panel on the dashboard; backlog-capture; deliver; workflow-loop _(id: [rec-ba7d3142-27f2-4033-ad4a-92cab9634df5](.artifacts/records/project__work-item/rec-ba7d3142-27f2-4033-ad4a-92cab9634df5.md))_
 
 ### Acceptance
 - **dashboard-backlog**: EffortView / snapshot includes only open backlog-items for that effort; Needs you does not list them; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k backlog _(id: [rec-00466274-876f-4c8b-a54e-a8db1e61fbda](.artifacts/records/project__acceptance/rec-00466274-876f-4c8b-a54e-a8db1e61fbda.md))_
@@ -933,9 +924,6 @@ print("phase checks only")
 - **skill-needs-clear-opens**: discuss, plan-phase, verify-work, and execute-phase document the clear command next to each human-gate they open; check; workflow-loop; uv run --with pytest python -m pytest tests/test_discuss_skill.py tests/test_skill_contract_consistency.py -q _(id: [rec-e154ee7d-d057-4d26-bd3e-9962592157f0](.artifacts/records/project__acceptance/rec-e154ee7d-d057-4d26-bd3e-9962592157f0.md))_
 
 ## skills-backlog
-
-### Work
-- **skills-backlog**: Document backlog capture and promote in skills; backlog-capture; deliver; workflow-loop _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
 
 ### Acceptance
 - **skills-backlog**: engage and README still say do not collect or create feedback, and document backlog-item list/create/promote; skill/contract consistency passes for every adaptive-artifacts invocation added; check; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_assess_routing.py -q _(id: [rec-95459f66-4633-441b-a73b-d1aa7b68957a](.artifacts/records/project__acceptance/rec-95459f66-4633-441b-a73b-d1aa7b68957a.md))_

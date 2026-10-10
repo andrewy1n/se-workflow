@@ -7,7 +7,7 @@
     "resolved_contract_format": "0.3.0",
     "traits_version": "0.4.0",
     "backends_version": "0.4.0",
-    "design_digest": "sha256:ec85bbf7e95ca9569116fe271064d8439f22acd3fb6805375345b96f6118df74",
+    "design_digest": "sha256:a2bc0b826f2b5eb935bf3b22a43ea49029dbe8c1293a669022d847def36c7c7d",
     "source_lock": {
       "catalog_version": "0.7.0",
       "catalog": "sha256:d7f0f1d05f8c67f638c0ff1b4ad738161f43c1ec970729709f8f2afc1d8c1eb1",
@@ -1446,6 +1446,76 @@
       "pattern": "observation",
       "purpose": "An external signal engage can route into specify. Nothing collects it.",
       "canonical_for": "the external signal engage can route into specify"
+    },
+    {
+      "id": "project:backlog-item",
+      "name": "backlog-item",
+      "namespace": "project",
+      "experimental": false,
+      "traits": [
+        "entity",
+        "stewarded",
+        "current-claim"
+      ],
+      "base_kind": "claim",
+      "required_dimensions": [
+        "identity",
+        "kind",
+        "subject_and_scope",
+        "stewardship",
+        "epistemic_status",
+        "time"
+      ],
+      "payload": [
+        "subject",
+        "effort",
+        "status",
+        "source",
+        "phase"
+      ],
+      "lifecycle": {
+        "initial": "active",
+        "states": [
+          "active",
+          "superseded"
+        ],
+        "transitions": {
+          "active": [
+            "superseded"
+          ]
+        }
+      },
+      "relationships": [
+        "supersedes"
+      ],
+      "update": "conditional_replace_with_history",
+      "capture": {
+        "trigger": [
+          "event"
+        ]
+      },
+      "read_policy": "routed_by_relevance",
+      "storage_capabilities": [
+        "conditional_mutation",
+        "history"
+      ],
+      "payload_references": {
+        "phase": "project:phase"
+      },
+      "optional_payload": [
+        "source",
+        "phase"
+      ],
+      "payload_enum": {
+        "status": [
+          "open",
+          "promoted",
+          "dismissed"
+        ]
+      },
+      "pattern": "current-status",
+      "purpose": "Deferred work parked on an effort until promoted or dismissed",
+      "canonical_for": "the deferred backlog item for this subject"
     }
   ],
   "views": [
@@ -1639,6 +1709,37 @@
           "occupant": "project:check-run",
           "candidates": [
             "project:check-run"
+          ]
+        },
+        {
+          "name": "backlog",
+          "requires": [
+            "entity",
+            "stewarded",
+            "current-claim"
+          ],
+          "requires_payload": [
+            "effort",
+            "status"
+          ],
+          "base_kind": "claim",
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "equals": "open"
+              }
+            ]
+          },
+          "occupant": "project:backlog-item",
+          "candidates": [
+            "project:current-position",
+            "project:assessment",
+            "project:backlog-item"
           ]
         }
       ]
