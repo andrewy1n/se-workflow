@@ -301,6 +301,7 @@ It needs `uv`. The first run downloads `textual`.
 | `p` | Open the phase detail (stage strip, specification, requirements, body, decisions, constraints, tasks) for the selected row |
 | `n` | Focus the Needs you list; arrows or `j` / `k` move, `esc` returns to the task table |
 | `enter` on a Needs you item | Open the requirement detail for a route, the task detail when the item has a task, else the Needs you detail (kind, record type, full text, body) |
+| `d` on a Needs you item | Dismiss a human gate (question, needs:human finding, or unsigned manual check) via `adaptive-artifacts`; refused for merge/integration/route items |
 | `enter` on a phase-detail requirement | Open the requirement detail |
 | `/` | Filter tasks by title or subject; `enter` keeps it, `esc` clears it |
 | `1`-`6` / `left` / `right` / click | Pick a status tab; the filter applies on top |
@@ -327,6 +328,9 @@ this order:
 1. `$ADAPTIVE_ARTIFACTS_BIN`.
 2. `~/adaptive-artifacts/bin/adaptive-artifacts`, if it is executable.
 3. `adaptive-artifacts` on `PATH`.
+
+Dismissing an unsigned manual check signs it with `$SE_WORKFLOW_SIGNED_BY`,
+else `$USER` / `$USERNAME`, else `dashboard`.
 
 The launcher finds `uv` in this order:
 

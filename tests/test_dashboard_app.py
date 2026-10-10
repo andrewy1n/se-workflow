@@ -3351,3 +3351,144 @@ def test_gates_alert_bell_and_tmux_message_for_new_needs_only(seeded, cli, defs,
         assert "fresh-gate" not in "".join(original)
 
     _detail_run(seeded, (120, 40), scenario, interval=0.3)
+
+
+def _seed_dismiss_human(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha",
+        extra_payload={"goal": "ship dismiss", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "d-phase", 1, "in_progress")
+    question = _record(
+        cli, defs, "project:continuity-question", "alpha",
+        {"subject": "alpha", "owner": "ayin", "blocking": True, "scope": "dismiss-question"},
+    )
+    finding = _record(
+        cli, defs, "project:finding", "dismiss-finding",
+        {"claim": "dismiss-finding", "basis": "b", "needs": "human", "effort": "alpha", "invalidated_when": "w"},
+    )
+    acceptance = _record(
+        cli, defs, "project:acceptance", "dismiss-task",
+        {"criterion": "pages render", "method": "manual", "verify_command": "", "effort": "alpha", "phase": "d-phase"},
+    )
+    check = _record(
+        cli, defs, "project:check-run", "dismiss-check",
+        {
+            "criterion_id": acceptance["id"], "method": "manual", "result": "pass",
+            "signed_by": "", "revision": "r", "effort": "alpha",
+        },
+    )
+    return question, finding, check
+
+
+async def _dismiss_highlighted(app, pilot, text):
+    await _focus_needs(app, pilot, text)
+    item_id = _item(app, text).id
+    await pilot.press("d")
+    await app.workers.wait_for_complete()
+    await _until(pilot, lambda: all(
+        item.id != item_id for view in (app.snapshot.efforts if app.snapshot else []) for item in view.needs_you
+    ))
+    return item_id
+
+
+def test_dismiss_clears_question_needs_human_and_unsigned_check_via_cli(store, cli, defs, monkeypatch):
+    monkeypatch.setenv("SE_WORKFLOW_SIGNED_BY", "pilot-signer")
+    stamped_store(store, "dismiss-human", lambda root, c, d: _seed_dismiss_human(c, d))
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        kinds = {item.kind for view in app.snapshot.efforts for item in view.needs_you}
+        assert kinds == {"blocking-question", "needs-human", "unsigned-check"}
+
+        await _dismiss_highlighted(app, pilot, "dismiss-question")
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 2)
+        assert "dismiss-question" not in _needs_text(app)
+
+        await _dismiss_highlighted(app, pilot, "dismiss-finding")
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 1)
+        assert "dismiss-finding" not in _needs_text(app)
+
+        await _dismiss_highlighted(app, pilot, "pages render pass")
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 0 or not app.query_one("#needs-you").display)
+        assert not any(
+            item.kind == "unsigned-check" for view in app.snapshot.efforts for item in view.needs_you
+        )
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_dismiss_from_needs_you_detail_clears_a_question(store, cli, defs):
+    stamped_store(store, "dismiss-detail", lambda root, c, d: _seed_dismiss_human(c, d))
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await _focus_needs(app, pilot, "dismiss-question")
+        await pilot.press("enter")
+        screen = await _needs_shown(app, pilot)
+        item_id = screen.item.id
+        await pilot.press("d")
+        await app.workers.wait_for_complete()
+        await _until(pilot, lambda: not isinstance(app.screen, app_module.NeedsYouDetailScreen))
+        await _until(pilot, lambda: all(
+            item.id != item_id for view in app.snapshot.efforts for item in view.needs_you
+        ))
+        assert "dismiss-question" not in _needs_text(app)
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_dismiss_refused_for_merge_branch(store, cli, defs):
+    stamped_store(store, "dismiss-refuse", lambda root, c, d: _seed_dismiss_human(c, d))
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        view = app.effort_view("alpha")
+        merge = model_module.NeedsYouItem(
+            "merge-branch", "merge:d-phase", "d-phase", "phase/d-phase", phase="d-phase",
+        )
+        view.needs_you.append(merge)
+        pane = app.active_pane()
+        pane.show(view, app.snapshot.generated_at, app.size.width, app_module.palette_from(app.get_css_variables()))
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 4)
+        await _focus_needs(app, pilot, "phase/d-phase")
+        await pilot.press("d")
+        await pilot.pause()
+        assert any(item.id == merge.id for item in app.effort_view("alpha").needs_you)
+        assert any("Cannot dismiss merge-branch" in note for note in _notices(app))
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_dismiss_cli_failure_keeps_item_and_shows_error(store, cli, defs, monkeypatch):
+    stamped_store(store, "dismiss-fail", lambda root, c, d: _seed_dismiss_human(c, d))
+    real = app_module.dismiss_module.subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if isinstance(cmd, (list, tuple)) and any(part in {"update", "correct", "supersede"} for part in cmd):
+            return subprocess.CompletedProcess(cmd, 1, '{"error":"boom"}', "permission denied")
+        return real(cmd, **kwargs)
+
+    monkeypatch.setattr(app_module.dismiss_module.subprocess, "run", fake_run)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#needs-you").option_count == 3)
+        await _focus_needs(app, pilot, "dismiss-question")
+        item_id = _item(app, "dismiss-question").id
+        await pilot.press("d")
+        await pilot.pause()
+        assert any(item.id == item_id for view in app.snapshot.efforts for item in view.needs_you)
+        assert app.query_one("#needs-you").option_count == 3
+        assert any("failed" in note.lower() or "permission" in note.lower() or "boom" in note.lower()
+                   for note in _notices(app))
+
+        await _focus_needs(app, pilot, "dismiss-question")
+        await pilot.press("enter")
+        screen = await _needs_shown(app, pilot)
+        await pilot.press("d")
+        await pilot.pause()
+        assert isinstance(app.screen, app_module.NeedsYouDetailScreen)
+        assert screen.query_one("#needs-error").display
+        assert any(item.id == item_id for view in app.snapshot.efforts for item in view.needs_you)
+
+    _detail_run(store, (120, 40), scenario)

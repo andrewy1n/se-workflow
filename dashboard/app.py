@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dashboard import artifact_store
+from dashboard import dismiss as dismiss_module
 from dashboard import gates
 from dashboard import journal
 from dashboard import model
@@ -456,6 +457,7 @@ class FilterInput(Input):
 class NeedsList(OptionList):
     BINDINGS = [
         Binding("escape", "app.leave_needs", "back", show=False),
+        Binding("d", "app.dismiss_needs", "dismiss"),
         Binding("j", "cursor_down", "down", show=False),
         Binding("k", "cursor_up", "up", show=False),
     ]
@@ -546,6 +548,7 @@ class NeedsYouDetailScreen(Screen[None]):
     AUTO_FOCUS = "#needs-detail"
     BINDINGS = [
         Binding("escape", "back", "back"),
+        Binding("d", "app.dismiss_needs", "dismiss"),
         Binding("c", "app.copy_slug", "copy prompt"),
         Binding("r", "app.refresh", "refresh"),
     ]
@@ -574,6 +577,12 @@ class NeedsYouDetailScreen(Screen[None]):
     def action_back(self) -> None:
         self.app.pop_screen()
         self.app.call_after_refresh(self.app.refocus)
+
+    def show_dismiss_error(self, message: str) -> None:
+        banner = self.query_one("#needs-error", Static)
+        banner.update(Text(message.splitlines()[0] if message else "dismiss failed",
+                           no_wrap=True, overflow="ellipsis"))
+        banner.display = True
 
     async def follow(self, snapshot: model.Snapshot) -> None:
         found = next((i for v in snapshot.efforts for i in v.needs_you if i.id == self.item.id), None)
@@ -929,6 +938,38 @@ class DashboardApp(App[None]):
             self.copy_to_clipboard(name)
             shown = name if len(name) <= 60 else name[:57] + "..."
             self.notify(f"Copied {shown}", timeout=2)
+
+    def _needs_dismiss_item(self) -> model.NeedsYouItem | None:
+        screen = self.screen
+        if isinstance(screen, NeedsYouDetailScreen):
+            return screen.item
+        if isinstance(self.focused, NeedsList):
+            return self.focused.highlighted_item()
+        return None
+
+    def action_dismiss_needs(self) -> None:
+        item = self._needs_dismiss_item()
+        if item is None:
+            return
+        if not dismiss_module.is_dismissible(item.kind):
+            message = f"Cannot dismiss {item.kind}"
+            self._surface_dismiss_error(message)
+            return
+        try:
+            dismiss_module.dismiss_item(self.target, item)
+        except dismiss_module.DismissError as exc:
+            self._surface_dismiss_error(str(exc))
+            return
+        self.reload()
+        if isinstance(self.screen, NeedsYouDetailScreen):
+            self.pop_screen()
+            self.call_after_refresh(self.refocus)
+
+    def _surface_dismiss_error(self, message: str) -> None:
+        screen = self.screen
+        if isinstance(screen, NeedsYouDetailScreen):
+            screen.show_dismiss_error(message)
+        self.notify(message, severity="error", timeout=4)
 
     def cursor_subject(self) -> str | None:
         pane = self.active_pane()
