@@ -1,23 +1,15 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:82f9039283919fb0e238e66d6e0060abf558381b4b6b8277c4d5e18f77a1c47b
+> Store state: sha256:10c1574ebb4f547f4322d434bae8b5d9880ccef727c7f3da8e3dbc3726fcc3e0
 
 ## dashboard
 
 ### Goal
 - **dashboard**: goal: A live terminal dashboard, openable from tmux, shows each effort's phases, tasks and what needs you, lets you move from any item to its related records, and works correctly in every state; scope: effort; kind: deliver _(id: [rec-39db526b-abbb-4753-b9ff-40b8c05662c2](/home/andrewyin/se-workflow/.artifacts/records/project__active-goal/rec-39db526b-abbb-4753-b9ff-40b8c05662c2.md))_
 
-### Phase
-- **waits-on-compact**: title: Compact waits-on in the task table; ordinal: 27 _(id: [rec-45e8872a-626f-47c2-bb17-0e030b3fe096](/home/andrewyin/se-workflow/.artifacts/records/project__phase/rec-45e8872a-626f-47c2-bb17-0e030b3fe096.md))_
-
-### Running
-- **drop-row-waits-on**: title: Drop waits-on note from task row; phase: waits-on-compact; assignee: drop-row-waits-on-agent _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
-
-### Waiting
-- **verify-waits-on-compact**: title: Verify compact waits-on rows; phase: waits-on-compact _(id: [rec-2140b5ae-0791-47ed-8de0-4d78833152b7](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-2140b5ae-0791-47ed-8de0-4d78833152b7.md))_
-
 ### Done Recent
+- **drop-row-waits-on**: title: Drop waits-on note from task row; phase: waits-on-compact _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
 - **gates-landing**: title: Read-only phase Landing git state; phase: human-gates _(id: [rec-7670ae47-9b16-4a83-bba8-adc230411a8d](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-7670ae47-9b16-4a83-bba8-adc230411a8d.md))_
 - **gates-model**: title: Wire landing merge, last_record_at, and quiet into the model; phase: human-gates _(id: [rec-ac8585d0-b933-4316-9117-d0a07db48860](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-ac8585d0-b933-4316-9117-d0a07db48860.md))_
 - **gates-status**: title: tmux status-right needs-you count segment; phase: human-gates _(id: [rec-1749a417-d901-4efd-89eb-bd7bab403426](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-1749a417-d901-4efd-89eb-bd7bab403426.md))_
@@ -36,6 +28,7 @@
 - **verify-human-gates**: title: Verify human-gates phase; phase: human-gates _(id: [rec-4821ded2-c229-49eb-beff-3e0bd580544f](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-4821ded2-c229-49eb-beff-3e0bd580544f.md))_
 - **verify-journal-view**: title: Verify journal-view phase; phase: journal-view _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
 - **verify-spec-view**: title: Verify spec-view phase; phase: spec-view _(id: [rec-79a4e4c1-cfcb-421b-a023-64563ff645f3](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-79a4e4c1-cfcb-421b-a023-64563ff645f3.md))_
+- **verify-waits-on-compact**: title: Verify compact waits-on rows; phase: waits-on-compact _(id: [rec-2140b5ae-0791-47ed-8de0-4d78833152b7](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-2140b5ae-0791-47ed-8de0-4d78833152b7.md))_
 
 ## session-analysis
 

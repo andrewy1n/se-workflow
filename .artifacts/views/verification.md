@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:38f94ccb1948238577d4827df81c193d335dfd2667ea0b0c37c97f23c73afdb3
+> Store state: sha256:cb07f64914a2344b0afbd6e74d4561954603379fc38106a56be35d624fe3a83c
 
 ## activity-failures
 
@@ -295,15 +295,33 @@
 ### Acceptance
 - **drop-row-waits-on**: title_cell for a waiting task with unfinished deps has no waits on substring and still ends with the muted size/estimate/executor suffix; tests fail before the change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_tasks.py -q -k 'title_cell and waits' _(id: [rec-873b510b-7eeb-42da-a7e7-fc83684576e7](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-873b510b-7eeb-42da-a7e7-fc83684576e7.md))_
 
+### Check
+- **drop-row-waits-on**: rec-873b510b-7eeb-42da-a7e7-fc83684576e7; dirty; fail; tdd _(id: [rec-6d8ce709-787d-4d5d-8ecd-d092f017d26b](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-6d8ce709-787d-4d5d-8ecd-d092f017d26b.md))_
+- **drop-row-waits-on**: rec-873b510b-7eeb-42da-a7e7-fc83684576e7; 98bcbd8 dirty; pass; tdd _(id: [rec-c7ae8096-95aa-476a-9b82-1e919116029f](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-c7ae8096-95aa-476a-9b82-1e919116029f.md))_
+
+### Observation
+- **drop-row-waits-on**: title_cell appended full unclipped waits on list; 8 long deps produced ~157-char title cell at widths 40/60/120; dashboard _(id: [rec-93f80c29-7ff5-4aa8-b53d-c92927d28a82](/home/andrewyin/se-workflow/.artifacts/records/project__investigation-observation/rec-93f80c29-7ff5-4aa8-b53d-c92927d28a82.md))_
+
+### Finding
+- **drop-row-waits-on**: title_cell appended an unclipped waits-on dependency list that overflowed and wrapped task rows; code inspection of title_cell plus failing then passing TDD slice; title_cell again appends waits on text or detail loses Depends on links; none _(id: [rec-8a2bc307-f417-4d2f-a4b7-507724e2e977](/home/andrewyin/se-workflow/.artifacts/records/project__finding/rec-8a2bc307-f417-4d2f-a4b7-507724e2e977.md))_
+
 ## drop-row-waits-on-detail
 
 ### Acceptance
 - **drop-row-waits-on-detail**: Task detail for a blocked/waiting task still lists Depends on links for its dependencies after the row note is gone; regression holds; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'detail and (Depends or blocked or waiting)' _(id: [rec-d2f45e59-d643-45ff-97f9-72e4edd0debb](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-d2f45e59-d643-45ff-97f9-72e4edd0debb.md))_
 
+### Check
+- **drop-row-waits-on-detail**: rec-d2f45e59-d643-45ff-97f9-72e4edd0debb; dirty; fail; tdd _(id: [rec-59ffa822-2a79-460f-a77a-65666f6c920d](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-59ffa822-2a79-460f-a77a-65666f6c920d.md))_
+- **drop-row-waits-on-detail**: rec-d2f45e59-d643-45ff-97f9-72e4edd0debb; 98bcbd8 dirty; pass; tdd _(id: [rec-ab772415-e0aa-42a0-aa88-2a840c6d2471](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-ab772415-e0aa-42a0-aa88-2a840c6d2471.md))_
+
 ## drop-row-waits-on-oneline
 
 ### Acceptance
 - **drop-row-waits-on-oneline**: A waiting row with several unfinished dependencies stays one line (no waits on, no dependency-driven wrap) at 60 and 120 columns in the app pilot; fails before the change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'waiting_row' _(id: [rec-171c0948-9d2c-48a5-8622-a063778e21bf](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-171c0948-9d2c-48a5-8622-a063778e21bf.md))_
+
+### Check
+- **drop-row-waits-on-oneline**: rec-171c0948-9d2c-48a5-8622-a063778e21bf; dirty; fail; tdd _(id: [rec-0b41479e-16e0-417c-b615-a9f37fcdc0e1](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-0b41479e-16e0-417c-b615-a9f37fcdc0e1.md))_
+- **drop-row-waits-on-oneline**: rec-171c0948-9d2c-48a5-8622-a063778e21bf; 98bcbd8 dirty; pass; tdd _(id: [rec-c9806692-e2a6-4d50-81aa-936e7d9fbaae](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-c9806692-e2a6-4d50-81aa-936e7d9fbaae.md))_
 
 ## e2e-real-execute-run
 
@@ -2204,15 +2222,24 @@ print("phase checks only")
 ### Acceptance
 - **verify-waits-on-compact**: Through the dashboard app entry point, a waiting row with several unfinished deps shows no waits on in the title cell and stays one line at typical widths; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'waiting_row or waits' _(id: [rec-2229ea3a-838b-401d-a6cf-cfe1a00067db](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-2229ea3a-838b-401d-a6cf-cfe1a00067db.md))_
 
+### Check
+- **verify-waits-on-compact**: rec-2229ea3a-838b-401d-a6cf-cfe1a00067db; 98bcbd8 dirty; pass; tdd _(id: [rec-d500da71-250f-4225-885b-d760f0cd9bea](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-d500da71-250f-4225-885b-d760f0cd9bea.md))_
+
 ## verify-waits-on-compact-detail
 
 ### Acceptance
 - **verify-waits-on-compact-detail**: Through the dashboard app, task detail for that waiting task still lists Depends on links for its dependencies; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'detail and (Depends or blocked)' _(id: [rec-adf5aef7-5c16-4f3a-bd91-f3b8a49d2e84](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-adf5aef7-5c16-4f3a-bd91-f3b8a49d2e84.md))_
 
+### Check
+- **verify-waits-on-compact-detail**: rec-adf5aef7-5c16-4f3a-bd91-f3b8a49d2e84; 98bcbd8 dirty; pass; tdd _(id: [rec-9800fc0a-7581-41ce-a0c4-5eff49d7be82](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-9800fc0a-7581-41ce-a0c4-5eff49d7be82.md))_
+
 ## verify-waits-on-compact-suite
 
 ### Acceptance
 - **verify-waits-on-compact-suite**: Focused dashboard tasks/app tests that formerly expected row waits on pass against the dropped form; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_tasks.py tests/test_dashboard_app.py -q -k 'waits or title_cell or waiting_row' _(id: [rec-2ad10a07-f300-4aee-b79c-4cabb9cb3e3f](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-2ad10a07-f300-4aee-b79c-4cabb9cb3e3f.md))_
+
+### Check
+- **verify-waits-on-compact-suite**: rec-2ad10a07-f300-4aee-b79c-4cabb9cb3e3f; 98bcbd8 dirty; pass; check _(id: [rec-6e68d8cc-6b7f-42c7-ad57-e5ceaa1451f4](/home/andrewyin/se-workflow/.artifacts/records/project__check-run/rec-6e68d8cc-6b7f-42c7-ad57-e5ceaa1451f4.md))_
 
 ## verify-watch-renderer-phase
 

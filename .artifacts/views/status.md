@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:459ace313eaee343987f45c6d98526f4f25cde3dafb3a5e82955271090f47490
+> Store state: sha256:e4972e5f8d3a001ebd3912d3a61f8b4f59ecb27fefec1ae1442245901030c550
 
 ## dashboard-view
 
@@ -302,8 +302,8 @@
 ## waits-on-compact
 
 ### Work
-- **drop-row-waits-on**: Drop waits-on note from task row; waits-on-compact; repair; dashboard; state: in_progress; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
-- **verify-waits-on-compact**: Verify compact waits-on rows; waits-on-compact; repair; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-2140b5ae-0791-47ed-8de0-4d78833152b7](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-2140b5ae-0791-47ed-8de0-4d78833152b7.md))_
+- **drop-row-waits-on**: Drop waits-on note from task row; waits-on-compact; repair; dashboard; state: done; ready: True; wave: 1; criteria: 3 pass / 3 fail _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
+- **verify-waits-on-compact**: Verify compact waits-on rows; waits-on-compact; repair; dashboard; state: done; ready: True; wave: 2; criteria: 3 pass / 0 fail _(id: [rec-2140b5ae-0791-47ed-8de0-4d78833152b7](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-2140b5ae-0791-47ed-8de0-4d78833152b7.md))_
 
 ## 
 

@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:ff93d2e846a8d41c5c3b7cc1daa2f3d19a96d860eba39f63942ef7c6668bcb20
+> Store state: sha256:aab8433652c14908977939bb854281ed016565b3754cbfd1247258dc57a3c0e7
 
 ## activity-failures
 
@@ -238,11 +238,11 @@
 
 ## drop-row-waits-on
 
-### Work
-- **drop-row-waits-on**: Drop waits-on note from task row; waits-on-compact; repair; dashboard _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
-
 ### Acceptance
 - **drop-row-waits-on**: title_cell for a waiting task with unfinished deps has no waits on substring and still ends with the muted size/estimate/executor suffix; tests fail before the change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_tasks.py -q -k 'title_cell and waits' _(id: [rec-873b510b-7eeb-42da-a7e7-fc83684576e7](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-873b510b-7eeb-42da-a7e7-fc83684576e7.md))_
+
+### Finding
+- **drop-row-waits-on**: title_cell appended an unclipped waits-on dependency list that overflowed and wrapped task rows; code inspection of title_cell plus failing then passing TDD slice; title_cell again appends waits on text or detail loses Depends on links; none _(id: [rec-8a2bc307-f417-4d2f-a4b7-507724e2e977](/home/andrewyin/se-workflow/.artifacts/records/project__finding/rec-8a2bc307-f417-4d2f-a4b7-507724e2e977.md))_
 
 ## drop-row-waits-on-detail
 
@@ -1510,9 +1510,6 @@ print("phase checks only")
 
 ## verify-waits-on-compact
 
-### Work
-- **verify-waits-on-compact**: Verify compact waits-on rows; waits-on-compact; repair; dashboard _(id: [rec-2140b5ae-0791-47ed-8de0-4d78833152b7](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-2140b5ae-0791-47ed-8de0-4d78833152b7.md))_
-
 ### Acceptance
 - **verify-waits-on-compact**: Through the dashboard app entry point, a waiting row with several unfinished deps shows no waits on in the title cell and stays one line at typical widths; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'waiting_row or waits' _(id: [rec-2229ea3a-838b-401d-a6cf-cfe1a00067db](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-2229ea3a-838b-401d-a6cf-cfe1a00067db.md))_
 
@@ -1550,11 +1547,6 @@ print("phase checks only")
 
 ### Acceptance
 - **verify-wave-executor-plan**: plan-phase requires a recipe, one shared executor per wave, and phase size, stops, and collision notes before plan review; tdd; workflow-loop; python3 -m pytest tests/test_plan_wave_rules.py -q _(id: [rec-61bdf854-1a06-491f-8af6-aeda309ec357](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-61bdf854-1a06-491f-8af6-aeda309ec357.md))_
-
-## waits-on-compact
-
-### Position
-- **waits-on-compact**: plan ready for review; wave 1 drop-row-waits-on; phase _(id: [rec-ee313b91-14ab-4269-90ce-3cc59fb812a2](/home/andrewyin/se-workflow/.artifacts/records/project__current-position/rec-ee313b91-14ab-4269-90ce-3cc59fb812a2.md))_
 
 ## watch-command
 

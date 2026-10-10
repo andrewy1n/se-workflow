@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:48527fd1a0a969ca006bf02d1778e19f44f6405ff95c6bdfd3a03989cde5b6da
+> Store state: sha256:4d7deed6f692e1bf5af4e176fbf94af489872c4247e0b8dc51c0b83b612df3fd
 
 ## dashboard
 
@@ -10,10 +10,6 @@
 
 ### Position
 - **dashboard**: waits-on-compact discussed (drop waits-on from row); ready for plan-phase; effort _(id: [rec-e6b3e54e-6a87-44e6-90ac-19c9ddb27635](/home/andrewyin/se-workflow/.artifacts/records/project__current-position/rec-e6b3e54e-6a87-44e6-90ac-19c9ddb27635.md))_
-- **waits-on-compact**: plan ready for review; wave 1 drop-row-waits-on; phase _(id: [rec-ee313b91-14ab-4269-90ce-3cc59fb812a2](/home/andrewyin/se-workflow/.artifacts/records/project__current-position/rec-ee313b91-14ab-4269-90ce-3cc59fb812a2.md))_
-
-### In Progress
-- **drop-row-waits-on**: Drop waits-on note from task row; waits-on-compact; repair; dashboard _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
 
 ## session-analysis
 

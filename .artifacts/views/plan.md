@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:58637a6c75571cf7dfc33feaea4351579a7c13ffd3a5cfa0ee7cdce7071f10c2
+> Store state: sha256:ace6f6f074a17f5b0534b7d566a743abbdd16161dad41e47f635afac34ac0995
 
 ## dashboard-view
 
@@ -459,13 +459,6 @@ print("phase checks only")
 - **verify-journal-view-suite**: the journal-view checks pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k journal _(id: [rec-628b0b42-c0af-421a-a077-8f9238c5eb0b](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-628b0b42-c0af-421a-a077-8f9238c5eb0b.md))_
 
 ## waits-on-compact
-
-### Phase
-- **waits-on-compact**: Compact waits-on in the task table; 27; dashboard _(id: [rec-45e8872a-626f-47c2-bb17-0e030b3fe096](/home/andrewyin/se-workflow/.artifacts/records/project__phase/rec-45e8872a-626f-47c2-bb17-0e030b3fe096.md))_
-
-### Work
-- **drop-row-waits-on**: Drop waits-on note from task row; waits-on-compact; repair; dashboard _(id: [rec-39018206-0ce9-45fa-83c3-4827ab517305](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-39018206-0ce9-45fa-83c3-4827ab517305.md))_
-- **verify-waits-on-compact**: Verify compact waits-on rows; waits-on-compact; repair; dashboard _(id: [rec-2140b5ae-0791-47ed-8de0-4d78833152b7](/home/andrewyin/se-workflow/.artifacts/records/project__work-item/rec-2140b5ae-0791-47ed-8de0-4d78833152b7.md))_
 
 ### Acceptance
 - **drop-row-waits-on**: title_cell for a waiting task with unfinished deps has no waits on substring and still ends with the muted size/estimate/executor suffix; tests fail before the change; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_tasks.py -q -k 'title_cell and waits' _(id: [rec-873b510b-7eeb-42da-a7e7-fc83684576e7](/home/andrewyin/se-workflow/.artifacts/records/project__acceptance/rec-873b510b-7eeb-42da-a7e7-fc83684576e7.md))_
