@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:49bd1539dff0d175410e88617d4dd5d4192283b51944db6c15416643f5dee0c7
+> Store state: sha256:38f569310e1940becf0fbae975aebb8ca6d253dde7f1065b21e416632cf53884
 
 ## dashboard
 
@@ -30,4 +30,5 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
+- **backlog-capture**: Planning backlog-capture tasks for contract type, skills, and CLI lifecycle; phase _(id: [rec-74c1674d-fcc2-49c7-abca-56d88dc64625](.artifacts/records/project__current-position/rec-74c1674d-fcc2-49c7-abca-56d88dc64625.md))_
 - **workflow-loop**: needs-you-close done; no further phase planned; effort _(id: [rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35](.artifacts/records/project__current-position/rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35.md))_

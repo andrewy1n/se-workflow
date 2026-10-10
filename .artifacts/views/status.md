@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:b55aa76311cbe6d0fa5e4c864a9dab2335e2231d003afa0410644bdf948e6fb0
+> Store state: sha256:be215ffe88ffff971079afe0e5dc433d4b6afa962e20311ff64c25773ac1bca1
 
 ## dashboard-view
 
@@ -174,6 +174,14 @@
 - **dashboard-dismiss**: Dismiss human Needs-you via CLI; needs-you-close; repair; workflow-loop; state: done; ready: True; wave: 1; criteria: 2 pass / 0 fail _(id: [rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c](.artifacts/records/project__work-item/rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c.md))_
 - **skill-needs-clear**: Document Needs-you clears and engage remind; needs-you-close; repair; workflow-loop; state: done; ready: True; wave: 1; criteria: 3 pass / 0 fail _(id: [rec-8d09c5b9-ff58-4415-9682-ac6d363781cd](.artifacts/records/project__work-item/rec-8d09c5b9-ff58-4415-9682-ac6d363781cd.md))_
 - **verify-needs-you-close**: Verify Needs you closes when answered; needs-you-close; repair; workflow-loop; state: done; ready: True; wave: 2; criteria: 3 pass / 0 fail _(id: [rec-687162fe-2287-44e4-bfab-f5d5e746b908](.artifacts/records/project__work-item/rec-687162fe-2287-44e4-bfab-f5d5e746b908.md))_
+
+## backlog-capture
+
+### Work
+- **backlog-lifecycle**: CLI create list promote dismiss for backlog-item; backlog-capture; deliver; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
+- **contract-backlog**: Add backlog-item to the contract; backlog-capture; deliver; workflow-loop; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_
+- **skills-backlog**: Document backlog capture and promote in skills; backlog-capture; deliver; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
+- **verify-backlog-capture**: Verify backlog-capture; backlog-capture; deliver; workflow-loop; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
 
 ## features-needs-you
 

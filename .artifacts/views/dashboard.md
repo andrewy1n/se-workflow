@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:652525569c01dc1875a17b1e552c351c91c6010e3d66f28406bb38719bdeee83
+> Store state: sha256:cff15c1eabe099369f6ffd39bee44a9fe183593771e289763ed46b0f71a4d42e
 
 ## dashboard
 
@@ -44,6 +44,17 @@
 
 ### Goal
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
+
+### Phase
+- **backlog-capture**: title: Capture deferred work as backlog items; ordinal: 12 _(id: [rec-333cb02a-745f-437e-acad-4401d65f1dd3](.artifacts/records/project__phase/rec-333cb02a-745f-437e-acad-4401d65f1dd3.md))_
+
+### Ready
+- **contract-backlog**: title: Add backlog-item to the contract; phase: backlog-capture _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_
+
+### Waiting
+- **backlog-lifecycle**: title: CLI create list promote dismiss for backlog-item; phase: backlog-capture _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
+- **skills-backlog**: title: Document backlog capture and promote in skills; phase: backlog-capture _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
+- **verify-backlog-capture**: title: Verify backlog-capture; phase: backlog-capture _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
 
 ### Done Recent
 - **budget-instructions**: title: Limit verification instructions to phase checks; phase: verify-budget _(id: [rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d](.artifacts/records/project__work-item/rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d.md))_
