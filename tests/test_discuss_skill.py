@@ -65,7 +65,7 @@ def test_kinds_and_focus_documents_human_dismissible_clears():
     ]
     finding_clear = [
         inv for inv in asserts
-        if inv["subcommand"] == "supersede"
+        if inv["subcommand"] == "update"
         and inv["type"] == "project:finding"
         and inv.get("payload", {}).get("needs") == "none"
     ]
@@ -112,7 +112,7 @@ def test_skills_that_open_human_gates_document_matching_clears():
         for inv in verify
     )
     assert any(
-        inv["subcommand"] == "supersede"
+        inv["subcommand"] == "update"
         and inv["type"] == "project:finding"
         and (inv.get("payload") or {}).get("needs") == "none"
         for inv in verify

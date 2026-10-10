@@ -105,10 +105,9 @@ adaptive-artifacts create --type project:finding \
    finding, clear it at the event (kinds-and-focus, Needs-you clears):
 
 ```bash
-adaptive-artifacts supersede --type project:finding --id <finding-id> \
+adaptive-artifacts update --type project:finding --id <finding-id> \
   --expected-revision <revision> \
-  --payload '{"claim":"<claim>","basis":"<basis>","invalidated_when":"<when>","effort":"<effort-slug>","needs":"none"}' \
-  --body-file "<finding-body.md>"
+  --payload '{"needs":"none"}'
 ```
 
    If this finding overturns a prior
@@ -417,10 +416,9 @@ at the event (kinds-and-focus, Needs-you clears):
 adaptive-artifacts update --type project:continuity-question --id <question-id> \
   --transition answered --expected-revision <revision>
 
-adaptive-artifacts supersede --type project:finding --id <finding-id> \
+adaptive-artifacts update --type project:finding --id <finding-id> \
   --expected-revision <revision> \
-  --payload '{"claim":"<claim>","basis":"<basis>","invalidated_when":"<when>","effort":"<effort-slug>","needs":"none"}' \
-  --body-file "<finding-body.md>"
+  --payload '{"needs":"none"}'
 ```
 
 ### Release
