@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:f8e7e5d1e43fdc6fd6a7aa91e3b18a4486c4f548e3f120c2ae61c4ddba903a4c
+> Store state: sha256:0009a418304318326c18c4603f057879149779a5812be47f90c3aa4c232b830a
 
 ## dashboard
 
@@ -56,9 +56,6 @@
 
 ### Phase
 - **needs-you-close**: title: Close Needs you when answered; ordinal: 11 _(id: [rec-0058a831-dc21-4bd9-a227-05e70f1d8f46](.artifacts/records/project__phase/rec-0058a831-dc21-4bd9-a227-05e70f1d8f46.md))_
-
-### Blocking Question
-- **workflow-loop**: blocking: True; scope: plan-review:needs-you-close _(id: [rec-505ec748-314f-4f0a-b0fd-03fb4c48bc33](.artifacts/records/project__continuity-question/rec-505ec748-314f-4f0a-b0fd-03fb4c48bc33.md))_
 
 ### Ready
 - **dashboard-dismiss**: title: Dismiss human Needs-you via CLI; phase: needs-you-close _(id: [rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c](.artifacts/records/project__work-item/rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c.md))_

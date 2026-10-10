@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:bd6e5ab1cc7818028d8eda20fd323ce0d1c6bc6f8bbaa4e811d4f6816db96881
+> Store state: sha256:712a29e35326adc292928fffd330bf08b4179844dba7f5e869be72dec6fafafe
 
 ## dashboard
 
@@ -38,8 +38,5 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **needs-you-close**: plan ready for review; wave 1 skill-needs-clear + dashboard-dismiss; phase _(id: [rec-8802f08b-4ec6-4d39-969b-91cef3e958f9](.artifacts/records/project__current-position/rec-8802f08b-4ec6-4d39-969b-91cef3e958f9.md))_
+- **needs-you-close**: plan approved; ready for execute-phase wave 1; phase _(id: [rec-1e77b492-b7a4-4679-a1b4-e138bf0d6593](.artifacts/records/project__current-position/rec-1e77b492-b7a4-4679-a1b4-e138bf0d6593.md))_
 - **workflow-loop**: needs-you-close discussed; ready for plan-phase; effort _(id: [rec-2e04da4b-e33c-403b-baa8-b46f74febcaf](.artifacts/records/project__current-position/rec-2e04da4b-e33c-403b-baa8-b46f74febcaf.md))_
-
-### Blocking Question
-- **workflow-loop**: True; plan-review:needs-you-close _(id: [rec-505ec748-314f-4f0a-b0fd-03fb4c48bc33](.artifacts/records/project__continuity-question/rec-505ec748-314f-4f0a-b0fd-03fb4c48bc33.md))_
