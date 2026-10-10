@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:0a21be429c10c035e12e3302943767dc19e8b5c02da111a23aa1d42138cc66c6
+> Store state: sha256:d9872c8ef5fff910a008354bb7c2fa88018327ff4977806470cb81832342c0d7
 
 ## dashboard
 
@@ -30,7 +30,7 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **backlog-capture**: Planning backlog-capture tasks for contract type, skills, and CLI lifecycle; phase _(id: [rec-74c1674d-fcc2-49c7-abca-56d88dc64625](.artifacts/records/project__current-position/rec-74c1674d-fcc2-49c7-abca-56d88dc64625.md))_
+- **backlog-capture**: Plan revised: dashboard Backlog panel task added; awaiting plan-review; phase _(id: [rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc](.artifacts/records/project__current-position/rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc.md))_
 - **workflow-loop**: needs-you-close done; no further phase planned; effort _(id: [rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35](.artifacts/records/project__current-position/rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35.md))_
 
 ### Blocking Question

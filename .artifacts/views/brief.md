@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:2663716a29a7e21a15de302cc79a37a982207a6d2cdd8b1192827142e31d5b23
+> Store state: sha256:0e8c78f9bfc98e82759e9500ec690c752772acd0ef9cc6e02c32ccf5b1f8b7e0
 
 ## activity-failures
 
@@ -87,7 +87,7 @@
 ## backlog-capture
 
 ### Position
-- **backlog-capture**: Planning backlog-capture tasks for contract type, skills, and CLI lifecycle; phase _(id: [rec-74c1674d-fcc2-49c7-abca-56d88dc64625](.artifacts/records/project__current-position/rec-74c1674d-fcc2-49c7-abca-56d88dc64625.md))_
+- **backlog-capture**: Plan revised: dashboard Backlog panel task added; awaiting plan-review; phase _(id: [rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc](.artifacts/records/project__current-position/rec-e101ad97-9c86-40fa-b40f-8acdf93f06dc.md))_
 
 ## backlog-lifecycle
 
@@ -192,6 +192,19 @@
 
 ### Constraint
 - **dashboard-autonomy-dashboard-features**: Plan and promote each next phase without asking once the current one closes; stop only for failures, needs-human findings, or a push or merge; dashboard-features; dashboard _(id: [rec-b67f5d65-3a49-440a-b695-c02c2b1bd644](.artifacts/records/project__constraint/rec-b67f5d65-3a49-440a-b695-c02c2b1bd644.md))_
+
+## dashboard-backlog
+
+### Work
+- **dashboard-backlog**: Backlog panel on the dashboard; backlog-capture; deliver; workflow-loop _(id: [rec-ba7d3142-27f2-4033-ad4a-92cab9634df5](.artifacts/records/project__work-item/rec-ba7d3142-27f2-4033-ad4a-92cab9634df5.md))_
+
+### Acceptance
+- **dashboard-backlog**: EffortView / snapshot includes only open backlog-items for that effort; Needs you does not list them; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k backlog _(id: [rec-00466274-876f-4c8b-a54e-a8db1e61fbda](.artifacts/records/project__acceptance/rec-00466274-876f-4c8b-a54e-a8db1e61fbda.md))_
+
+## dashboard-backlog-actions
+
+### Acceptance
+- **dashboard-backlog-actions**: App pilots: Backlog panel shows open items; promote and dismiss call CLI supersede; promote copies an agent prompt; Needs you unchanged; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k backlog _(id: [rec-644805a3-42e4-4437-8ffc-cd772a363cea](.artifacts/records/project__acceptance/rec-644805a3-42e4-4437-8ffc-cd772a363cea.md))_
 
 ## dashboard-branches-dashboard-bugfix
 
@@ -1129,6 +1142,11 @@ print("phase checks only")
 
 ### Acceptance
 - **verify-backlog-capture-contract**: Bundled contract resolves project:backlog-item and project:feedback; contract self-consistency suite passes; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48](.artifacts/records/project__acceptance/rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48.md))_
+
+## verify-backlog-capture-dashboard
+
+### Acceptance
+- **verify-backlog-capture-dashboard**: Dashboard Backlog panel shows open items for an effort and promote/dismiss work via CLI; Needs you does not list backlog; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_app.py -q -k backlog _(id: [rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec](.artifacts/records/project__acceptance/rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec.md))_
 
 ## verify-backlog-capture-skills
 

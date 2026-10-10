@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:7fcc6c3a19c13b855d88a6696372b96b576b7180b262020b45dea4d061bf34a3
+> Store state: sha256:0d5af06b787f8235375cba43b0ca12a698dd3b84096fd41efbd1582ce712b6d0
 
 ## dashboard
 
@@ -56,6 +56,7 @@
 
 ### Waiting
 - **backlog-lifecycle**: title: CLI create list promote dismiss for backlog-item; phase: backlog-capture _(id: [rec-1972a42d-4f9a-4628-971c-e98e8542931f](.artifacts/records/project__work-item/rec-1972a42d-4f9a-4628-971c-e98e8542931f.md))_
+- **dashboard-backlog**: title: Backlog panel on the dashboard; phase: backlog-capture _(id: [rec-ba7d3142-27f2-4033-ad4a-92cab9634df5](.artifacts/records/project__work-item/rec-ba7d3142-27f2-4033-ad4a-92cab9634df5.md))_
 - **skills-backlog**: title: Document backlog capture and promote in skills; phase: backlog-capture _(id: [rec-06dd151b-2552-45d4-8e3d-b8a435108d12](.artifacts/records/project__work-item/rec-06dd151b-2552-45d4-8e3d-b8a435108d12.md))_
 - **verify-backlog-capture**: title: Verify backlog-capture; phase: backlog-capture _(id: [rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce](.artifacts/records/project__work-item/rec-e16e7c05-a6a6-4f8e-93d5-59124c4ecbce.md))_
 

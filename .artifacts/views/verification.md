@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:4bb0cc2d418b8d2fa77b9f8d1c5d8afd61ee79074336c53133750afeef1876de
+> Store state: sha256:eeee814b2314205166e44dbdbadfc126e908f351bb99d6ab9a9849162034567c
 
 ## activity-failures
 
@@ -236,6 +236,16 @@
 
 ### Check
 - **dashboard-app**: rec-607927c0-6e77-499d-ae1f-ee7a890cfd07; f84a229; pass; tdd _(id: [rec-3b1bf0ad-45ab-4b9b-8c35-152bc2cd0bad](.artifacts/records/project__check-run/rec-3b1bf0ad-45ab-4b9b-8c35-152bc2cd0bad.md))_
+
+## dashboard-backlog
+
+### Acceptance
+- **dashboard-backlog**: EffortView / snapshot includes only open backlog-items for that effort; Needs you does not list them; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k backlog _(id: [rec-00466274-876f-4c8b-a54e-a8db1e61fbda](.artifacts/records/project__acceptance/rec-00466274-876f-4c8b-a54e-a8db1e61fbda.md))_
+
+## dashboard-backlog-actions
+
+### Acceptance
+- **dashboard-backlog-actions**: App pilots: Backlog panel shows open items; promote and dismiss call CLI supersede; promote copies an agent prompt; Needs you unchanged; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k backlog _(id: [rec-644805a3-42e4-4437-8ffc-cd772a363cea](.artifacts/records/project__acceptance/rec-644805a3-42e4-4437-8ffc-cd772a363cea.md))_
 
 ## dashboard-closed-goals
 
@@ -1610,6 +1620,11 @@ print("phase checks only")
 
 ### Acceptance
 - **verify-backlog-capture-contract**: Bundled contract resolves project:backlog-item and project:feedback; contract self-consistency suite passes; check; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_contract_self_consistency.py -q _(id: [rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48](.artifacts/records/project__acceptance/rec-2648b75d-644b-4eee-ba8d-4d1ff62f7f48.md))_
+
+## verify-backlog-capture-dashboard
+
+### Acceptance
+- **verify-backlog-capture-dashboard**: Dashboard Backlog panel shows open items for an effort and promote/dismiss work via CLI; Needs you does not list backlog; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_app.py -q -k backlog _(id: [rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec](.artifacts/records/project__acceptance/rec-5607f8c7-adf7-44e7-89c3-fa6d5588b4ec.md))_
 
 ## verify-backlog-capture-skills
 
