@@ -525,6 +525,34 @@
       "required_sections": [
         "Signal"
       ]
+    },
+    {
+      "name": "backlog-item",
+      "pattern": "current-status",
+      "purpose": "Deferred work parked on an effort until promoted or dismissed",
+      "canonical_for": "the deferred backlog item for this subject",
+      "capture": "at_event",
+      "read": "if_relevant",
+      "payload": [
+        "effort",
+        "status",
+        "source",
+        "phase"
+      ],
+      "optional_payload": [
+        "source",
+        "phase"
+      ],
+      "payload_enum": {
+        "status": [
+          "open",
+          "promoted",
+          "dismissed"
+        ]
+      },
+      "payload_references": {
+        "phase": "project:phase"
+      }
     }
   ],
   "views": [
@@ -661,6 +689,26 @@
               {
                 "field": "derived.corrected",
                 "not_equals": true
+              }
+            ]
+          }
+        },
+        {
+          "name": "backlog",
+          "occupant": "backlog-item",
+          "requires_payload": [
+            "effort",
+            "status"
+          ],
+          "selection": {
+            "all": [
+              {
+                "field": "lifecycle_state",
+                "equals": "active"
+              },
+              {
+                "field": "payload.status",
+                "equals": "open"
               }
             ]
           }
