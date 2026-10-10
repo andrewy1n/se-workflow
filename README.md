@@ -204,7 +204,31 @@ state. Do not deploy.
 A `project:feedback` record is new intent `engage` can route, with no
 collector. Route it through `discuss` (specify), even when tasks for
 that effort already exist. Do not collect feedback. Do not create
-`project:feedback`.
+`project:feedback`. Feedback is not a standing backlog.
+
+A `project:backlog-item` parks deferred work on an effort until it is
+promoted or dismissed. `engage` lists open items (`status=open`) after
+naming focus. Park = create; promote = supersede to `promoted` then
+`discuss` with a new phase (or an incidental work-item when that kind
+fits); dismiss = supersede to `dismissed`.
+
+```bash
+adaptive-artifacts create --type project:backlog-item \
+  --subject "<item-slug>" \
+  --payload '{"effort":"<effort-slug>","status":"open","source":"<optional>"}' \
+  --body "<parked description>"
+
+adaptive-artifacts list --type project:backlog-item \
+  --where payload.effort=<focus> --where payload.status=open --state active
+
+adaptive-artifacts supersede --type project:backlog-item --id <id> \
+  --expected-revision <revision> \
+  --payload '{"status":"promoted","phase":"<phase-slug-or-empty>","effort":"<effort-slug>"}'
+
+adaptive-artifacts supersede --type project:backlog-item --id <id> \
+  --expected-revision <revision> \
+  --payload '{"status":"dismissed","effort":"<effort-slug>"}'
+```
 
 A git merge is not integration success. A clean git merge does not by
 itself write `pass`. Write `pass` only after interfaces, shared

@@ -195,6 +195,38 @@ def test_engage_routes_feedback_through_discuss():
     ]
 
 
+def test_engage_documents_backlog_item_list_create_supersede():
+    text = _text("engage")
+    assert "Do not create `project:feedback`" in text
+    assert "project:backlog-item" in text
+    assert "**Park**" in text or "Park" in text
+    assert "promoted" in text and "dismissed" in text
+    invs = extract_invocations(text)
+    backlog_lists = [
+        inv for inv in invs
+        if inv["subcommand"] == "list" and inv["type"] == "project:backlog-item"
+    ]
+    assert len(backlog_lists) == 1
+    assert "payload.status=open" in backlog_lists[0]["raw"]
+    creates = [
+        inv for inv in invs
+        if inv["subcommand"] == "create" and inv["type"] == "project:backlog-item"
+    ]
+    assert len(creates) == 1
+    assert creates[0]["payload"]["status"] == "open"
+    assert creates[0]["payload"]["effort"]
+    supersedes = [
+        inv for inv in invs
+        if inv["subcommand"] == "supersede" and inv["type"] == "project:backlog-item"
+    ]
+    statuses = {inv["payload"]["status"] for inv in supersedes if inv["payload"]}
+    assert statuses == {"promoted", "dismissed"}
+    assert not [
+        inv for inv in invs
+        if inv["subcommand"] == "create" and inv["type"] == "project:feedback"
+    ]
+
+
 @pytest.mark.parametrize("skill_name", ["verify-work", "engage"])
 def test_documented_invocations_are_contract_legal(contract_indexes, skill_name):
     defs, bundles_by_id = contract_indexes

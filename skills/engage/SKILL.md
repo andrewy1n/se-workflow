@@ -61,12 +61,46 @@ Do not plan, implement, or verify in this skill.
    yourself to clear each one when the user settles it (kinds-and-focus,
    Needs-you clears). Do not refuse to route solely because those items
    are open — list and remind, then continue routing.
+
+   Also list open `project:backlog-item` records for this focus
+   (`payload.status=open`). Show them; do not treat them as Needs-you.
+
+```bash
+adaptive-artifacts list --type project:backlog-item \
+  --where payload.effort=<focus> --where payload.status=open --state active
+```
+
+   - **Park** — user defers work for later: create a backlog-item
+     (parent writer). Do not create `project:feedback` for parking.
+   - **Promote** — user starts a parked item: supersede to
+     `promoted` (optional `phase`), then route to `discuss` with
+     `phase: new` for structured work, or an incidental work-item
+     when that kind fits. Structured promote never skips `discuss`
+     for a new phase.
+   - **Dismiss** — user drops a parked item: supersede to `dismissed`.
+
+```bash
+adaptive-artifacts create --type project:backlog-item \
+  --subject "<item-slug>" \
+  --payload '{"effort":"<effort-slug>","status":"open","source":"<optional>"}' \
+  --body "<parked description>"
+
+adaptive-artifacts supersede --type project:backlog-item --id <id> \
+  --expected-revision <revision> \
+  --payload '{"status":"promoted","phase":"<phase-slug-or-empty>","effort":"<effort-slug>"}'
+
+adaptive-artifacts supersede --type project:backlog-item --id <id> \
+  --expected-revision <revision> \
+  --payload '{"status":"dismissed","effort":"<effort-slug>"}'
+```
+
 4. Records?
 
    A `project:feedback` record is new intent for the effort it names
    (`payload.effort`). Route it through `discuss` (specify), even when
    tasks for that effort already exist. Do not collect feedback. Do
-   not create `project:feedback`.
+   not create `project:feedback`. Feedback is not a standing backlog;
+   use `project:backlog-item` to park deferred work.
 
 ```bash
 adaptive-artifacts list --type project:feedback
