@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:3083ecc5d23117c424e504e6b749bcda2c6243757baf10f1dff995b672c50191
+> Store state: sha256:f515c3250405cabf08df4696ffade013ef52f60e168a941fae8d7f9a8d0ce2e2
 
 ## activity-failures
 
@@ -213,6 +213,16 @@
 
 ### Check
 - **dashboard-closed-goals**: rec-f02ec3b2-3bd6-496f-933a-1506d3b4a877; 8f1c9bbbb89ef3dc90f3fa36d00c83b924f2a721; pass; tdd _(id: [rec-d8041aec-d887-49ea-aa27-693636929bb6](.artifacts/records/project__check-run/rec-d8041aec-d887-49ea-aa27-693636929bb6.md))_
+
+## dashboard-dismiss
+
+### Acceptance
+- **dashboard-dismiss**: Pilot: dismiss clears a question, a needs:human finding, and an unsigned manual check via CLI and removes them from Needs you; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k dismiss _(id: [rec-3399e692-0dd4-4842-9cb1-3ff2a3f95513](.artifacts/records/project__acceptance/rec-3399e692-0dd4-4842-9cb1-3ff2a3f95513.md))_
+
+## dashboard-dismiss-refuse
+
+### Acceptance
+- **dashboard-dismiss-refuse**: Pilot: dismiss is refused for merge-branch (and other non-human kinds); CLI failure keeps the item and shows an error; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'dismiss and (refuse or fail or error)' _(id: [rec-76204de3-ed47-4406-9096-db2caa3f9d68](.artifacts/records/project__acceptance/rec-76204de3-ed47-4406-9096-db2caa3f9d68.md))_
 
 ## dashboard-launcher
 
@@ -1186,6 +1196,21 @@ print("phase checks only")
 ### Check
 - **route-through-discuss**: rec-aac400ee-30c6-4fd2-a3ba-9fbd756f740a; 8c697bc88db7147f17a058311b0323cd4a191fee; pass; tdd _(id: [rec-4faad849-e58b-43c3-971c-0273f995955c](.artifacts/records/project__check-run/rec-4faad849-e58b-43c3-971c-0273f995955c.md))_
 
+## skill-needs-clear
+
+### Acceptance
+- **skill-needs-clear**: kinds-and-focus and engage document human-dismissible clears and remind-without-gate; skills that open those gates document the matching clear; contract consistency and skill doc tests pass; tdd; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py -q _(id: [rec-0e2c47f2-f119-466d-8e46-fe961b604d3b](.artifacts/records/project__acceptance/rec-0e2c47f2-f119-466d-8e46-fe961b604d3b.md))_
+
+## skill-needs-clear-engage
+
+### Acceptance
+- **skill-needs-clear-engage**: engage skill text lists open human-dismissible Needs-you for the focus and does not block routing on them; check; workflow-loop; uv run --with pytest python -m pytest tests/test_discuss_skill.py -q -k engage _(id: [rec-152ce4a8-e20f-4b8c-87b9-aaf30fb53703](.artifacts/records/project__acceptance/rec-152ce4a8-e20f-4b8c-87b9-aaf30fb53703.md))_
+
+## skill-needs-clear-opens
+
+### Acceptance
+- **skill-needs-clear-opens**: discuss, plan-phase, verify-work, and execute-phase document the clear command next to each human-gate they open; check; workflow-loop; uv run --with pytest python -m pytest tests/test_discuss_skill.py tests/test_skill_contract_consistency.py -q _(id: [rec-e154ee7d-d057-4d26-bd3e-9962592157f0](.artifacts/records/project__acceptance/rec-e154ee7d-d057-4d26-bd3e-9962592157f0.md))_
+
 ## spec-model
 
 ### Acceptance
@@ -1780,6 +1805,21 @@ print("phase checks only")
 
 ### Check
 - **verify-navigation-phase**: rec-d1da938c-12b5-4cb9-9f02-e4a6731c1222; b892587e80bbd40f785d3e104581a5587c250406; pass; check _(id: [rec-f864bb3e-40ce-4a6d-b048-471044f223c5](.artifacts/records/project__check-run/rec-f864bb3e-40ce-4a6d-b048-471044f223c5.md))_
+
+## verify-needs-you-close
+
+### Acceptance
+- **verify-needs-you-close**: Dashboard dismiss pilots pass through the Textual app entry point for human-dismissible kinds and refuse non-human kinds; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k dismiss _(id: [rec-acabf3ed-70af-4c45-bbc2-55df0b063fec](.artifacts/records/project__acceptance/rec-acabf3ed-70af-4c45-bbc2-55df0b063fec.md))_
+
+## verify-needs-you-close-refuse
+
+### Acceptance
+- **verify-needs-you-close-refuse**: Dismiss refuse and CLI-failure pilots keep non-human and failed items open with an error through the app; tdd; workflow-loop; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py -q -k 'dismiss and (refuse or fail or error)' _(id: [rec-519937ac-4467-4bbd-8f45-7786679a7d4f](.artifacts/records/project__acceptance/rec-519937ac-4467-4bbd-8f45-7786679a7d4f.md))_
+
+## verify-needs-you-close-skills
+
+### Acceptance
+- **verify-needs-you-close-skills**: Skill contract consistency and engage/clear documentation tests pass; check; workflow-loop; uv run --with pytest python -m pytest tests/test_skill_contract_consistency.py tests/test_discuss_skill.py -q _(id: [rec-53401a27-dd75-4ef2-adbb-a699505dc9fc](.artifacts/records/project__acceptance/rec-53401a27-dd75-4ef2-adbb-a699505dc9fc.md))_
 
 ## verify-needs-you-data-phase
 

@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:1265b058962e605e64895e8c5128189d58c78499a36cf00a287d4c924aa3d08d
+> Store state: sha256:f8e7e5d1e43fdc6fd6a7aa91e3b18a4486c4f548e3f120c2ae61c4ddba903a4c
 
 ## dashboard
 
@@ -53,6 +53,19 @@
 
 ### Goal
 - **workflow-loop**: goal: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; scope: effort; kind: deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
+
+### Phase
+- **needs-you-close**: title: Close Needs you when answered; ordinal: 11 _(id: [rec-0058a831-dc21-4bd9-a227-05e70f1d8f46](.artifacts/records/project__phase/rec-0058a831-dc21-4bd9-a227-05e70f1d8f46.md))_
+
+### Blocking Question
+- **workflow-loop**: blocking: True; scope: plan-review:needs-you-close _(id: [rec-505ec748-314f-4f0a-b0fd-03fb4c48bc33](.artifacts/records/project__continuity-question/rec-505ec748-314f-4f0a-b0fd-03fb4c48bc33.md))_
+
+### Ready
+- **dashboard-dismiss**: title: Dismiss human Needs-you via CLI; phase: needs-you-close _(id: [rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c](.artifacts/records/project__work-item/rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c.md))_
+- **skill-needs-clear**: title: Document Needs-you clears and engage remind; phase: needs-you-close _(id: [rec-8d09c5b9-ff58-4415-9682-ac6d363781cd](.artifacts/records/project__work-item/rec-8d09c5b9-ff58-4415-9682-ac6d363781cd.md))_
+
+### Waiting
+- **verify-needs-you-close**: title: Verify Needs you closes when answered; phase: needs-you-close _(id: [rec-687162fe-2287-44e4-bfab-f5d5e746b908](.artifacts/records/project__work-item/rec-687162fe-2287-44e4-bfab-f5d5e746b908.md))_
 
 ### Done Recent
 - **budget-instructions**: title: Limit verification instructions to phase checks; phase: verify-budget _(id: [rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d](.artifacts/records/project__work-item/rec-f55eebf8-c4cf-43a6-b456-b25731c4fa2d.md))_

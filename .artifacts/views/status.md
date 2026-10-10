@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:158ff727429ef5058b3bd43ec58cad1482f628a713e45eabf28887bfdf4c0bee
+> Store state: sha256:abde329f81a95c15dc0b9c38335478831f448953f679ee3084f4fe9d019adb06
 
 ## dashboard-view
 
@@ -167,6 +167,13 @@
 ### Work
 - **status-line-from-snapshot**: Build the status line from the app snapshot; bugfix-status-line; repair; dashboard; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-90100b83-5f39-4f1e-8bec-abc95f7077bd](.artifacts/records/project__work-item/rec-90100b83-5f39-4f1e-8bec-abc95f7077bd.md))_
 - **verify-status-line-phase**: Integration-test the status line and verify the phase; bugfix-status-line; repair; dashboard; state: done; ready: True; wave: 2; criteria: 1 pass / 0 fail _(id: [rec-0506db3a-b742-4d56-a8ff-d30b839ae1b0](.artifacts/records/project__work-item/rec-0506db3a-b742-4d56-a8ff-d30b839ae1b0.md))_
+
+## needs-you-close
+
+### Work
+- **dashboard-dismiss**: Dismiss human Needs-you via CLI; needs-you-close; repair; workflow-loop; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c](.artifacts/records/project__work-item/rec-fdf8617f-a20a-4a84-bfe4-a937ca18119c.md))_
+- **skill-needs-clear**: Document Needs-you clears and engage remind; needs-you-close; repair; workflow-loop; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-8d09c5b9-ff58-4415-9682-ac6d363781cd](.artifacts/records/project__work-item/rec-8d09c5b9-ff58-4415-9682-ac6d363781cd.md))_
+- **verify-needs-you-close**: Verify Needs you closes when answered; needs-you-close; repair; workflow-loop; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-687162fe-2287-44e4-bfab-f5d5e746b908](.artifacts/records/project__work-item/rec-687162fe-2287-44e4-bfab-f5d5e746b908.md))_
 
 ## features-needs-you
 
