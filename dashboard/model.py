@@ -26,10 +26,11 @@ TOKEN_DIRS = ("records", "history")
 FULL_TYPES = (
     "project:continuity-question", "project:finding", "project:check-run", "project:work-item",
     "project:phase", "project:specification", "project:assessment", "project:integration-report",
+    "project:backlog-item",
 )
 SOFT_TYPES = frozenset({
     "project:specification", "project:design", "project:assessment", "project:integration-report",
-    "project:release", "project:current-position",
+    "project:release", "project:current-position", "project:backlog-item",
 })
 UPSTREAM_NEXT = frozenset({"specify", "design", "plan"})
 LOOP_NEXT = ("specify", "design", "plan", "execute", "integrate", "verify", "release")
@@ -90,6 +91,19 @@ class NeedsYouItem:
 
 
 @dataclass(frozen=True)
+class BacklogItem:
+    id: str
+    subject: str
+    effort: str
+    text: str
+    status: str = "open"
+    source: str = ""
+    phase: str = ""
+    body: str = ""
+    record_type: str = "project:backlog-item"
+
+
+@dataclass(frozen=True)
 class ActivityItem:
     kind: str
     id: str
@@ -111,6 +125,7 @@ class EffortView:
     position: str = ""
     kind: str = ""
     journal_open: list = field(default_factory=list)
+    backlog: list[BacklogItem] = field(default_factory=list)
 
     @property
     def finished(self) -> bool:
@@ -195,7 +210,7 @@ _SNAPSHOT_TYPES = (
     "project:finding", "project:check-run", "project:assignment", "project:assignment-amendment",
     "project:execution-report",
     "project:specification", "project:design", "project:assessment", "project:integration-report", "project:release",
-    "project:current-position",
+    "project:current-position", "project:backlog-item",
 )
 
 
@@ -608,6 +623,37 @@ def _task_for(subject: str, tasks: list[dict[str, Any]]) -> str:
     return max(matches, key=lambda task: len(task["subject"]))["id"] if matches else ""
 
 
+def _backlog_text(record: dict[str, Any]) -> str:
+    for line in (record.get("body") or "").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            return stripped
+    return record.get("subject") or ""
+
+
+def _backlog_items(records: list[dict[str, Any]]) -> list[BacklogItem]:
+    items = []
+    for record in records:
+        if record.get("lifecycle_state") in INACTIVE_STATES:
+            continue
+        payload = _payload(record)
+        if payload.get("status") != "open":
+            continue
+        items.append(BacklogItem(
+            id=record["id"],
+            subject=record["subject"],
+            effort=payload.get("effort") or "",
+            text=_backlog_text(record),
+            status=payload.get("status") or "open",
+            source=payload.get("source") or "",
+            phase=payload.get("phase") or "",
+            body=record.get("body") or "",
+            record_type=record.get("record_type") or "project:backlog-item",
+        ))
+    items.sort(key=lambda item: (item.subject, item.id))
+    return items
+
+
 def _needs_you(
     questions: list[dict[str, Any]], findings: list[dict[str, Any]], checks: list[dict[str, Any]],
     acceptances: dict[str, dict[str, Any]] | None = None, tasks: list[dict[str, Any]] | None = None,
@@ -934,6 +980,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
     assessments = listed["project:assessment"]
     integrations = listed["project:integration-report"]
     releases = listed["project:release"]
+    backlog_by_effort = _by_effort(listed.get("project:backlog-item") or [])
     decisions = _remapped(_list(target, "project:decision"), aliases) if designs else []
     structured = _structured_phases(specs)
     specs_by_effort = _by_effort(specs)
@@ -1002,6 +1049,7 @@ def load_snapshot(target: Target, now: datetime | None = None) -> Snapshot:
             position=positions.get(effort, ""),
             kind=kind,
             journal_open=journal_open,
+            backlog=_backlog_items(backlog_by_effort.get(effort, [])),
         ))
     efforts.sort(key=lambda view: view.finished)
     return Snapshot(efforts, token, now)

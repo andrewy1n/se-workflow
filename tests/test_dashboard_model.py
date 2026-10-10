@@ -2014,3 +2014,64 @@ def test_journal_kind_deliver_and_incidental_skip_journal_open(store, cli, defs,
         assert view.kind == kind
         assert view.journal_open == []
     assert calls == []
+
+
+def _backlog(cli, defs, subject: str, effort: str, *, status: str = "open", source: str = "",
+             phase: str = "", body: str = "") -> dict:
+    payload = {"effort": effort, "status": status}
+    if source:
+        payload["source"] = source
+    if phase:
+        payload["phase"] = phase
+    args = [
+        "create", "--type", "project:backlog-item", "--subject", subject,
+        "--payload", json.dumps(payload),
+    ]
+    if body:
+        args.extend(["--body", body])
+    result = cli(*args)
+    assert result.returncode == 0, result.stdout + result.stderr
+    return json.loads(result.stdout)["record"]
+
+
+def test_backlog_open_items_group_by_effort_and_skip_closed(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    _goal(cli, defs, "beta")
+    open_a = _backlog(cli, defs, "park-a", "alpha", body="## Note\n\ndo alpha later")
+    _backlog(cli, defs, "park-b", "beta", body="## Note\n\ndo beta later")
+    promoted = _backlog(cli, defs, "park-promoted", "alpha")
+    cli(
+        "supersede", "--type", "project:backlog-item", "--id", promoted["id"],
+        "--expected-revision", "@current",
+        "--payload", json.dumps({"effort": "alpha", "status": "promoted"}),
+    )
+    dismissed = _backlog(cli, defs, "park-dismissed", "alpha")
+    cli(
+        "supersede", "--type", "project:backlog-item", "--id", dismissed["id"],
+        "--expected-revision", "@current",
+        "--payload", json.dumps({"effort": "alpha", "status": "dismissed"}),
+    )
+    question = h.create_generic_record(
+        cli, defs, "project:continuity-question", subject="alpha",
+        extra_payload={"blocking": True, "scope": "still-a-gate"},
+    )
+
+    snapshot = model.load_snapshot(_target(store))
+    alpha = _effort(snapshot, "alpha")
+    beta = _effort(snapshot, "beta")
+    assert [item.subject for item in alpha.backlog] == ["park-a"]
+    assert alpha.backlog[0].id == open_a["id"]
+    assert alpha.backlog[0].text == "do alpha later"
+    assert [item.subject for item in beta.backlog] == ["park-b"]
+    assert all(item.status == "open" for item in alpha.backlog + beta.backlog)
+    assert not any(item.id == open_a["id"] for item in alpha.needs_you)
+    assert any(item.id == question["id"] for item in alpha.needs_you)
+
+
+def test_backlog_never_lands_in_needs_you(store, cli, defs):
+    _goal(cli, defs, "alpha")
+    item = _backlog(cli, defs, "parked-only", "alpha", body="parked work")
+    view = _effort(model.load_snapshot(_target(store)), "alpha")
+    assert [entry.subject for entry in view.backlog] == ["parked-only"]
+    assert view.backlog[0].id == item["id"]
+    assert view.needs_you == []

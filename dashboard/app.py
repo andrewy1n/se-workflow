@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from dashboard import artifact_store
+from dashboard import backlog as backlog_module
 from dashboard import dismiss as dismiss_module
 from dashboard import gates
 from dashboard import journal
@@ -166,6 +167,18 @@ def needs_lines(view: model.EffortView, colors: dict[str, str], width: int = 100
     return lines
 
 
+def backlog_lines(view: model.EffortView, colors: dict[str, str], width: int = 100) -> list[Text]:
+    lines = []
+    for item in getattr(view, "backlog", []) or []:
+        line = Text(no_wrap=True, overflow="ellipsis")
+        line.append("Promote", style=colors["primary"])
+        room = max(width - len("Promote") - len(item.subject) - 4, 10)
+        line.append(f" {clip(item.text or item.subject, room)}")
+        line.append(f"  {clip(item.subject, max(width // 4, 8))}", style=colors["muted"])
+        lines.append(line)
+    return lines
+
+
 def next_step_text(view: model.EffortView, landing: dict[str, Landing], colors: dict[str, str]) -> Text:
     step = gates.next_step(view, landing)
     text = Text(no_wrap=True, overflow="ellipsis")
@@ -241,6 +254,11 @@ def render_once(target: artifact_store.Target, snapshot: model.Snapshot, console
             console.print(Text(f"\nNeeds you {len(view.needs_you)}", style=colors["warning"]))
             for line in needs_lines(view, colors):
                 console.print(line)
+        backlog = getattr(view, "backlog", []) or []
+        if backlog:
+            console.print(Text(f"\nBacklog {len(backlog)}", style=colors["muted"]))
+            for line in backlog_lines(view, colors):
+                console.print(line)
         lines = selection.activity_lines(view, snapshot.generated_at, colors)
         if lines:
             console.print(Text("\nActivity", style=colors["muted"]))
@@ -294,6 +312,10 @@ class EffortPane(VerticalScroll):
         journal_panel.border_title = "Journal"
         journal_panel.display = False
         yield journal_panel
+        backlog_panel = BacklogList(id="backlog")
+        backlog_panel.border_title = "Backlog"
+        backlog_panel.display = False
+        yield backlog_panel
         tasks = TaskTable(id="tasks", cursor_type="row", zebra_stripes=False)
         tasks.border_title = "Tasks"
         yield tasks
@@ -351,6 +373,7 @@ class EffortPane(VerticalScroll):
         widths = [tab.label_width() for tab in tabs]
         self.query_one("#status-tabs").styles.grid_size_columns = tab_columns(widths, inner)
         self.query_one("#journal", JournalPanel).fill(scoped, now, colors, inner - 4)
+        self.query_one("#backlog", BacklogList).fill(view, colors, inner - 4)
         self.fill_tasks(scoped, view, now, width, inner, colors, selected)
         self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
         self.fill_panel("#activity", selection.activity_lines(view, now, colors, inner - 4))
@@ -489,6 +512,45 @@ class NeedsList(OptionList):
         return self.items[self.highlighted]
 
 
+class BacklogList(OptionList):
+    """Open backlog items for the selected effort (not Needs you)."""
+
+    BINDINGS = [
+        Binding("escape", "app.leave_backlog", "back", show=False),
+        Binding("p", "app.promote_backlog", "promote"),
+        Binding("d", "app.dismiss_backlog", "dismiss"),
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+    ]
+
+    def __init__(self, id: str) -> None:
+        super().__init__(id=id)
+        self.items: list[model.BacklogItem] = []
+
+    def fill(self, view: model.EffortView, colors: dict[str, str], width: int) -> None:
+        kept = self.highlighted_item()
+        index = self.highlighted
+        self.items = list(getattr(view, "backlog", []) or [])
+        self.border_title = f"Backlog {len(self.items)}" if self.items else "Backlog"
+        self.display = bool(self.items)
+        self.clear_options()
+        self.add_options(
+            Option(line, id=item.id) for item, line in zip(self.items, backlog_lines(view, colors, width))
+        )
+        ids = [item.id for item in self.items]
+        if kept is not None and kept.id in ids:
+            self.highlighted = ids.index(kept.id)
+        elif index is not None and ids:
+            self.highlighted = min(index, len(ids) - 1)
+        if not self.items and self.has_focus:
+            self.app.leave_backlog()
+
+    def highlighted_item(self) -> model.BacklogItem | None:
+        if self.highlighted is None or self.highlighted >= len(self.items):
+            return None
+        return self.items[self.highlighted]
+
+
 class JournalPanel(OptionList):
     """Open journal items above the task table for repair/evaluate efforts (R7)."""
 
@@ -618,6 +680,93 @@ class NeedsYouDetailScreen(Screen[None]):
         self.loaded = True
 
 
+class BacklogDetailScreen(Screen[None]):
+    CSS = """
+    #backlog-bar { height: 1; padding: 0 1; background: $panel; }
+    #backlog-error { height: auto; padding: 0 1; background: $warning 20%; color: $warning; display: none; }
+    #backlog-detail { padding: 0 1; scrollbar-gutter: stable; }
+    #backlog-title { margin-top: 1; text-style: bold; }
+    .backlog-panel { height: auto; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; }
+    .backlog-panel Markdown { margin: 0; padding: 0; background: transparent; }
+    .backlog-panel Markdown > MarkdownBlock { margin: 1 0 0 0; }
+    .backlog-panel Markdown > MarkdownHeader { margin: 0; }
+    .backlog-panel Markdown > MarkdownBlock:first-child { margin-top: 0; }
+    """
+    AUTO_FOCUS = "#backlog-detail"
+    BINDINGS = [
+        Binding("escape", "back", "back"),
+        Binding("p", "app.promote_backlog", "promote"),
+        Binding("d", "app.dismiss_backlog", "dismiss"),
+        Binding("c", "app.copy_slug", "copy prompt"),
+        Binding("r", "app.refresh", "refresh"),
+    ]
+
+    def __init__(self, item: model.BacklogItem, effort: str) -> None:
+        super().__init__()
+        self.item = item
+        self.effort = effort
+        self.loaded = False
+
+    def compose(self) -> ComposeResult:
+        yield Static(id="backlog-bar")
+        yield Static(id="backlog-error")
+        with VerticalScroll(id="backlog-detail"):
+            yield Static(id="backlog-title")
+            yield Static(id="backlog-chips")
+            text = Vertical(Markdown(), id="backlog-text", classes="backlog-panel")
+            text.border_title = "Item"
+            yield text
+            body = Vertical(Markdown(), id="backlog-body", classes="backlog-panel")
+            body.border_title = "Body"
+            yield body
+        yield Footer()
+
+    async def on_mount(self) -> None:
+        await self.show(self.item)
+
+    def action_back(self) -> None:
+        self.app.pop_screen()
+        self.app.call_after_refresh(self.app.refocus)
+
+    def show_action_error(self, message: str) -> None:
+        banner = self.query_one("#backlog-error", Static)
+        banner.update(Text(message.splitlines()[0] if message else "action failed",
+                           no_wrap=True, overflow="ellipsis"))
+        banner.display = True
+
+    async def follow(self, snapshot: model.Snapshot) -> None:
+        found = next(
+            (i for v in snapshot.efforts for i in (getattr(v, "backlog", []) or []) if i.id == self.item.id),
+            None,
+        )
+        if found is None:
+            banner = self.query_one("#backlog-error", Static)
+            banner.update(Text("No longer open", no_wrap=True, overflow="ellipsis"))
+            banner.display = True
+        elif found != self.item or not self.loaded:
+            await self.show(found)
+
+    async def show(self, item: model.BacklogItem) -> None:
+        if not self.is_attached:
+            return
+        colors = palette_from(self.app.get_css_variables())
+        self.item = item
+        self.query_one("#backlog-error", Static).display = False
+        bar = Text(no_wrap=True, overflow="ellipsis")
+        bar.append(item.subject, style="bold")
+        bar.append(f"  {self.effort}", style=colors["muted"])
+        self.query_one("#backlog-bar", Static).update(bar)
+        self.query_one("#backlog-title", Static).update(Text(item.subject, style="bold"))
+        chips = Text.assemble(("Promote", colors["primary"]), "  ", (item.record_type, colors["muted"]))
+        if item.source:
+            chips.append_text(Text(f"  {item.source}", style=colors["muted"]))
+        self.query_one("#backlog-chips", Static).update(chips)
+        await self.query_one("#backlog-text Markdown", Markdown).update(item.text or item.subject)
+        self.query_one("#backlog-body").display = bool(item.body.strip())
+        await self.query_one("#backlog-body Markdown", Markdown).update(item.body.strip())
+        self.loaded = True
+
+
 class _PickerCancel:
     pass
 
@@ -734,6 +883,10 @@ class DashboardApp(App[None]):
     #journal:focus { border: round $accent; background-tint: $foreground 0%; }
     #journal > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
     #journal:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
+    #backlog { height: auto; max-height: 10; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: transparent; }
+    #backlog:focus { border: round $accent; background-tint: $foreground 0%; }
+    #backlog > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
+    #backlog:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
     #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }
     #filter:focus { border: none; background: $panel; }
@@ -756,6 +909,7 @@ class DashboardApp(App[None]):
         Binding("s", "open_phase('spec')", "spec", show=False),
         Binding("e", "open_phase('evidence')", "evidence", show=False),
         Binding("n", "focus_needs", "needs"),
+        Binding("b", "focus_backlog", "backlog"),
         Binding("slash", "filter", "filter"),
         Binding("1", "status_tab('active')", "status", key_display="1-6"),
         Binding("2", "status_tab('running')", "running", show=False),
@@ -830,6 +984,23 @@ class DashboardApp(App[None]):
         if isinstance(self.focused, NeedsList):
             self.set_focus(None)
 
+    def action_focus_backlog(self) -> None:
+        pane = self.active_pane()
+        panel = pane.query_one("#backlog", BacklogList) if pane is not None else None
+        if panel is None or not panel.display:
+            return
+        if panel.highlighted is None:
+            panel.highlighted = 0
+        panel.focus()
+
+    def action_leave_backlog(self) -> None:
+        self.leave_backlog()
+
+    def leave_backlog(self) -> None:
+        self.focus_tasks()
+        if isinstance(self.focused, BacklogList):
+            self.set_focus(None)
+
     def action_leave_journal(self) -> None:
         self.leave_journal()
 
@@ -850,6 +1021,14 @@ class DashboardApp(App[None]):
             event.stop()
             item = listing.items[event.option_index]
             open_record_detail(self, item.id, task_id=item.task_id)
+            return
+        if isinstance(listing, BacklogList):
+            if event.option_index >= len(listing.items):
+                return
+            event.stop()
+            if not isinstance(self.screen, DETAIL_SCREENS):
+                item = listing.items[event.option_index]
+                self.push_screen(BacklogDetailScreen(item, listing.query_ancestor(EffortPane).effort))
             return
         needs = listing
         if not isinstance(needs, NeedsList) or event.option_index >= len(needs.items):
@@ -894,7 +1073,12 @@ class DashboardApp(App[None]):
         return next((view for view in self.snapshot.efforts if view.effort == effort), None)
 
     def _needs_copy_focus(self) -> bool:
-        return isinstance(self.focused, NeedsList) or isinstance(self.screen, NeedsYouDetailScreen)
+        return (
+            isinstance(self.focused, NeedsList)
+            or isinstance(self.focused, BacklogList)
+            or isinstance(self.screen, NeedsYouDetailScreen)
+            or isinstance(self.screen, BacklogDetailScreen)
+        )
 
     def _refresh_copy_binding(self) -> None:
         description = "copy prompt" if self._needs_copy_focus() else "copy"
@@ -918,6 +1102,8 @@ class DashboardApp(App[None]):
         elif isinstance(screen, NeedsYouDetailScreen):
             view = self.effort_view(screen.effort)
             name = gates.prompt(screen.item, view) if view is not None else screen.item.subject
+        elif isinstance(screen, BacklogDetailScreen):
+            name = backlog_module.prompt(screen.item, screen.effort)
         elif JournalScreen is not None and isinstance(screen, JournalScreen):
             table_cls = getattr(journal, "JournalTable", None)
             table = (
@@ -933,6 +1119,11 @@ class DashboardApp(App[None]):
             pane = self.focused.query_ancestor(EffortPane)
             view = self.effort_view(pane.effort) if pane is not None else None
             name = gates.prompt(item, view) if item is not None and view is not None else None
+        elif isinstance(self.focused, BacklogList):
+            item = self.focused.highlighted_item()
+            pane = self.focused.query_ancestor(EffortPane)
+            effort = pane.effort if pane is not None else None
+            name = backlog_module.prompt(item, effort) if item is not None else None
         else:
             name = self.cursor_subject()
         if name:
@@ -972,6 +1163,64 @@ class DashboardApp(App[None]):
             screen.show_dismiss_error(message)
         self.notify(message, severity="error", timeout=4)
 
+    def _backlog_action_item(self) -> model.BacklogItem | None:
+        screen = self.screen
+        if isinstance(screen, BacklogDetailScreen):
+            return screen.item
+        if isinstance(self.focused, BacklogList):
+            return self.focused.highlighted_item()
+        return None
+
+    def action_promote_backlog(self) -> None:
+        item = self._backlog_action_item()
+        if item is None:
+            return
+        if not backlog_module.is_backlog(item):
+            message = f"Cannot promote {item.record_type or 'non-backlog'}"
+            self._surface_backlog_error(message)
+            return
+        pane = self.active_pane()
+        effort = pane.effort if pane is not None else item.effort
+        if isinstance(self.screen, BacklogDetailScreen):
+            effort = self.screen.effort
+        text = backlog_module.prompt(item, effort)
+        try:
+            backlog_module.promote_item(self.target, item)
+        except backlog_module.BacklogError as exc:
+            self._surface_backlog_error(str(exc))
+            return
+        self.copy_to_clipboard(text)
+        shown = text if len(text) <= 60 else text[:57] + "..."
+        self.notify(f"Promoted · copied {shown}", timeout=3)
+        self.reload()
+        if isinstance(self.screen, BacklogDetailScreen):
+            self.pop_screen()
+            self.call_after_refresh(self.refocus)
+
+    def action_dismiss_backlog(self) -> None:
+        item = self._backlog_action_item()
+        if item is None:
+            return
+        if not backlog_module.is_backlog(item):
+            message = f"Cannot dismiss {item.record_type or 'non-backlog'}"
+            self._surface_backlog_error(message)
+            return
+        try:
+            backlog_module.dismiss_item(self.target, item)
+        except backlog_module.BacklogError as exc:
+            self._surface_backlog_error(str(exc))
+            return
+        self.reload()
+        if isinstance(self.screen, BacklogDetailScreen):
+            self.pop_screen()
+            self.call_after_refresh(self.refocus)
+
+    def _surface_backlog_error(self, message: str) -> None:
+        screen = self.screen
+        if isinstance(screen, BacklogDetailScreen):
+            screen.show_action_error(message)
+        self.notify(message, severity="error", timeout=4)
+
     def cursor_subject(self) -> str | None:
         pane = self.active_pane()
         table = pane.query_one("#tasks", DataTable) if pane is not None else None
@@ -992,8 +1241,8 @@ class DashboardApp(App[None]):
         detail = isinstance(self.screen, DETAIL_SCREENS)
         if detail and action in (
             "next_effort", "previous_effort", "open_task", "open_phase", "open_journal", "filter", "status_tab",
-            "step_status_tab", "clear_filter", "focus_needs", "leave_needs", "select_phase", "open_picker",
-            "toggle_finished",
+            "step_status_tab", "clear_filter", "focus_needs", "leave_needs", "focus_backlog", "leave_backlog",
+            "select_phase", "open_picker", "toggle_finished",
         ):
             return False
         if action == "clear_filter":
@@ -1214,6 +1463,7 @@ class DashboardApp(App[None]):
             lines.append(f"{key}  {description}")
         return lines
 
+
     def action_toggle_help(self) -> None:
         if isinstance(self.screen, KeyHelpScreen):
             self.pop_screen()
@@ -1343,6 +1593,8 @@ class DashboardApp(App[None]):
         for screen in self.screen_stack:
             if isinstance(screen, NeedsYouDetailScreen):
                 await screen.follow(self.snapshot)
+            elif isinstance(screen, BacklogDetailScreen):
+                await screen.follow(self.snapshot)
         self.refresh_landing()
         if self.focused is None:
             self.focus_tasks()
@@ -1389,7 +1641,7 @@ def _journal_detail_screens() -> tuple[type, ...]:
 
 
 DETAIL_SCREENS = (
-    TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen, CommitScreen,
+    TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen, BacklogDetailScreen, CommitScreen,
 ) + _journal_detail_screens()
 
 

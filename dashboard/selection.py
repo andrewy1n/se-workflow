@@ -121,6 +121,7 @@ def scoped(view: model.EffortView, subject: str | None) -> model.EffortView:
         position=view.position,
         kind=view.kind,
         journal_open=journal_scope(list(view.journal_open or []), subject),
+        backlog=list(getattr(view, "backlog", []) or []),
     )
 
 

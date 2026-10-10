@@ -229,6 +229,7 @@ def merge_landing_needs(
         "release_ready": view.release_ready,
         "kind": getattr(view, "kind", ""),
         "journal_open": list(getattr(view, "journal_open", []) or []),
+        "backlog": list(getattr(view, "backlog", []) or []),
     }
     if hasattr(view, "position"):
         fields["position"] = view.position

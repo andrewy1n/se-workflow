@@ -3542,3 +3542,155 @@ def test_dismiss_cli_failure_keeps_item_and_shows_error(store, cli, defs, monkey
         assert any(item.id == item_id for view in app.snapshot.efforts for item in view.needs_you)
 
     _detail_run(store, (120, 40), scenario)
+
+
+def _seed_backlog(cli, defs):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha",
+        extra_payload={"goal": "ship backlog panel", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "b-phase", 1, "in_progress")
+    promote = cli(
+        "create", "--type", "project:backlog-item", "--subject", "park-promote",
+        "--payload", json.dumps({"effort": "alpha", "status": "open"}),
+        "--body", "## Note\n\npromote me",
+    )
+    assert promote.returncode == 0, promote.stdout + promote.stderr
+    dismiss = cli(
+        "create", "--type", "project:backlog-item", "--subject", "park-dismiss",
+        "--payload", json.dumps({"effort": "alpha", "status": "open"}),
+        "--body", "## Note\n\ndismiss me",
+    )
+    assert dismiss.returncode == 0, dismiss.stdout + dismiss.stderr
+    closed = cli(
+        "create", "--type", "project:backlog-item", "--subject", "park-closed",
+        "--payload", json.dumps({"effort": "alpha", "status": "open"}),
+    )
+    assert closed.returncode == 0, closed.stdout + closed.stderr
+    closed_rec = json.loads(closed.stdout)["record"]
+    superseded = cli(
+        "supersede", "--type", "project:backlog-item", "--id", closed_rec["id"],
+        "--expected-revision", "@current",
+        "--payload", json.dumps({"effort": "alpha", "status": "dismissed"}),
+    )
+    assert superseded.returncode == 0, superseded.stdout + superseded.stderr
+    question = _record(
+        cli, defs, "project:continuity-question", "alpha",
+        {"subject": "alpha", "owner": "ayin", "blocking": True, "scope": "still-needs-you"},
+    )
+    return json.loads(promote.stdout)["record"], json.loads(dismiss.stdout)["record"], question
+
+
+def _backlog_text(app):
+    panel = app.query_one("#backlog")
+    return "\n".join(
+        str(panel.get_option_at_index(i).prompt) for i in range(panel.option_count)
+    )
+
+
+async def _focus_backlog(app, pilot, needle):
+    panel = app.query_one("#backlog")
+    await pilot.press("b")
+    await pilot.pause()
+    assert app.focused is panel
+    for index in range(panel.option_count):
+        line = str(panel.get_option_at_index(index).prompt)
+        if needle in line:
+            panel.highlighted = index
+            await pilot.pause()
+            return panel.items[index]
+    raise AssertionError(f"backlog item {needle!r} not found in {_backlog_text(app)}")
+
+
+def test_backlog_panel_shows_open_items_not_needs_you(store, cli, defs):
+    stamped_store(store, "backlog-panel", lambda root, c, d: _seed_backlog(c, d))
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#backlog").display)
+        panel = app.query_one("#backlog")
+        assert panel.border_title == "Backlog 2"
+        text = _backlog_text(app)
+        assert "park-promote" in text and "park-dismiss" in text
+        assert "park-closed" not in text
+        needs = app.query_one("#needs-you")
+        assert needs.display
+        assert "still-needs-you" in _needs_text(app)
+        assert "park-promote" not in _needs_text(app)
+        assert not any(
+            item.subject.startswith("park-") for view in app.snapshot.efforts for item in view.needs_you
+        )
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_backlog_promote_dismiss_via_cli_and_promote_copies_prompt(store, cli, defs, monkeypatch):
+    stamped_store(store, "backlog-actions", lambda root, c, d: _seed_backlog(c, d))
+    copied = []
+
+    def fake_copy(self, text):
+        copied.append(text)
+
+    monkeypatch.setattr(app_module.DashboardApp, "copy_to_clipboard", fake_copy)
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#backlog").option_count == 2)
+        item = await _focus_backlog(app, pilot, "park-promote")
+        expected = app_module.backlog_module.prompt(item, "alpha")
+        await pilot.press("p")
+        await app.workers.wait_for_complete()
+        await _until(pilot, lambda: all(
+            entry.id != item.id
+            for view in (app.snapshot.efforts if app.snapshot else [])
+            for entry in getattr(view, "backlog", [])
+        ))
+        assert any(expected == note or expected in note for note in copied) or expected in copied
+        assert "park-promote" not in _backlog_text(app)
+        assert "still-needs-you" in _needs_text(app)
+
+        remaining = await _focus_backlog(app, pilot, "park-dismiss")
+        await pilot.press("d")
+        await app.workers.wait_for_complete()
+        await _until(pilot, lambda: not app.query_one("#backlog").display or app.query_one("#backlog").option_count == 0)
+        assert remaining.id not in {
+            entry.id for view in app.snapshot.efforts for entry in getattr(view, "backlog", [])
+        }
+        assert "still-needs-you" in _needs_text(app)
+
+    _detail_run(store, (120, 40), scenario)
+
+
+def test_backlog_detail_promote_and_refuse_non_backlog(store, cli, defs, monkeypatch):
+    stamped_store(store, "backlog-detail", lambda root, c, d: _seed_backlog(c, d))
+    copied = []
+    monkeypatch.setattr(app_module.DashboardApp, "copy_to_clipboard", lambda self, text: copied.append(text))
+
+    async def scenario(app, pilot):
+        await _until(pilot, lambda: app.query_one("#backlog").option_count == 2)
+        item = await _focus_backlog(app, pilot, "park-promote")
+        await pilot.press("enter")
+        await _until(pilot, lambda: isinstance(app.screen, app_module.BacklogDetailScreen) and app.screen.loaded)
+        screen = app.screen
+        assert screen.item.id == item.id
+        expected = app_module.backlog_module.prompt(item, "alpha")
+        await pilot.press("p")
+        await app.workers.wait_for_complete()
+        await _until(pilot, lambda: not isinstance(app.screen, app_module.BacklogDetailScreen))
+        assert expected in copied
+        assert "park-promote" not in _backlog_text(app)
+
+        fake = model_module.BacklogItem(
+            id="not-backlog", subject="x", effort="alpha", text="x",
+            status="open", record_type="project:finding",
+        )
+        view = app.effort_view("alpha")
+        view.backlog.append(fake)
+        pane = app.active_pane()
+        pane.show(view, app.snapshot.generated_at, app.size.width, app_module.palette_from(app.get_css_variables()))
+        await _until(pilot, lambda: app.query_one("#backlog").option_count >= 1)
+        await _focus_backlog(app, pilot, "x")
+        await pilot.press("p")
+        await pilot.pause()
+        assert any("Cannot promote" in note for note in _notices(app))
+        assert any(entry.id == fake.id for entry in app.effort_view("alpha").backlog)
+
+    _detail_run(store, (120, 40), scenario)
