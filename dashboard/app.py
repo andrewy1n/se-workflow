@@ -12,6 +12,7 @@ from pathlib import Path
 
 from dashboard import artifact_store
 from dashboard import gates
+from dashboard import journal
 from dashboard import model
 from dashboard import selection
 from dashboard.commit import CommitScreen
@@ -44,8 +45,81 @@ NEEDS_TEXT_TITLE = {
     "blocking-question": "Question", "open-question": "Question", "needs-human": "Claim", "unsigned-check": "Check",
     "loop-route": "Assessment", "integration": "Report", "merge-branch": "Branch",
 }
+JOURNAL_PANEL_LIMIT = 5
+JOURNAL_TYPE_LABEL = {
+    "project:failed-attempt": ("✗", "attempt"),
+    "project:investigation-observation": ("◉", "observation"),
+    "project:finding": ("!", "finding"),
+    "project:continuity-question": ("?", "question"),
+    "project:assignment-amendment": ("△", "amendment"),
+}
 # Compat for tests and task_detail that still import the old name.
 PhaseDetailScreen = PhaseScreen
+
+
+def journal_type_label(record_type: str) -> tuple[str, str]:
+    labels = getattr(journal, "TYPE_LABEL", None) or JOURNAL_TYPE_LABEL
+    return labels.get(record_type, ("·", record_type.rsplit(":", 1)[-1]))
+
+
+def journal_panel_lines(
+    items: list[journal.JournalItem], now: datetime, colors: dict[str, str], width: int,
+) -> list[Text]:
+    lines = []
+    for item in items:
+        glyph, label = journal_type_label(item.record_type)
+        age = relative_time(item.recorded_at, now)
+        line = Text(no_wrap=True, overflow="ellipsis")
+        head = f"{glyph} {label}"
+        line.append(head, style=colors["warning"])
+        room = max(width - len(head) - len(item.subject) - len(age) - 4, 8)
+        line.append(f" {clip(item.text, room)}")
+        line.append(f"  {clip(item.subject, max(width // 4, 8))}", style=colors["muted"])
+        line.append(f"  {age}", style=colors["muted"])
+        lines.append(line)
+    return lines
+
+
+def open_record_detail(app: App, record_id: str, *, task_id: str = "") -> None:
+    """Push RecordDetailScreen when journal-screen provides it; else a thin stub."""
+    detail_cls = getattr(journal, "RecordDetailScreen", None)
+    if detail_cls is None:
+        detail_cls = _RecordDetailStub
+        app.push_screen(detail_cls(app.target, record_id))
+        return
+    try:
+        app.push_screen(detail_cls(app.target, record_id, task_id=task_id))
+    except TypeError:
+        app.push_screen(detail_cls(app.target, record_id))
+
+
+class _RecordDetailStub(Screen[None]):
+    """Stand-in until journal-screen lands RecordDetailScreen on journal.py."""
+
+    BINDINGS = [Binding("escape", "app.pop_screen", "back")]
+
+    def __init__(self, target: artifact_store.Target, record_id: str, task_id: str = "") -> None:
+        super().__init__()
+        self.target = target
+        self.record_id = record_id
+        self.task_id = task_id
+
+    def compose(self) -> ComposeResult:
+        yield Static(f"record {self.record_id}", id="record-stub")
+        yield Footer()
+
+
+# Soft names so app imports if journal-screen has not landed the screens yet.
+JournalScreen = getattr(journal, "JournalScreen", None)
+RecordDetailScreen = getattr(journal, "RecordDetailScreen", None)
+
+
+def _pollable_detail_screens() -> tuple[type, ...]:
+    screens: list[type] = [TaskDetailScreen, PhaseDetailScreen]
+    for cls in (JournalScreen, RecordDetailScreen):
+        if cls is not None:
+            screens.append(cls)
+    return tuple(screens)
 
 
 def effort_progress(view: model.EffortView) -> tuple[int, int]:
@@ -214,6 +288,10 @@ class EffortPane(VerticalScroll):
         filter_input = FilterInput(placeholder="filter tasks", id="filter")
         filter_input.display = False
         yield filter_input
+        journal_panel = JournalPanel(id="journal")
+        journal_panel.border_title = "Journal"
+        journal_panel.display = False
+        yield journal_panel
         tasks = TaskTable(id="tasks", cursor_type="row", zebra_stripes=False)
         tasks.border_title = "Tasks"
         yield tasks
@@ -270,6 +348,7 @@ class EffortPane(VerticalScroll):
             tab.show(tally[tab.tab_name], tab.tab_name == selected_tab)
         widths = [tab.label_width() for tab in tabs]
         self.query_one("#status-tabs").styles.grid_size_columns = tab_columns(widths, inner)
+        self.query_one("#journal", JournalPanel).fill(scoped, now, colors, inner - 4)
         self.fill_tasks(scoped, view, now, width, inner, colors, selected)
         self.query_one("#needs-you", NeedsList).fill(view, colors, inner - 4)
         self.fill_panel("#activity", selection.activity_lines(view, now, colors, inner - 4))
@@ -406,6 +485,50 @@ class NeedsList(OptionList):
             return None
         return self.items[self.highlighted]
 
+
+class JournalPanel(OptionList):
+    """Open journal items above the task table for repair/evaluate efforts (R7)."""
+
+    BINDINGS = [
+        Binding("escape", "app.leave_journal", "back", show=False),
+        Binding("j", "cursor_down", "down", show=False),
+        Binding("k", "cursor_up", "up", show=False),
+    ]
+
+    def __init__(self, id: str) -> None:
+        super().__init__(id=id)
+        self.items: list[journal.JournalItem] = []
+
+    def fill(
+        self, view: model.EffortView, now: datetime, colors: dict[str, str], width: int,
+    ) -> None:
+        kept = self.highlighted_item()
+        index = self.highlighted
+        if view.kind not in journal.KIND_JOURNAL:
+            open_items: list[journal.JournalItem] = []
+        else:
+            open_items = [item for item in (view.journal_open or []) if item.open]
+        self.items = open_items[:JOURNAL_PANEL_LIMIT]
+        more = max(0, len(open_items) - len(self.items))
+        self.border_title = f"Journal {len(open_items)}" if open_items else "Journal"
+        self.display = bool(open_items)
+        self.clear_options()
+        lines = journal_panel_lines(self.items, now, colors, width)
+        self.add_options(Option(line, id=item.id) for item, line in zip(self.items, lines))
+        if more:
+            self.add_option(Option(Text(f"+{more} more", style=colors["muted"]), id="__more__", disabled=True))
+        ids = [item.id for item in self.items]
+        if kept is not None and kept.id in ids:
+            self.highlighted = ids.index(kept.id)
+        elif index is not None and ids:
+            self.highlighted = min(index, len(ids) - 1)
+        if not open_items and self.has_focus:
+            self.app.leave_journal()
+
+    def highlighted_item(self) -> journal.JournalItem | None:
+        if self.highlighted is None or self.highlighted >= len(self.items):
+            return None
+        return self.items[self.highlighted]
 
 
 class NeedsYouDetailScreen(Screen[None]):
@@ -597,6 +720,10 @@ class DashboardApp(App[None]):
     #status-tabs { layout: grid; grid-size: 6; grid-columns: auto; grid-rows: 1; grid-gutter: 0 1; height: auto; margin-top: 1; }
     .status-tab { width: auto; height: 1; color: $text-muted; }
     .status-tab.selected { color: $text; }
+    #journal { height: auto; max-height: 8; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: transparent; }
+    #journal:focus { border: round $accent; background-tint: $foreground 0%; }
+    #journal > .option-list--option-highlighted { background: transparent; color: $foreground; text-style: none; }
+    #journal:focus > .option-list--option-highlighted { background: $block-cursor-background; color: $block-cursor-foreground; text-style: $block-cursor-text-style; }
     #tasks { height: auto; max-height: 16; margin-top: 1; border: round $panel; border-title-color: $text-muted; padding: 0 1; background: $surface; }
     #filter { height: 1; margin-top: 1; padding: 0 1; border: none; background: $panel; }
     #filter:focus { border: none; background: $panel; }
@@ -629,6 +756,7 @@ class DashboardApp(App[None]):
         Binding("[", "select_phase(-1)", "previous phase", show=False),
         Binding("]", "select_phase(1)", "next phase", show=False),
         Binding("P", "open_picker", "phase picker", show=False),
+        Binding("J", "open_journal", "journal", show=False),
         Binding("f", "toggle_finished", "toggle finished", show=False),
         Binding("question_mark", "toggle_help", "help", show=False),
         Binding("escape", "clear_filter", "clear filter", show=False),
@@ -692,12 +820,28 @@ class DashboardApp(App[None]):
         if isinstance(self.focused, NeedsList):
             self.set_focus(None)
 
+    def action_leave_journal(self) -> None:
+        self.leave_journal()
+
+    def leave_journal(self) -> None:
+        self.focus_tasks()
+        if isinstance(self.focused, JournalPanel):
+            self.set_focus(None)
+
     def refocus(self) -> None:
         if self.focused is None or not self.focused.display:
             self.focus_tasks()
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        needs = event.option_list
+        listing = event.option_list
+        if isinstance(listing, JournalPanel):
+            if event.option_index >= len(listing.items):
+                return
+            event.stop()
+            item = listing.items[event.option_index]
+            open_record_detail(self, item.id, task_id=item.task_id)
+            return
+        needs = listing
         if not isinstance(needs, NeedsList) or event.option_index >= len(needs.items):
             return
         item = needs.items[event.option_index]
@@ -731,7 +875,7 @@ class DashboardApp(App[None]):
         if token != self.token or time.monotonic() - self.loaded_at > REDRAW_SECONDS:
             self.reload()
         for screen in self.screen_stack:
-            if isinstance(screen, (TaskDetailScreen, PhaseDetailScreen)):
+            if isinstance(screen, _pollable_detail_screens()):
                 screen.poll(token)
 
     def effort_view(self, effort: str) -> model.EffortView | None:
@@ -764,6 +908,16 @@ class DashboardApp(App[None]):
         elif isinstance(screen, NeedsYouDetailScreen):
             view = self.effort_view(screen.effort)
             name = gates.prompt(screen.item, view) if view is not None else screen.item.subject
+        elif JournalScreen is not None and isinstance(screen, JournalScreen):
+            table_cls = getattr(journal, "JournalTable", None)
+            table = (
+                screen.query_one("#journal-table", table_cls)
+                if table_cls is not None and screen.query("#journal-table") else None
+            )
+            item = table.cursor_item() if table is not None else None
+            name = item.subject if item is not None else screen.effort
+        elif RecordDetailScreen is not None and isinstance(screen, RecordDetailScreen):
+            name = (screen.record or {}).get("subject") or screen.record_id
         elif isinstance(self.focused, NeedsList):
             item = self.focused.highlighted_item()
             pane = self.focused.query_ancestor(EffortPane)
@@ -787,16 +941,17 @@ class DashboardApp(App[None]):
     def action_refresh(self) -> None:
         self.reload()
         for screen in self.screen_stack:
-            if isinstance(screen, (TaskDetailScreen, PhaseDetailScreen)):
+            if isinstance(screen, _pollable_detail_screens()) and hasattr(screen, "load"):
                 screen.load()
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         if isinstance(self.screen, CommitScreen):
             return action == "quit"
-        detail = isinstance(self.screen, (TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen))
+        detail = isinstance(self.screen, DETAIL_SCREENS)
         if detail and action in (
-            "next_effort", "previous_effort", "open_task", "open_phase", "filter", "status_tab", "step_status_tab", "clear_filter",
-            "focus_needs", "leave_needs", "select_phase", "open_picker", "toggle_finished",
+            "next_effort", "previous_effort", "open_task", "open_phase", "open_journal", "filter", "status_tab",
+            "step_status_tab", "clear_filter", "focus_needs", "leave_needs", "select_phase", "open_picker",
+            "toggle_finished",
         ):
             return False
         if action == "clear_filter":
@@ -943,6 +1098,19 @@ class DashboardApp(App[None]):
             if phase_row is None or phase_row.evidence is None:
                 open_tab = "overview"
         self.push_screen(PhaseScreen(self.target, pane.effort, subject, tab=open_tab))
+
+    def action_open_journal(self) -> None:
+        screen_cls = JournalScreen or getattr(journal, "JournalScreen", None)
+        if screen_cls is None:
+            return
+        pane = self.active_pane()
+        if pane is None or self.snapshot is None or isinstance(self.screen, DETAIL_SCREENS):
+            return
+        view = next((v for v in self.snapshot.efforts if v.effort == pane.effort), None)
+        if view is None:
+            return
+        phase = selection.resolve_selection(view, self.selections.get(pane.effort, selection.PhaseSelection()))
+        self.push_screen(screen_cls(self.target, pane.effort, phase))
 
     def select_phase(self, effort: str, target: str | None) -> None:
         pane = self.panes.get(effort)
@@ -1160,7 +1328,20 @@ class DashboardApp(App[None]):
         self.paint(event.size.width)
 
 
-DETAIL_SCREENS = (TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen, CommitScreen)
+def _journal_detail_screens() -> tuple[type, ...]:
+    screens: list[type] = []
+    for name in ("JournalScreen", "RecordDetailScreen"):
+        cls = getattr(journal, name, None)
+        if cls is not None:
+            screens.append(cls)
+    if getattr(journal, "RecordDetailScreen", None) is None:
+        screens.append(_RecordDetailStub)
+    return tuple(screens)
+
+
+DETAIL_SCREENS = (
+    TaskDetailScreen, PhaseDetailScreen, NeedsYouDetailScreen, CommitScreen,
+) + _journal_detail_screens()
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
