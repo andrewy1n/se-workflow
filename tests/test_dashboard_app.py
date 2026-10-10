@@ -319,6 +319,19 @@ def test_resize_rebuilds_task_columns_without_a_phase_column(seeded):
     _run(seeded, 120, scenario)
 
 
+def test_paint_tolerates_missing_effort_tabs(seeded):
+    async def scenario(app, pilot):
+        assert "alpha" in app.panes
+        held = app.panes["alpha"]
+        app.panes.clear()
+        app.paint()
+        app.panes["alpha"] = held
+        await app.query_one("#efforts").remove_pane("effort-alpha")
+        app.paint()
+
+    _run(seeded, 80, scenario)
+
+
 def test_once_keeps_the_phase_column_when_wide(seeded):
     result = subprocess.run(
         ["uv", "run", "--script", str(SCRIPT), "--once"], capture_output=True, text=True, cwd=str(seeded),

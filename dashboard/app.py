@@ -34,6 +34,7 @@ from textual import events, work
 from textual.binding import Binding
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.css.query import NoMatches
 from textual.screen import Screen
 from textual.widgets._tabbed_content import ContentTabs
 from textual.widgets import (
@@ -1360,10 +1361,17 @@ class DashboardApp(App[None]):
         self.query_one("#header-path", Static).update(header_text(self.target, snapshot.generated_at, colors, width))
         self.query_one("#header-finished", Static).update(Text(f"+{hidden} finished", style="dim") if hidden else Text())
         for view in shown:
-            tab = tabs.get_tab(f"effort-{slug(view.effort)}")
+            pane = self.panes.get(view.effort)
+            if pane is None:
+                continue
+            try:
+                tab = tabs.get_tab(f"effort-{slug(view.effort)}")
+            except NoMatches:
+                # Resize / landing refresh can paint before add_pane lands the tab.
+                continue
             tab.label = Text(tab_label(view))
             tab.set_class(view.finished, "finished")
-            self.panes[view.effort].show(view, snapshot.generated_at, width, colors)
+            pane.show(view, snapshot.generated_at, width, colors)
 
     def on_resize(self, event: events.Resize) -> None:
         self.paint(event.size.width)
