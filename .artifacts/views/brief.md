@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:aab8433652c14908977939bb854281ed016565b3754cbfd1247258dc57a3c0e7
+> Store state: sha256:acccab0c7554f41b668cd539699a00e3de5761ec2b8b127125c97854b7f4d911
 
 ## activity-failures
 
@@ -132,7 +132,7 @@
 ## dashboard
 
 ### Position
-- **dashboard**: waits-on-compact discussed (drop waits-on from row); ready for plan-phase; effort _(id: [rec-e6b3e54e-6a87-44e6-90ac-19c9ddb27635](/home/andrewyin/se-workflow/.artifacts/records/project__current-position/rec-e6b3e54e-6a87-44e6-90ac-19c9ddb27635.md))_
+- **dashboard**: waits-on-compact done; no further phase planned; effort _(id: [rec-706fd9f0-d080-41e8-b1ce-1c3474f14f19](/home/andrewyin/se-workflow/.artifacts/records/project__current-position/rec-706fd9f0-d080-41e8-b1ce-1c3474f14f19.md))_
 
 ## dashboard-app
 
