@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:c257b1a08c2adbf406e2678919e09509612ad4ddb967d6a7b6e999b2a84bb3e0
+> Store state: sha256:7c9c3b51163947aeedbb64e31aa02bd7d01ef663a87c84f319056d67bc5c77a2
 
 ## dashboard
 
@@ -31,3 +31,12 @@
 
 ### Position
 - **workflow-loop**: backlog-capture done; no further phase planned; effort _(id: [rec-bc86a0e3-6390-4b11-af25-7dda630cebd0](.artifacts/records/project__current-position/rec-bc86a0e3-6390-4b11-af25-7dda630cebd0.md))_
+
+### Backlog
+- **gh-10-phase-reviewer**: workflow-loop; open _(id: [rec-1dcea0d3-ab9e-4525-94e9-d12c427a75fe](.artifacts/records/project__backlog-item/rec-1dcea0d3-ab9e-4525-94e9-d12c427a75fe.md))_
+- **gh-11-verification-loop**: workflow-loop; open _(id: [rec-0df3151d-956c-4c9a-b031-87ef9cceeeb7](.artifacts/records/project__backlog-item/rec-0df3151d-956c-4c9a-b031-87ef9cceeeb7.md))_
+- **gh-5-check-runner**: workflow-loop; open _(id: [rec-129a608e-7c82-432e-8711-3b7b6ed6c366](.artifacts/records/project__backlog-item/rec-129a608e-7c82-432e-8711-3b7b6ed6c366.md))_
+- **gh-6-red-first**: workflow-loop; open _(id: [rec-f243b6a7-2d97-49a7-a376-0be83bcb310b](.artifacts/records/project__backlog-item/rec-f243b6a7-2d97-49a7-a376-0be83bcb310b.md))_
+- **gh-7-retry-loop**: workflow-loop; open _(id: [rec-32c68524-3bd4-4827-88a7-4ac10915c3bd](.artifacts/records/project__backlog-item/rec-32c68524-3bd4-4827-88a7-4ac10915c3bd.md))_
+- **gh-8-dashboard-approvals**: workflow-loop; open _(id: [rec-8372b4c1-b939-4819-aae2-557d05506dc2](.artifacts/records/project__backlog-item/rec-8372b4c1-b939-4819-aae2-557d05506dc2.md))_
+- **gh-9-tiered-verification**: workflow-loop; open _(id: [rec-a349def9-ad0c-4d7b-b35a-26c579d9aef3](.artifacts/records/project__backlog-item/rec-a349def9-ad0c-4d7b-b35a-26c579d9aef3.md))_
