@@ -78,6 +78,36 @@ def test_phase_landing_reports_merged():
     assert result == Landing(branch="phase/human-gates", exists=True, ahead=0, merged=True)
 
 
+def test_phase_landing_reports_merged_when_tip_is_patch_equivalent():
+    """Tip not an ancestor of main, but every tip commit is already on main (cherry -)."""
+    root = _scratch_main()
+    git(root, "checkout", "-qb", "phase/human-gates")
+    _write(root, "m.txt", "feature\n")
+    git(root, "add", "m.txt")
+    git(root, "commit", "-qm", "feature")
+    feature = git(root, "rev-parse", "HEAD").stdout.strip()
+    git(root, "checkout", "-q", "main")
+    # Divergent commit on main so cherry-pick cannot fast-forward to the tip SHA.
+    _write(root, "other.txt", "main-only\n")
+    git(root, "add", "other.txt")
+    git(root, "commit", "-qm", "main-diverges")
+    assert git(root, "cherry-pick", feature).returncode == 0
+    # Drift the tip with an extra commit whose patch is also applied on main.
+    git(root, "checkout", "-q", "phase/human-gates")
+    _write(root, "extra.txt", "extra\n")
+    git(root, "add", "extra.txt")
+    git(root, "commit", "-qm", "extra-on-tip")
+    extra = git(root, "rev-parse", "HEAD").stdout.strip()
+    git(root, "checkout", "-q", "main")
+    assert git(root, "cherry-pick", extra).returncode == 0
+    # Tip is not an ancestor; without cherry-equivalence this would stay unmerged.
+    ancestor = git(root, "merge-base", "--is-ancestor", "phase/human-gates", "main")
+    assert ancestor.returncode == 1
+
+    result = phase_landing(root, LANDING_BODY, "human-gates")
+    assert result == Landing(branch="phase/human-gates", exists=True, ahead=0, merged=True)
+
+
 def test_phase_landing_no_landing_heading_returns_none():
     root = _scratch_main()
     assert phase_landing(root, NO_LANDING_BODY, "human-gates") is None
@@ -115,7 +145,7 @@ def test_phase_landing_fail_returns_none(monkeypatch):
     real = subprocess.run
 
     def flaky(cmd, **kwargs):
-        if isinstance(cmd, (list, tuple)) and "rev-list" in cmd:
+        if isinstance(cmd, (list, tuple)) and "cherry" in cmd:
             raise subprocess.TimeoutExpired(cmd=cmd, timeout=2)
         return real(cmd, **kwargs)
 

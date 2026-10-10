@@ -101,22 +101,12 @@ def phase_landing(root: Path, body: str, subject: str) -> Landing | None:
     if exists_result.returncode != 0:
         return Landing(branch=branch, exists=False, ahead=0, merged=False)
 
-    count = _git(root, "rev-list", "--count", f"main..{branch}")
-    if count is None or count.returncode != 0:
+    # Unique commits only: patch-equivalent tips (cherry-pick / rebased landing)
+    # must not keep Needs you after the work is already on main.
+    cherry = _git(root, "cherry", "main", branch)
+    if cherry is None or cherry.returncode != 0:
         return None
-    try:
-        ahead = int(count.stdout.strip())
-    except ValueError:
-        return None
-
-    ancestor = _git(root, "merge-base", "--is-ancestor", branch, "main")
-    if ancestor is None:
-        return None
-    if ancestor.returncode == 0:
-        merged = True
-    elif ancestor.returncode == 1:
-        merged = False
-    else:
-        return None
+    ahead = sum(1 for line in cherry.stdout.splitlines() if line.startswith("+"))
+    merged = ahead == 0
 
     return Landing(branch=branch, exists=True, ahead=ahead, merged=merged)
