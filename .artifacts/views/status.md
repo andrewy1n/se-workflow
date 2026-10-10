@@ -1,7 +1,7 @@
 # Project Status
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:1d25eafcb17344e452ebe7c95badb0e348ab3d9163959105b02c5f0cee32f29d
+> Store state: sha256:158ff727429ef5058b3bd43ec58cad1482f628a713e45eabf28887bfdf4c0bee
 
 ## dashboard-view
 
@@ -286,11 +286,11 @@
 ## journal-view
 
 ### Work
-- **journal-agent**: Agent work section on task detail; journal-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-27ad566b-6186-43df-b8f3-863be5f3fa69](.artifacts/records/project__work-item/rec-27ad566b-6186-43df-b8f3-863be5f3fa69.md))_
-- **journal-model**: Journal load, scope, open-first order, kind panel data; journal-view; deliver; dashboard; state: planned; ready: True; wave: 1; criteria: 0 pass / 0 fail _(id: [rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc](.artifacts/records/project__work-item/rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc.md))_
-- **journal-panel**: Kind-based Journal panel above task table; journal-view; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-0d3ae892-5026-4771-8967-ef3624ec5035](.artifacts/records/project__work-item/rec-0d3ae892-5026-4771-8967-ef3624ec5035.md))_
-- **journal-screen**: JournalScreen with filter, detail, and pager; journal-view; deliver; dashboard; state: planned; ready: False; wave: 2; criteria: 0 pass / 0 fail _(id: [rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40](.artifacts/records/project__work-item/rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40.md))_
-- **verify-journal-view**: Verify journal-view phase; journal-view; deliver; dashboard; state: planned; ready: False; wave: 3; criteria: 0 pass / 0 fail _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
+- **journal-agent**: Agent work section on task detail; journal-view; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 1 pass / 0 fail _(id: [rec-27ad566b-6186-43df-b8f3-863be5f3fa69](.artifacts/records/project__work-item/rec-27ad566b-6186-43df-b8f3-863be5f3fa69.md))_
+- **journal-model**: Journal load, scope, open-first order, kind panel data; journal-view; deliver; dashboard; state: done; ready: True; wave: 1; criteria: 2 pass / 0 fail _(id: [rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc](.artifacts/records/project__work-item/rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc.md))_
+- **journal-panel**: Kind-based Journal panel above task table; journal-view; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 1 pass / 0 fail _(id: [rec-0d3ae892-5026-4771-8967-ef3624ec5035](.artifacts/records/project__work-item/rec-0d3ae892-5026-4771-8967-ef3624ec5035.md))_
+- **journal-screen**: JournalScreen with filter, detail, and pager; journal-view; deliver; dashboard; state: done; ready: True; wave: 2; criteria: 1 pass / 0 fail _(id: [rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40](.artifacts/records/project__work-item/rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40.md))_
+- **verify-journal-view**: Verify journal-view phase; journal-view; deliver; dashboard; state: done; ready: True; wave: 3; criteria: 2 pass / 0 fail _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
 
 ## 
 

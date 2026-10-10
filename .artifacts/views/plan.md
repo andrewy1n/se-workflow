@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:044b69410e4be3dddd8404d185d34e7162244b6cdf52ec8c58f73f2a4bd5461c
+> Store state: sha256:d7b5ea0d4e41ea670826887c141c20cda05abc57ab68c3ffa28254ebd1db4c8a
 
 ## dashboard-view
 
@@ -436,16 +436,6 @@ print("phase checks only")
 - **verify-evidence-matrix-suite**: the evidence-matrix checks pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_requirement.py tests/test_dashboard_phase_screen.py -q -k matrix _(id: [rec-90a86f40-7f74-4dc3-875a-9d1043564b55](.artifacts/records/project__acceptance/rec-90a86f40-7f74-4dc3-875a-9d1043564b55.md))_
 
 ## journal-view
-
-### Phase
-- **journal-view**: Journal, kind-based default view, and agent work on task detail; 26; dashboard _(id: [rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3](.artifacts/records/project__phase/rec-ed43d1f8-f2b3-46b9-bc35-687ef0dc18a3.md))_
-
-### Work
-- **journal-agent**: Agent work section on task detail; journal-view; deliver; dashboard _(id: [rec-27ad566b-6186-43df-b8f3-863be5f3fa69](.artifacts/records/project__work-item/rec-27ad566b-6186-43df-b8f3-863be5f3fa69.md))_
-- **journal-model**: Journal load, scope, open-first order, kind panel data; journal-view; deliver; dashboard _(id: [rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc](.artifacts/records/project__work-item/rec-939f8e3b-dfc5-4bca-9e73-46a534b15bcc.md))_
-- **journal-panel**: Kind-based Journal panel above task table; journal-view; deliver; dashboard _(id: [rec-0d3ae892-5026-4771-8967-ef3624ec5035](.artifacts/records/project__work-item/rec-0d3ae892-5026-4771-8967-ef3624ec5035.md))_
-- **journal-screen**: JournalScreen with filter, detail, and pager; journal-view; deliver; dashboard _(id: [rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40](.artifacts/records/project__work-item/rec-ca5237b7-362c-4d08-ae06-cec7f2c2db40.md))_
-- **verify-journal-view**: Verify journal-view phase; journal-view; deliver; dashboard _(id: [rec-f04fa83f-a51f-4800-b3be-9b658df17590](.artifacts/records/project__work-item/rec-f04fa83f-a51f-4800-b3be-9b658df17590.md))_
 
 ### Acceptance
 - **journal-agent**: Task detail Agent work shows latest assignment, amendments, and report collapsed to 8 lines; Enter expands; o pages the focused block; earlier assignments are listed; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k 'agent or collaps' _(id: [rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76](.artifacts/records/project__acceptance/rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76.md))_

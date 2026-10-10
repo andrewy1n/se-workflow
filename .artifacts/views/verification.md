@@ -1,7 +1,7 @@
 # Project Verification
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:f87a450bc015ce26187586d1b1fc7efd9811dd5ff016561c769c1fbd1c487edc
+> Store state: sha256:3083ecc5d23117c424e504e6b749bcda2c6243757baf10f1dff995b672c50191
 
 ## activity-failures
 
@@ -760,25 +760,40 @@
 ### Acceptance
 - **journal-agent**: Task detail Agent work shows latest assignment, amendments, and report collapsed to 8 lines; Enter expands; o pages the focused block; earlier assignments are listed; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k 'agent or collaps' _(id: [rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76](.artifacts/records/project__acceptance/rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76.md))_
 
+### Check
+- **journal-agent**: rec-9a1b4afe-d1e3-4cb9-949c-3869f5a0cd76; 91ae11437c0099f16a861f551d7f5811bc9c2475; pass; tdd _(id: [rec-13fd0aa7-5391-4ad3-9cb5-459f3e69b9e8](.artifacts/records/project__check-run/rec-13fd0aa7-5391-4ad3-9cb5-459f3e69b9e8.md))_
+
 ## journal-model
 
 ### Acceptance
 - **journal-model**: load_journal and ordered return correct types, phase scope, open-first ordering, and one-line text for seeded stores; missing types do not error; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py -q -k 'journal and (load or order or scope or missing)' _(id: [rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe](.artifacts/records/project__acceptance/rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe.md))_
+
+### Check
+- **journal-model**: rec-8c8cd3b5-eac9-461a-b480-58bd3af0f8fe; 848314d1c97ebebc6edbee947927009b70f81aba; pass; tdd _(id: [rec-672d4d2c-be56-4039-be34-25ccce79ee87](.artifacts/records/project__check-run/rec-672d4d2c-be56-4039-be34-25ccce79ee87.md))_
 
 ## journal-model-kind
 
 ### Acceptance
 - **journal-model-kind**: Repair and evaluate snapshots carry journal_open for the selected phase; deliver and incidental do not; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py -q -k 'journal and kind' _(id: [rec-ff941da0-90f7-4e86-8d29-fd9593cff4c9](.artifacts/records/project__acceptance/rec-ff941da0-90f7-4e86-8d29-fd9593cff4c9.md))_
 
+### Check
+- **journal-model-kind**: rec-ff941da0-90f7-4e86-8d29-fd9593cff4c9; 848314d1c97ebebc6edbee947927009b70f81aba; pass; tdd _(id: [rec-dde27824-3216-4173-a3b5-1600b1b62d0e](.artifacts/records/project__check-run/rec-dde27824-3216-4173-a3b5-1600b1b62d0e.md))_
+
 ## journal-panel
 
 ### Acceptance
 - **journal-panel**: Repair and evaluate efforts show up to 5 open journal rows above the task table; deliver efforts show none; Enter opens detail; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_app.py tests/test_dashboard_journal.py -q -k "panel or kind" _(id: [rec-772b35fe-ecde-4213-8bc8-f56eb55a3517](.artifacts/records/project__acceptance/rec-772b35fe-ecde-4213-8bc8-f56eb55a3517.md))_
 
+### Check
+- **journal-panel**: rec-772b35fe-ecde-4213-8bc8-f56eb55a3517; 1eb4f7a6723b779267bc14d030951640dff5c6a3; pass; tdd _(id: [rec-1dedf93f-bdc1-42af-8c2b-4456392d1757](.artifacts/records/project__check-run/rec-1dedf93f-bdc1-42af-8c2b-4456392d1757.md))_
+
 ## journal-screen
 
 ### Acceptance
 - **journal-screen**: J opens the journal for the selected phase; a toggles effort scope; Esc returns; / filters; Enter opens detail; o pages with stub; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_journal.py -q -k "screen or filter or detail or pager" _(id: [rec-5ac93260-7e5b-4f29-8ea4-54b09833796f](.artifacts/records/project__acceptance/rec-5ac93260-7e5b-4f29-8ea4-54b09833796f.md))_
+
+### Check
+- **journal-screen**: rec-5ac93260-7e5b-4f29-8ea4-54b09833796f; 1eb4f7a6723b779267bc14d030951640dff5c6a3; pass; tdd _(id: [rec-7dccd89d-a08b-4e67-a264-efc93e0bc27c](.artifacts/records/project__check-run/rec-7dccd89d-a08b-4e67-a264-efc93e0bc27c.md))_
 
 ## keyboard-focus
 
@@ -1739,10 +1754,16 @@ print("phase checks only")
 ### Acceptance
 - **verify-journal-view**: Journal scoping, open-first order, kind panel, and agent-work blocks hold in model and pilot tests; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k journal _(id: [rec-23b9ae39-56ef-401b-b2df-9b05b78d4967](.artifacts/records/project__acceptance/rec-23b9ae39-56ef-401b-b2df-9b05b78d4967.md))_
 
+### Check
+- **verify-journal-view**: rec-23b9ae39-56ef-401b-b2df-9b05b78d4967; 1eb4f7a6723b779267bc14d030951640dff5c6a3; pass; check _(id: [rec-64cc1377-67d4-40d8-9e29-eed31077423b](.artifacts/records/project__check-run/rec-64cc1377-67d4-40d8-9e29-eed31077423b.md))_
+
 ## verify-journal-view-suite
 
 ### Acceptance
 - **verify-journal-view-suite**: the journal-view checks pass; check; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_model.py tests/test_dashboard_journal.py tests/test_dashboard_app.py -q -k journal _(id: [rec-628b0b42-c0af-421a-a077-8f9238c5eb0b](.artifacts/records/project__acceptance/rec-628b0b42-c0af-421a-a077-8f9238c5eb0b.md))_
+
+### Check
+- **verify-journal-view-suite**: rec-628b0b42-c0af-421a-a077-8f9238c5eb0b; 1eb4f7a6723b779267bc14d030951640dff5c6a3; pass; check _(id: [rec-fd830ba3-b57a-46b3-807f-15d1ebd1197f](.artifacts/records/project__check-run/rec-fd830ba3-b57a-46b3-807f-15d1ebd1197f.md))_
 
 ## verify-layout-phase
 
