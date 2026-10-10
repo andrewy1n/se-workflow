@@ -4,7 +4,7 @@
   "epistemic_status": "asserted",
   "id": "rec-2e04da4b-e33c-403b-baa8-b46f74febcaf",
   "identity": "unknown",
-  "lifecycle_state": "active",
+  "lifecycle_state": "superseded",
   "payload": {
     "effort": "workflow-loop",
     "phase": "needs-you-close",
@@ -12,13 +12,13 @@
     "scope": "effort"
   },
   "record_type": "project:current-position",
-  "recorded_at": "2026-10-10T08:16:52+00:00",
+  "recorded_at": "2026-10-10T08:30:40+00:00",
   "relationships": {
     "supersedes": [
       "rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178"
     ]
   },
-  "revision": "sha256:c9e3c66ba2c603dc930d6ea32533d2b4765959bbc758829cc5f6a3a9160ea154",
+  "revision": "sha256:b5521384dc4659db0af12b87474c1407838e261bb3c215ad6e7e7b6774beebdc",
   "stewardship": {
     "steward": "agent"
   },
