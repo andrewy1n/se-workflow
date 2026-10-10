@@ -1,7 +1,7 @@
 # Project Dashboard
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:cff15c1eabe099369f6ffd39bee44a9fe183593771e289763ed46b0f71a4d42e
+> Store state: sha256:65322033e83dbc14138c8c68521bfc2626ed8c409e32847ca7a0ccd2369336fe
 
 ## dashboard
 
@@ -47,6 +47,9 @@
 
 ### Phase
 - **backlog-capture**: title: Capture deferred work as backlog items; ordinal: 12 _(id: [rec-333cb02a-745f-437e-acad-4401d65f1dd3](.artifacts/records/project__phase/rec-333cb02a-745f-437e-acad-4401d65f1dd3.md))_
+
+### Blocking Question
+- **workflow-loop**: blocking: True; scope: plan-review:backlog-capture _(id: [rec-5d8bef30-f576-4d7d-978e-002e4f9ea099](.artifacts/records/project__continuity-question/rec-5d8bef30-f576-4d7d-978e-002e4f9ea099.md))_
 
 ### Ready
 - **contract-backlog**: title: Add backlog-item to the contract; phase: backlog-capture _(id: [rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49](.artifacts/records/project__work-item/rec-0207e2ec-7e76-44cf-b281-2d7e30aeae49.md))_

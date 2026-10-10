@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:38f569310e1940becf0fbae975aebb8ca6d253dde7f1065b21e416632cf53884
+> Store state: sha256:0a21be429c10c035e12e3302943767dc19e8b5c02da111a23aa1d42138cc66c6
 
 ## dashboard
 
@@ -32,3 +32,6 @@
 ### Position
 - **backlog-capture**: Planning backlog-capture tasks for contract type, skills, and CLI lifecycle; phase _(id: [rec-74c1674d-fcc2-49c7-abca-56d88dc64625](.artifacts/records/project__current-position/rec-74c1674d-fcc2-49c7-abca-56d88dc64625.md))_
 - **workflow-loop**: needs-you-close done; no further phase planned; effort _(id: [rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35](.artifacts/records/project__current-position/rec-938a8c7c-18c1-4d16-821a-9cb568cfbf35.md))_
+
+### Blocking Question
+- **workflow-loop**: True; plan-review:backlog-capture _(id: [rec-5d8bef30-f576-4d7d-978e-002e4f9ea099](.artifacts/records/project__continuity-question/rec-5d8bef30-f576-4d7d-978e-002e4f9ea099.md))_
