@@ -361,25 +361,50 @@ def _row_by_title(table, title):
 
 
 @pytest.mark.parametrize("width", WIDTHS)
-def test_waiting_row_title_ends_with_muted_waits_on_its_unfinished_dependencies(waits, width):
+def test_waiting_row_title_has_no_waits_on_and_keeps_muted_suffix(waits, width):
     store, _ = waits
 
     async def scenario(app, pilot):
         table = app.query_one("#tasks")
-        cell = next(
-            table.get_row(key.value)[1] for key in table.rows if "waits on" in str(table.get_row(key.value)[1])
-        )
-        tail = " · subagent  waits on w-other, w-running"
+        cell = _row_by_title(table, "title of w-waiting")[1]
         plain = str(cell).strip()
-        assert plain.endswith(tail)
-        if width == 120:
-            assert plain == "title of w-waiting" + tail
-        else:
-            assert "…" in plain[: plain.index(tail)]
-        start = str(cell).index("waits on")
+        assert "waits on" not in plain
+        assert "\n" not in plain
+        assert plain.endswith(" · subagent")
+        head = plain[: plain.index(" · subagent")]
+        assert head == "title of w-waiting" or (head.endswith("…") and "title of w-waiting".startswith(head[:-1]))
+        start = plain.index(" · subagent")
         muted = app_module.palette_from(app.get_css_variables())["muted"]
         assert any(span.start <= start and str(span.style) == muted for span in cell.spans)
         assert "waits on" not in str(_row_by_title(table, "title of w-ready")[1])
+
+    _run(store, width, scenario)
+
+
+@pytest.mark.parametrize("width", WIDTHS)
+def test_waiting_row_with_several_unfinished_deps_stays_one_line(store, cli, defs, width):
+    h.create_generic_record(
+        cli, defs, "project:active-goal", subject="alpha", extra_payload={"goal": "g", "kind": "deliver"},
+    )
+    _phase(cli, defs, "alpha", "many", 1, "in_progress")
+    deps = []
+    for i in range(6):
+        dep = _work_item(cli, defs, "alpha", f"many-dep-{i}", "many")
+        h.transition(cli, "project:work-item", dep, "in_progress")
+        deps.append(dep)
+    waiting = _work_item(
+        cli, defs, "alpha", "many-waiting", "many", *(f"depends_on:{dep['id']}" for dep in deps),
+    )
+
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        cell = table.get_row(waiting["id"])[1]
+        plain = str(cell)
+        assert "waits on" not in plain
+        assert "\n" not in plain
+        assert plain.strip().endswith(" · subagent")
+        status = str(table.get_row(waiting["id"])[0])
+        assert "waiting" in status
 
     _run(store, width, scenario)
 
@@ -571,11 +596,7 @@ def _task_cells(app):
 
 
 def _titles(app):
-    titles = []
-    for text in _task_cells(app):
-        text = text.split("  waits on")[0]
-        titles.append(text.split(" · ")[0].strip())
-    return titles
+    return [text.split(" · ")[0].strip() for text in _task_cells(app)]
 
 
 def _same_tasks(app, expected):
@@ -583,13 +604,12 @@ def _same_tasks(app, expected):
     if len(cells) != len(expected):
         return False
     for cell, title in zip(cells, expected):
-        head = cell.split("  waits on")[0].split(" · ")[0].strip()
+        head = cell.split(" · ")[0].strip()
         if head == title:
             continue
-        if not (head.endswith("…") and (head == "…" or title.startswith(head[:-1]))):
-            return False
-        if head == "…" and "  waits on" not in cell:
-            return False
+        if head.endswith("…") and (head == "…" or title.startswith(head[:-1])):
+            continue
+        return False
     return True
 
 
@@ -1276,11 +1296,28 @@ def test_detail_related_panel_is_hidden_without_related_records(detailed, cli, s
         table = app.query_one("#tasks")
         blocked = next(
             k.value for k in table.rows
-            if "det-blocked" in str(table.get_row(k.value)[1]) or "waits on det-task" in str(table.get_row(k.value)[1])
+            if "det-blocked" in str(table.get_row(k.value)[1]) or "title of det-blocked" in str(table.get_row(k.value)[1])
         )
         await _open_by_click(app, pilot, blocked)
         screen = await _shown(app, pilot)
         assert not screen.query_one("#related").display
+
+    _detail_run(store, size, scenario)
+
+
+@pytest.mark.parametrize("size", DETAIL_SIZES)
+def test_detail_blocked_waiting_task_still_lists_Depends_on_links(detailed, size):
+    store, task, _ = detailed
+
+    async def scenario(app, pilot):
+        table = app.query_one("#tasks")
+        blocked = next(k.value for k in table.rows if "title of det-blocked" in str(table.get_row(k.value)[1]))
+        cell = str(table.get_row(blocked)[1])
+        assert "waits on" not in cell
+        await _open_by_click(app, pilot, blocked)
+        screen = await _shown(app, pilot)
+        assert screen.detail.status == "waiting"
+        assert _link_lines(screen) == ["Depends on: ▶ det-task", "Phase: det-phase"]
 
     _detail_run(store, size, scenario)
 
@@ -3107,8 +3144,8 @@ def test_estimate_view_title_suffix(store, cli, defs):
 
     async def scenario(app, pilot):
         full_plain = _task_plain(app, full["id"])
-        assert " · M · 25m · inline  waits on blocker" in full_plain
-        assert full_plain.index(" · M") < full_plain.index("  waits on")
+        assert " · M · 25m · inline" in full_plain
+        assert "waits on" not in full_plain
         cell = app.query_one("#tasks").get_row(full["id"])[1]
         start = str(cell).index(" · M")
         muted = app_module.palette_from(app.get_css_variables())["muted"]

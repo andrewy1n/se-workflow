@@ -126,7 +126,7 @@ def test_prefix_a_binding_is_a_popup_of_the_launcher_in_the_pane_directory(tmux)
     assert "/dashboard" in binding
 
 
-def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_time_and_failed_activity(
+def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waiting_running_time_and_failed_activity(
     tmux, seeded, cli, resolved_contract,
 ):
     defs = h.record_defs_by_id(resolved_contract)
@@ -144,13 +144,14 @@ def test_prefix_a_popup_renders_the_pane_repo_dashboard_with_waits_on_running_ti
         extra_payload={"method": "check", "result": "fail", "signed_by": "", "revision": "abc1234", "effort": EFFORT},
     )
     tmux.press("A")
-    needles = [*_markers(), "running 48h", "waits on fx-running", "✗ fx-broken check failed", "status task assignee"]
+    needles = [*_markers(), "running 48h", "title of fx-waiting", "✗ fx-broken check failed", "status task assignee"]
     text = tmux.screen_text(needles)
     missing = [needle for needle in needles if needle not in text]
     assert not missing, f"missing {missing} in client output: {text[-2000:]}"
     assert "status task assignee" in text and "status task wave" not in text, text[-2000:]
     assert "running 48h" in text and "title of fx-running" in text, text[-2000:]
     assert "quiet" in text, text[-2000:]
+    assert "waits on" not in text, text[-2000:]
     assert len(tmux("list-panes", "-t", "main", "-F", "#{pane_id}").split()) == 1
 
 

@@ -144,9 +144,20 @@ def test_gates_quiet_status_label_and_wave_strip_use_warning_colour():
     assert view.needs_you == []
 
 
-def test_title_cell_clips_and_notes_what_a_waiting_task_waits_on():
+def test_title_cell_clips_and_omits_waits_on_for_a_waiting_task():
     row = task("w", "waiting", title="Wait", waits_on=("b", "a"))
-    assert tasks.title_cell(row, 40, COLORS).plain == "Wait · subagent  waits on a, b"
+    cell = tasks.title_cell(row, 40, COLORS)
+    assert cell.plain == "Wait · subagent"
+    assert "waits on" not in cell.plain
+    assert cell.plain.endswith(" · subagent")
+    muted_start = len("Wait")
+    assert any(span.start == muted_start and span.style == COLORS["muted"] for span in cell.spans)
+    many = task("m", "waiting", title="Wait", waits_on=tuple(f"dep-{i}" for i in range(8)))
+    for width in (60, 120):
+        plain = tasks.title_cell(many, width, COLORS).plain
+        assert "waits on" not in plain
+        assert "\n" not in plain
+        assert plain.endswith(" · subagent")
     clipped = tasks.title_cell(task("x", title="y" * 30), 10, COLORS, indent="  ")
     assert clipped.plain == "  … · subagent"
     assert clipped.plain.split(" · subagent")[0].endswith("…")
