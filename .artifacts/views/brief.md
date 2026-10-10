@@ -1,7 +1,7 @@
 # Project Brief
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:163a41375d0794a23a5188f6385623ae38a6d5124b983e0142acd23127c62e90
+> Store state: sha256:b6c80029abc22ce8be87788d97d57ea4ec83d6f17991a2e58bbc63c84cf7dfd6
 
 ## activity-failures
 
@@ -1474,4 +1474,4 @@ print("phase checks only")
 ## workflow-loop
 
 ### Position
-- **workflow-loop**: verify-budget done.; effort _(id: [rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178](.artifacts/records/project__current-position/rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178.md))_
+- **workflow-loop**: needs-you-close discussed; ready for plan-phase; effort _(id: [rec-2e04da4b-e33c-403b-baa8-b46f74febcaf](.artifacts/records/project__current-position/rec-2e04da4b-e33c-403b-baa8-b46f74febcaf.md))_

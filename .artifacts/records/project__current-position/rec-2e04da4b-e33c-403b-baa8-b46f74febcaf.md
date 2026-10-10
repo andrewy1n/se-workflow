@@ -2,29 +2,29 @@
 {
   "base_kind": "claim",
   "epistemic_status": "asserted",
-  "id": "rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178",
+  "id": "rec-2e04da4b-e33c-403b-baa8-b46f74febcaf",
   "identity": "unknown",
-  "lifecycle_state": "superseded",
+  "lifecycle_state": "active",
   "payload": {
     "effort": "workflow-loop",
-    "phase": "verify-budget",
-    "position": "verify-budget done.",
+    "phase": "needs-you-close",
+    "position": "needs-you-close discussed; ready for plan-phase",
     "scope": "effort"
   },
   "record_type": "project:current-position",
   "recorded_at": "2026-10-10T08:16:52+00:00",
   "relationships": {
     "supersedes": [
-      "rec-12df4b07-1639-47f7-a2b9-273059dd4e03"
+      "rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178"
     ]
   },
-  "revision": "sha256:f0f2af2c22c6b2b7fa5da2e60ff316be2ccc4348db17d0221e8955f9bd87dbb3",
+  "revision": "sha256:c9e3c66ba2c603dc930d6ea32533d2b4765959bbc758829cc5f6a3a9160ea154",
   "stewardship": {
     "steward": "agent"
   },
   "subject": "workflow-loop",
   "time": {
-    "as_of": "2026-10-09T22:52:31+00:00"
+    "as_of": "2026-10-10T08:16:52+00:00"
   }
 }
 ---

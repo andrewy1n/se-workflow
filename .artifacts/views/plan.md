@@ -1,7 +1,7 @@
 # Project Plan
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:d7b5ea0d4e41ea670826887c141c20cda05abc57ab68c3ffa28254ebd1db4c8a
+> Store state: sha256:becabd3a55595ff62da3fae84bf75b6527e6d918a66a5d89e58b2253fdf1a234
 
 ## dashboard-view
 
@@ -226,6 +226,11 @@ print("phase checks only")
 ### Acceptance
 - **status-line-from-snapshot**: For a seeded store, every status line names an effort in the app snapshot with matching counts, and an effort with no goal prints nothing; the test fails before the fix; tdd; dashboard; uv run --with textual --with pytest python -m pytest tests/test_dashboard_status.py -q _(id: [rec-fb5c210c-4e78-42c4-8fb9-f8f585e3f5f8](.artifacts/records/project__acceptance/rec-fb5c210c-4e78-42c4-8fb9-f8f585e3f5f8.md))_
 - **verify-status-line-phase**: The tmux status segment and e2e tests pass with the rebuilt status line, and the full suite passes; check; dashboard; uv run --with textual --with pytest --with pytest-xdist python -m pytest tests -q -n 4 -m 'not tmux' && uv run --with textual --with pytest python -m pytest tests -q -m tmux _(id: [rec-2e2b15a3-c245-48ab-874a-9efbfd69ff60](.artifacts/records/project__acceptance/rec-2e2b15a3-c245-48ab-874a-9efbfd69ff60.md))_
+
+## needs-you-close
+
+### Phase
+- **needs-you-close**: Close Needs you when answered; 11; workflow-loop _(id: [rec-0058a831-dc21-4bd9-a227-05e70f1d8f46](.artifacts/records/project__phase/rec-0058a831-dc21-4bd9-a227-05e70f1d8f46.md))_
 
 ## features-needs-you
 

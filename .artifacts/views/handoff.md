@@ -1,7 +1,7 @@
 # Project Handoff
 
 > Derived view — not authoritative. Edit underlying records, not this file.
-> Store state: sha256:908c810d6b07ef3f0dd22b1d551e4926fbb0e15831536fac8d8cbe963388fd51
+> Store state: sha256:10f8cc20357db67f24a5cfbab19504080abaf035605fe3735496e3b92b356983
 
 ## dashboard
 
@@ -38,4 +38,4 @@
 - **workflow-loop**: The se-workflow loop maps efforts to product areas, closes finished efforts, runs phases in parallel, and settles the approach with the user before planning; effort; deliver _(id: [rec-65213e61-dda6-4955-95bc-8c9c4b289af1](.artifacts/records/project__active-goal/rec-65213e61-dda6-4955-95bc-8c9c4b289af1.md))_
 
 ### Position
-- **workflow-loop**: verify-budget done.; effort _(id: [rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178](.artifacts/records/project__current-position/rec-bb2dd87e-2fc5-403e-a2d5-0341bab63178.md))_
+- **workflow-loop**: needs-you-close discussed; ready for plan-phase; effort _(id: [rec-2e04da4b-e33c-403b-baa8-b46f74febcaf](.artifacts/records/project__current-position/rec-2e04da4b-e33c-403b-baa8-b46f74febcaf.md))_
